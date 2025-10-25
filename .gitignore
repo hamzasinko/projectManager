@@ -1,4 +1,7 @@
 ### Maven build ###
+tarnished/**/.gitignore
+
+### Maven build ###
 tarnished/**/target/
 !tarnished/**/src/main/**/target/
 !tarnished/**/src/test/**/target/
