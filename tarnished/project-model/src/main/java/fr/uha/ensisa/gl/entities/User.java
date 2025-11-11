@@ -10,9 +10,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
-    int id;
-    String name;
-    String email;
-    String password;
-    List<Story> Stories;
+    private int id;
+    private String name;
+    private String email;
+    private String password;
+    private List<Story> Stories;
 }

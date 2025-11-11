@@ -11,12 +11,12 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Project {
-    int id;
-    String name;
-    String description;
-    Date dateStarted;
-    Date dateEnded;
-    User owner;
-    List<User> members;
-    List<Column> workFlow;
+    private int id;
+    private String name;
+    private String description;
+    private Date dateStarted;
+    private Date dateEnded;
+    private User owner;
+    private List<User> members;
+    private List<Column> workFlow;
 }
