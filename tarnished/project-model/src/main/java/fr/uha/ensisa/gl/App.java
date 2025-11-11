@@ -1,5 +1,4 @@
-package fr.uha.ensisa.gl.tarnished;
-
+package fr.uha.ensisa.gl;
 /**
  * Hello world!
  *
