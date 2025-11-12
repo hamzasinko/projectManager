@@ -13,7 +13,7 @@ import java.util.List;
 
 public class Column {
 
-    private Long id;
+    private int id;
 
     private String name;
 
