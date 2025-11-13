@@ -1,4 +1,4 @@
-package fr.uha.ensisa.gl.tarnished.model;
+package fr.uha.ensisa.gl.tarnished.entities;
 
 
 public enum StoryStatus {
@@ -9,13 +9,5 @@ public enum StoryStatus {
     BLOCKED;
 
 
-    public static StoryStatus fromString(String value) {
-        if (value == null) throw new IllegalArgumentException("StoryStatus value is null");
-        try {
-            return StoryStatus.valueOf(value.trim().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid StoryStatus: " + value, e);
-        }
-    }
 }
 
