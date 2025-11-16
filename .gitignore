@@ -1,18 +1,13 @@
-### Maven build ###
-tarnished/**/.gitignore
-
-### Maven build ###
+# Maven build
 tarnished/**/target/
-!tarnished/**/src/main/**/target/
-!tarnished/**/src/test/**/target/
 
-### IntelliJ IDEA ###
+# IntelliJ IDEA
 tarnished/**/.idea/
 tarnished/**/*.iws
 tarnished/**/*.iml
 tarnished/**/*.ipr
 
-### Eclipse ###
+# Eclipse
 tarnished/**/.apt_generated
 tarnished/**/.classpath
 tarnished/**/.factorypath
@@ -21,18 +16,19 @@ tarnished/**/.settings
 tarnished/**/.springBeans
 tarnished/**/.sts4-cache
 
-### NetBeans ###
+# NetBeans
 tarnished/**/nbproject/private/
 tarnished/**/nbbuild/
 tarnished/**/dist/
 tarnished/**/nbdist/
 tarnished/**/.nb-gradle/
 tarnished/**/build/
-!tarnished/**/src/main/**/build/
-!tarnished/**/src/test/**/build/
 
-### VS Code ###
+# VS Code
 tarnished/**/.vscode/
 
-### macOS ###
+# macOS
 tarnished/**/.DS_Store
+
+# Fichiers .ml
+tarnished/**/*.ml
