@@ -1,6 +1,4 @@
-package fr.uha.ensisa.gl.tarnished.entities;
-
-import static org.junit.jupiter.api.Assertions.*;
+package fr.uha.ensisa.gl;
 
 import java.util.Date;
 

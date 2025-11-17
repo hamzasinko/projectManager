@@ -1,4 +1,4 @@
-package fr.uha.ensisa.gl.tarnished.entities;
+package fr.uha.ensisa.gl.entities;
 
 import java.util.Date;
 

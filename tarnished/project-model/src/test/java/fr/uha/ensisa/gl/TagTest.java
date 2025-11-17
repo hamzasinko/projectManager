@@ -1,4 +1,4 @@
-package fr.uha.ensisa.gl.entities;
+package fr.uha.ensisa.gl;
 
 import org.junit.jupiter.api.Test;
 import java.util.List;

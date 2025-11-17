@@ -1,5 +1,8 @@
-package fr.uha.ensisa.gl.entities;
+package fr.uha.ensisa.gl;
 
+import fr.uha.ensisa.gl.entities.Column;
+import fr.uha.ensisa.gl.entities.Project;
+import fr.uha.ensisa.gl.entities.Story;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
