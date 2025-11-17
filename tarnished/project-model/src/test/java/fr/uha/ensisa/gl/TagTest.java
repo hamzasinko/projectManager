@@ -3,8 +3,9 @@ package fr.uha.ensisa.gl;
 import org.junit.jupiter.api.Test;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
 import fr.uha.ensisa.gl.entities.Tag;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TagTest {
 

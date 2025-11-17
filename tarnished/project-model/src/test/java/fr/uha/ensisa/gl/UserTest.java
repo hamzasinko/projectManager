@@ -1,4 +1,4 @@
-package fr.uha.ensisa.gl.tarnished;
+package fr.uha.ensisa.gl;
 
 import fr.uha.ensisa.gl.entities.Story;
 import fr.uha.ensisa.gl.entities.User;

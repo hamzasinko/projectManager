@@ -1,10 +1,10 @@
 package fr.uha.ensisa.gl;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import fr.uha.ensisa.gl.entities.Story;
+import fr.uha.ensisa.gl.entities.StoryStatus;
 import fr.uha.ensisa.gl.entities.User;
 import fr.uha.ensisa.gl.entities.WorkLog;
 import org.junit.jupiter.api.BeforeEach;
