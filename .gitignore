@@ -5,7 +5,6 @@ tarnished/**/.gitignore
 tarnished/**/target/
 !tarnished/**/src/main/**/target/
 !tarnished/**/src/test/**/target/
-
 ### IntelliJ IDEA ###
 .idea/
 tarnished/**/.idea/
@@ -37,3 +36,6 @@ tarnished/**/.vscode/
 
 ### macOS ###
 tarnished/**/.DS_Store
+
+# Fichiers .ml
+tarnished/**/*.ml
