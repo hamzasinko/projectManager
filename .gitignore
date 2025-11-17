@@ -7,6 +7,7 @@ tarnished/**/target/
 !tarnished/**/src/test/**/target/
 
 ### IntelliJ IDEA ###
+.idea/
 tarnished/**/.idea/
 tarnished/**/*.iws
 tarnished/**/*.iml
