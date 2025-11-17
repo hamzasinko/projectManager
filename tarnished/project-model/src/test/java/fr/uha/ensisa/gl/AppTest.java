@@ -1,4 +1,4 @@
-package fr.uha.ensisa.gl.tarnished;
+package fr.uha.ensisa.gl;
 
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;

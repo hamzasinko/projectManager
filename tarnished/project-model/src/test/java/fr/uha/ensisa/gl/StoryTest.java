@@ -1,9 +1,16 @@
 package fr.uha.ensisa.gl;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
+import fr.uha.ensisa.gl.entities.Story;
+import fr.uha.ensisa.gl.entities.User;
+import fr.uha.ensisa.gl.entities.WorkLog;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class StoryTest {
 
@@ -62,15 +69,19 @@ public class StoryTest {
     @Test
     void testAddWorkLog() {
         WorkLog log = new WorkLog();
-        sut.addWorkLog(log);
+        List<WorkLog> modifiedWorkLogs = sut.getWorkLogs();
+        modifiedWorkLogs.add(log);
+        sut.setWorkLogs(modifiedWorkLogs);
         assertEquals(1, sut.getWorkLogs().size());
     }
 
     @Test
     void testRemoveWorkLog() {
         WorkLog log = new WorkLog();
-        sut.addWorkLog(log);
-        sut.removeWorkLog(log);
+        List<WorkLog> modifiedWorkLogs = sut.getWorkLogs();
+        modifiedWorkLogs.add(log);
+        modifiedWorkLogs.removeLast();
+        sut.setWorkLogs(modifiedWorkLogs);
         assertEquals(0, sut.getWorkLogs().size());
     }
 

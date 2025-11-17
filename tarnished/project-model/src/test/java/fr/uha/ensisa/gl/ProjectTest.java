@@ -1,5 +1,6 @@
-package fr.uha.ensisa.gl.tarnished;
+package fr.uha.ensisa.gl;
 
+import fr.uha.ensisa.gl.entities.Column;
 import fr.uha.ensisa.gl.entities.Project;
 import fr.uha.ensisa.gl.entities.User;
 import org.junit.jupiter.api.Test;

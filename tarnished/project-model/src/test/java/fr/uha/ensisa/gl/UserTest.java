@@ -1,9 +1,11 @@
 package fr.uha.ensisa.gl.tarnished;
 
+import fr.uha.ensisa.gl.entities.Story;
 import fr.uha.ensisa.gl.entities.User;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
