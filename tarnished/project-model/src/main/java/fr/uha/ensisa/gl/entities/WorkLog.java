@@ -10,7 +10,7 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 public class WorkLog {
-    private long id;
+    private int id;
     private float duration;
     private Date hourStart;
     private Date hourEnd;

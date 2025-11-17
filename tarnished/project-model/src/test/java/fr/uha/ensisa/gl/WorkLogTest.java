@@ -20,8 +20,8 @@ public class WorkLogTest {
 
     @Test
     void testSetGetId() {
-        sut.setId(1L);
-        assertEquals(1L, sut.getId());
+        sut.setId(1);
+        assertEquals(1, sut.getId());
     }
 
     @Test
@@ -54,10 +54,10 @@ public class WorkLogTest {
     @Test
     void testEquals() {
         WorkLog log1 = new WorkLog();
-        log1.setId(1L);
+        log1.setId(1);
 
         WorkLog log2 = new WorkLog();
-        log2.setId(1L);
+        log2.setId(1);
 
         assertEquals(log1, log2);
     }

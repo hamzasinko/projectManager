@@ -23,8 +23,8 @@ public class StoryTest {
 
     @Test
     void testSetGetId() {
-        sut.setId(1L);
-        assertEquals(1L, sut.getId());
+        sut.setId(1);
+        assertEquals(1, sut.getId());
     }
 
     @Test
@@ -88,10 +88,10 @@ public class StoryTest {
     @Test
     void testEquals() {
         Story story1 = new Story();
-        story1.setId(1L);
+        story1.setId(1);
 
         Story story2 = new Story();
-        story2.setId(1L);
+        story2.setId(1);
 
         assertEquals(story1, story2);
     }
