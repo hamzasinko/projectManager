@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Create Project</title>
+    <link rel="stylesheet" th:href="@{/libs/bootstrap/bootstrap.min.css}">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Create New Project</h1>
+        
+        <form th:action="@{/project/create}" method="POST" accept-charset="UTF-8">
+            <div class="mb-3">
+                <label for="projectName" class="form-label">Project Name *</label>
+                <input type="text" 
+                       class="form-control" 
+                       id="projectName" 
+                       name="name" 
+                       required 
+                       placeholder="My Kanban Project">
+            </div>
+            
+            <div class="mb-3">
+                <label for="projectDescription" class="form-label">Description</label>
+                <textarea class="form-control" 
+                          id="projectDescription" 
+                          name="description" 
+                          rows="3" 
+                          placeholder="Brief description of the project"></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" id="createProjectBtn">
+                Create Project
+            </button>
+            <a th:href="@{/project/list}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+    
+    <script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
+</body>
+</html>
