@@ -1,14 +1,12 @@
 package fr.uha.ensisa.gl.tarnished.controller;
 
 import fr.uha.ensisa.gl.entities.Project;
-import fr.uha.ensisa.gl.tarnished.mems.RepoFactoryMem;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
 import java.io.IOException;
-import java.util.Collections;
 
 @Controller
 @RequestMapping("/project")

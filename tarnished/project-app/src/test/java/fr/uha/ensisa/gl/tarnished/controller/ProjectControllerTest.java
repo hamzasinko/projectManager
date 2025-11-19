@@ -68,14 +68,14 @@ public class ProjectControllerTest {
         assertEquals("redirect:/project/list", redirect, 
                      "Should redirect to project list");
         
-        // TODO: Backend - décommenter quand ProjectRepo sera prêt
+
         // Vérifie que persist a été appelé avec les bons paramètres
-        // ArgumentCaptor<Project> projectCaptor = ArgumentCaptor.forClass(Project.class);
-        // verify(projectRepo).persist(projectCaptor.capture());
-        // 
-        // Project capturedProject = projectCaptor.getValue();
-        // assertEquals(testName, capturedProject.getName());
-        // assertEquals(testDescription, capturedProject.getDescription());
+        ArgumentCaptor<Project> projectCaptor = ArgumentCaptor.forClass(Project.class);
+        verify(projectRepo).persist(projectCaptor.capture());
+
+        Project capturedProject = projectCaptor.getValue();
+        assertEquals(testName, capturedProject.getName());
+        assertEquals(testDescription, capturedProject.getDescription());
     }
     
     @Test
@@ -87,8 +87,8 @@ public class ProjectControllerTest {
         
         assertEquals("redirect:/project/list", redirect);
         
-        // TODO: Backend - décommenter quand ProjectRepo sera prêt
-        // verify(projectRepo).persist(any(Project.class));
+
+        verify(projectRepo).persist(any(Project.class));
     }
     
     @Test
@@ -108,9 +108,8 @@ public class ProjectControllerTest {
         
         Collection<?> projects = (Collection<?>) result.getModelMap().get("projects");
         assertNotNull(projects);
-        
-        // TODO: Backend - décommenter pour vérifier que findAll est appelé
-        // verify(projectRepo).findAll();
+
+        verify(projectRepo).findAll();
     }
     
     @Test
