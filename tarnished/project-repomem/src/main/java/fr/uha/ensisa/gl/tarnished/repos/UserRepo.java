@@ -1,8 +1,11 @@
 package fr.uha.ensisa.gl.tarnished.repos;
 
 import fr.uha.ensisa.gl.entities.User;
+import org.springframework.stereotype.Repository;
+
 import java.util.List;
 
+@Repository
 public interface UserRepo {
 
     User find(int id);

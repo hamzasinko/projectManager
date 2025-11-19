@@ -2,9 +2,11 @@ package fr.uha.ensisa.gl.tarnished.mems;
 
 import fr.uha.ensisa.gl.entities.Column;
 import fr.uha.ensisa.gl.tarnished.repos.ColumnRepo;
+import org.springframework.stereotype.Component;
 
 import java.util.*;
 
+@Component
 public class ColumnRepoMem implements ColumnRepo {
     private final Map<Long, Column> store =
             Collections.synchronizedMap(new TreeMap<Long, Column>());

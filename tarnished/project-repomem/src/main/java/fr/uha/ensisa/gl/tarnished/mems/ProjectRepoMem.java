@@ -2,9 +2,11 @@ package fr.uha.ensisa.gl.tarnished.mems;
 
 import fr.uha.ensisa.gl.entities.Project;
 import fr.uha.ensisa.gl.tarnished.repos.ProjectRepo;
+import org.springframework.stereotype.Component;
 
 import java.util.*;
 
+@Component
 public class ProjectRepoMem implements ProjectRepo {
     private final Map<Long, Project> store =
             Collections.synchronizedMap(new TreeMap<Long, Project>());

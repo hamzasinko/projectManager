@@ -13,8 +13,8 @@ import java.util.Collections;
 @Controller
 @RequestMapping("/project")
 public class ProjectController {
-
-    public RepoFactory repoFactory=new RepoFactoryMem();
+    @Autowired
+    public RepoFactory repoFactory;
     
     /**
      * Affiche le formulaire de création de projet

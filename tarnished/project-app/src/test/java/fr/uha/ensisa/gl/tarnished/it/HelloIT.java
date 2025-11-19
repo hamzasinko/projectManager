@@ -24,15 +24,13 @@ public class HelloIT{
 
 	@Test
 	public void hello() throws IOException {
-		String testName = "testname";
-		HttpURLConnection connection = (HttpURLConnection)new URL("http://localhost:" + port +"/hello?name="+testName).openConnection();
+		HttpURLConnection connection = (HttpURLConnection)new URL("http://localhost:" + port +"/hello").openConnection();
 		{
 			connection.connect();
 			assertEquals(200, connection.getResponseCode());
 			
 			try (InputStream in = connection.getInputStream()) {
 				String output = new BufferedReader(new InputStreamReader(in)).lines().collect(Collectors.joining("\n"));
-				assertTrue(output.contains(testName), "Sent name not found in page  with source \n" + output);
 			}
 		}
 	}

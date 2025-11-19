@@ -1,5 +1,8 @@
 package fr.uha.ensisa.gl.tarnished.repos;
 
+import org.springframework.stereotype.Repository;
+
+@Repository
 public interface RepoFactory {
     public ColumnRepo getColumnRepo();
     public ProjectRepo getProjectRepo();

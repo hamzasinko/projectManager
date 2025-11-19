@@ -119,11 +119,11 @@ public class ProjectControllerTest {
         // Crée des projets mock
         Project p1 = mock(Project.class);
         when(p1.getName()).thenReturn("Project 1");
-        when(p1.getId()).thenReturn(1L);
+        when(p1.getId()).thenReturn(1);
         
         Project p2 = mock(Project.class);
         when(p2.getName()).thenReturn("Project 2");
-        when(p2.getId()).thenReturn(2L);
+        when(p2.getId()).thenReturn(2);
         
         // Configure le mock pour retourner ces projets
         when(projectRepo.findAll()).thenReturn(Arrays.asList(p1, p2));
