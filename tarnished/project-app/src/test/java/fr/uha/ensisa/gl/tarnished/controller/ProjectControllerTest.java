@@ -1,0 +1,140 @@
+package fr.uha.ensisa.gl.tarnished.controller;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.mockito.ArgumentCaptor;
+import org.springframework.web.servlet.ModelAndView;
+
+import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
+import fr.uha.ensisa.gl.tarnished.repos.ProjectRepo;
+import fr.uha.ensisa.gl.entities.Project;
+
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Arrays;
+
+/**
+ * Tests unitaires avec Mockito pour ProjectController
+ * Ces tests vérifient le controller indépendamment du repository
+ */
+public class ProjectControllerTest {
+    
+    @Mock 
+    private RepoFactory repoFactory;
+    
+    @Mock 
+    private ProjectRepo projectRepo;
+    
+    private ProjectController sut; // System Under Test
+    
+    @BeforeEach
+    public void setup() {
+        MockitoAnnotations.openMocks(this); // Initialise les @Mock
+        
+        // Configure le mock pour retourner projectRepo
+        when(repoFactory.getProjectRepo()).thenReturn(projectRepo);
+        
+        // Crée le controller et injecte le mock
+        sut = new ProjectController();
+        sut.repoFactory = repoFactory;
+    }
+    
+    @Test
+    @DisplayName("showCreateForm should return correct view")
+    public void testShowCreateForm() {
+        ModelAndView result = sut.showCreateForm();
+        
+        assertNotNull(result);
+        assertEquals("project-create", result.getViewName(), 
+                     "Should return project-create view");
+    }
+    
+    @Test
+    @DisplayName("createProject should call persist on repository")
+    public void testCreateProject() throws IOException {
+        String testName = "Test Project";
+        String testDescription = "Test Description";
+        
+        // Appelle la méthode
+        String redirect = sut.createProject(testName, testDescription);
+        
+        // Vérifie la redirection
+        assertEquals("redirect:/project/list", redirect, 
+                     "Should redirect to project list");
+        
+        // TODO: Backend - décommenter quand ProjectRepo sera prêt
+        // Vérifie que persist a été appelé avec les bons paramètres
+        // ArgumentCaptor<Project> projectCaptor = ArgumentCaptor.forClass(Project.class);
+        // verify(projectRepo).persist(projectCaptor.capture());
+        // 
+        // Project capturedProject = projectCaptor.getValue();
+        // assertEquals(testName, capturedProject.getName());
+        // assertEquals(testDescription, capturedProject.getDescription());
+    }
+    
+    @Test
+    @DisplayName("createProject should handle null description")
+    public void testCreateProjectWithNullDescription() throws IOException {
+        String testName = "Test Project";
+        
+        String redirect = sut.createProject(testName, null);
+        
+        assertEquals("redirect:/project/list", redirect);
+        
+        // TODO: Backend - décommenter quand ProjectRepo sera prêt
+        // verify(projectRepo).persist(any(Project.class));
+    }
+    
+    @Test
+    @DisplayName("listProjects should return view with empty list when mocked")
+    public void testListProjectsEmpty() throws IOException {
+        // Configure le mock pour retourner une liste vide
+        when(projectRepo.findAll()).thenReturn(Arrays.asList());
+        
+        ModelAndView result = sut.listProjects();
+        
+        assertNotNull(result);
+        assertEquals("project-list", result.getViewName());
+        
+        // Vérifie que projects est dans le modèle
+        assertTrue(result.getModelMap().containsKey("projects"), 
+                   "Model should contain 'projects' attribute");
+        
+        Collection<?> projects = (Collection<?>) result.getModelMap().get("projects");
+        assertNotNull(projects);
+        
+        // TODO: Backend - décommenter pour vérifier que findAll est appelé
+        // verify(projectRepo).findAll();
+    }
+    
+    @Test
+    @DisplayName("listProjects should return view with projects when they exist")
+    public void testListProjectsWithData() throws IOException {
+        // Crée des projets mock
+        Project p1 = mock(Project.class);
+        when(p1.getName()).thenReturn("Project 1");
+        when(p1.getId()).thenReturn(1L);
+        
+        Project p2 = mock(Project.class);
+        when(p2.getName()).thenReturn("Project 2");
+        when(p2.getId()).thenReturn(2L);
+        
+        // Configure le mock pour retourner ces projets
+        when(projectRepo.findAll()).thenReturn(Arrays.asList(p1, p2));
+        
+        ModelAndView result = sut.listProjects();
+        
+        assertNotNull(result);
+        
+        // TODO: Backend - décommenter quand ProjectRepo sera prêt
+        // Collection<Project> projects = (Collection<Project>) result.getModelMap().get("projects");
+        // assertEquals(2, projects.size(), "Should have 2 projects");
+        // verify(projectRepo).findAll();
+    }
+}
