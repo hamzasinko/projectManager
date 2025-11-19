@@ -131,10 +131,9 @@ public class ProjectControllerTest {
         ModelAndView result = sut.listProjects();
         
         assertNotNull(result);
-        
-        // TODO: Backend - décommenter quand ProjectRepo sera prêt
-        // Collection<Project> projects = (Collection<Project>) result.getModelMap().get("projects");
-        // assertEquals(2, projects.size(), "Should have 2 projects");
-        // verify(projectRepo).findAll();
+
+        Collection<Project> projects = (Collection<Project>) result.getModelMap().get("projects");
+        assertEquals(2, projects.size(), "Should have 2 projects");
+        verify(projectRepo).findAll();
     }
 }
