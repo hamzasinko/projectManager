@@ -1,5 +1,7 @@
 package fr.uha.ensisa.gl.tarnished.controller;
 
+import fr.uha.ensisa.gl.entities.Project;
+import fr.uha.ensisa.gl.tarnished.mems.RepoFactoryMem;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -11,9 +13,8 @@ import java.util.Collections;
 @Controller
 @RequestMapping("/project")
 public class ProjectController {
-    
-    @Autowired
-    public RepoFactory repoFactory; // Public pour Mockito
+
+    public RepoFactory repoFactory=new RepoFactoryMem();
     
     /**
      * Affiche le formulaire de création de projet
@@ -31,9 +32,10 @@ public class ProjectController {
         @RequestParam(required=true) String name,
         @RequestParam(required=false) String description
     ) throws IOException {
-        // TODO: Backend - uncomment when ProjectRepo ready
-        // Project project = new Project(name, description);
-        // repoFactory.getProjectRepo().persist(project);
+        Project project = new Project();
+        project.setName(name);
+        project.setDescription(description);
+        repoFactory.getProjectRepo().persist(project);
         
         return "redirect:/project/list";
     }
@@ -44,12 +46,11 @@ public class ProjectController {
     @GetMapping("/list")
     public ModelAndView listProjects() throws IOException {
         ModelAndView mav = new ModelAndView("project-list");
-        
-        // TODO: Backend - uncomment when ProjectRepo ready
-        // mav.addObject("projects", repoFactory.getProjectRepo().findAll());
+
+        mav.addObject("projects", repoFactory.getProjectRepo().findAll());
         
         // Mock temporaire
-        mav.addObject("projects", Collections.emptyList());
+        //mav.addObject("projects", Collections.emptyList());
         
         return mav;
     }
