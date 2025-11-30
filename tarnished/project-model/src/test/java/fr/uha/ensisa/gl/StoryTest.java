@@ -1,5 +1,6 @@
 package fr.uha.ensisa.gl;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -9,8 +10,9 @@ import fr.uha.ensisa.gl.entities.User;
 import fr.uha.ensisa.gl.entities.WorkLog;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class StoryTest {
 
@@ -22,77 +24,229 @@ public class StoryTest {
     }
 
     @Test
+    @DisplayName("Should set and get story ID correctly")
     void testSetGetId() {
         sut.setId(1);
-        assertEquals(1, sut.getId());
+        assertEquals(1, sut.getId(), "Story ID should be 1");
     }
 
     @Test
+    @DisplayName("Should set and get title correctly")
     void testSetGetTitle() {
-        sut.setTitle("Test");
-        assertEquals("Test", sut.getTitle());
+        sut.setTitle("Test Story");
+        assertEquals("Test Story", sut.getTitle(), "Story title should match");
     }
 
     @Test
+    @DisplayName("Should handle null title")
+    void testNullTitle() {
+        sut.setTitle(null);
+        assertNull(sut.getTitle(), "Story title should be null");
+    }
+
+    @Test
+    @DisplayName("Should handle empty title")
+    void testEmptyTitle() {
+        sut.setTitle("");
+        assertEquals("", sut.getTitle(), "Story title should be empty string");
+    }
+
+    @Test
+    @DisplayName("Should set and get description correctly")
     void testSetGetDescription() {
-        sut.setDescription("Description");
-        assertEquals("Description", sut.getDescription());
+        sut.setDescription("Test Description");
+        assertEquals("Test Description", sut.getDescription(), "Description should match");
     }
 
     @Test
+    @DisplayName("Should handle null description")
+    void testNullDescription() {
+        sut.setDescription(null);
+        assertNull(sut.getDescription(), "Description should be null");
+    }
+
+    @Test
+    @DisplayName("Should set and get status correctly")
     void testSetGetStatus() {
         sut.setStatus(StoryStatus.DONE);
+        assertEquals(StoryStatus.DONE, sut.getStatus(), "Status should be DONE");
+    }
+
+    @Test
+    @DisplayName("Should handle all status values")
+    void testAllStatusValues() {
+        sut.setStatus(StoryStatus.TODO);
+        assertEquals(StoryStatus.TODO, sut.getStatus());
+        
+        sut.setStatus(StoryStatus.IN_PROGRESS);
+        assertEquals(StoryStatus.IN_PROGRESS, sut.getStatus());
+        
+        sut.setStatus(StoryStatus.REVIEW);
+        assertEquals(StoryStatus.REVIEW, sut.getStatus());
+        
+        sut.setStatus(StoryStatus.DONE);
         assertEquals(StoryStatus.DONE, sut.getStatus());
+        
+        sut.setStatus(StoryStatus.BLOCKED);
+        assertEquals(StoryStatus.BLOCKED, sut.getStatus());
     }
 
     @Test
+    @DisplayName("Should assign user correctly")
     void testSetGetUserAssigned() {
-        User user = new User();
+        User user = new User(1, "John Doe", "john@example.com", "password", new ArrayList<>());
         sut.setUserAssigned(user);
-        assertEquals(user, sut.getUserAssigned());
+        assertEquals(user, sut.getUserAssigned(), "Assigned user should match");
+        assertEquals("John Doe", sut.getUserAssigned().getName(), "User name should be John Doe");
     }
 
     @Test
+    @DisplayName("Should handle null user assignment")
+    void testNullUserAssignment() {
+        sut.setUserAssigned(null);
+        assertNull(sut.getUserAssigned(), "Assigned user should be null");
+    }
+
+    @Test
+    @DisplayName("Should set and get start date correctly")
     void testSetGetDateStart() {
         Date date = new Date();
         sut.setDateStart(date);
-        assertEquals(date, sut.getDateStart());
+        assertEquals(date, sut.getDateStart(), "Start date should match");
     }
 
     @Test
+    @DisplayName("Should set and get created date correctly")
+    void testSetGetDateCreated() {
+        Date date = new Date();
+        sut.setDateCreated(date);
+        assertEquals(date, sut.getDateCreated(), "Created date should match");
+    }
+
+    @Test
+    @DisplayName("Should set and get end date correctly")
     void testSetGetDateEnd() {
         Date date = new Date();
         sut.setDateEnd(date);
-        assertEquals(date, sut.getDateEnd());
+        assertEquals(date, sut.getDateEnd(), "End date should match");
     }
 
     @Test
+    @DisplayName("Should add work log successfully")
     void testAddWorkLog() {
-        WorkLog log = new WorkLog();
+        WorkLog log = new WorkLog(1, 2.5f, new Date(), new Date(), new User());
         List<WorkLog> modifiedWorkLogs = sut.getWorkLogs();
         modifiedWorkLogs.add(log);
         sut.setWorkLogs(modifiedWorkLogs);
-        assertEquals(1, sut.getWorkLogs().size());
+        
+        assertEquals(1, sut.getWorkLogs().size(), "Should have 1 work log");
+        assertEquals(2.5f, sut.getWorkLogs().get(0).getDuration(), "Work log duration should be 2.5");
     }
 
     @Test
+    @DisplayName("Should add multiple work logs successfully")
+    void testAddMultipleWorkLogs() {
+        WorkLog log1 = new WorkLog(1, 2.5f, new Date(), new Date(), new User());
+        WorkLog log2 = new WorkLog(2, 3.0f, new Date(), new Date(), new User());
+        
+        List<WorkLog> modifiedWorkLogs = sut.getWorkLogs();
+        modifiedWorkLogs.add(log1);
+        modifiedWorkLogs.add(log2);
+        sut.setWorkLogs(modifiedWorkLogs);
+        
+        assertEquals(2, sut.getWorkLogs().size(), "Should have 2 work logs");
+    }
+
+    @Test
+    @DisplayName("Should remove work log successfully")
     void testRemoveWorkLog() {
-        WorkLog log = new WorkLog();
+        WorkLog log = new WorkLog(1, 2.5f, new Date(), new Date(), new User());
         List<WorkLog> modifiedWorkLogs = sut.getWorkLogs();
         modifiedWorkLogs.add(log);
-        modifiedWorkLogs.removeLast();
+        modifiedWorkLogs.remove(0);
         sut.setWorkLogs(modifiedWorkLogs);
-        assertEquals(0, sut.getWorkLogs().size());
+        
+        assertEquals(0, sut.getWorkLogs().size(), "Work logs should be empty after removal");
     }
 
     @Test
+    @DisplayName("Should initialize with empty work logs list")
+    void testWorkLogsInitialization() {
+        assertNotNull(sut.getWorkLogs(), "Work logs list should not be null");
+        assertEquals(0, sut.getWorkLogs().size(), "Work logs list should be empty initially");
+    }
+
+    @Test
+    @DisplayName("Should create story with NoArgsConstructor")
+    void testNoArgsConstructor() {
+        Story story = new Story();
+        assertNotNull(story, "Story should be created");
+        assertNotNull(story.getWorkLogs(), "Work logs should be initialized");
+    }
+
+    @Test
+    @DisplayName("Should create story with AllArgsConstructor")
+    void testAllArgsConstructor() {
+        int id = 1;
+        String title = "Test Story";
+        String description = "Test Description";
+        StoryStatus status = StoryStatus.IN_PROGRESS;
+        User user = new User(1, "John", "john@example.com", "pass", new ArrayList<>());
+        Date dateStart = new Date();
+        Date dateCreated = new Date();
+        Date dateEnd = new Date();
+        List<WorkLog> workLogs = new ArrayList<>();
+        
+        Story story = new Story(id, title, description, status, user, dateStart, dateCreated, dateEnd, workLogs);
+        
+        assertEquals(id, story.getId());
+        assertEquals(title, story.getTitle());
+        assertEquals(description, story.getDescription());
+        assertEquals(status, story.getStatus());
+        assertEquals(user, story.getUserAssigned());
+        assertEquals(dateStart, story.getDateStart());
+        assertEquals(dateCreated, story.getDateCreated());
+        assertEquals(dateEnd, story.getDateEnd());
+        assertEquals(workLogs, story.getWorkLogs());
+    }
+
+    @Test
+    @DisplayName("Should correctly compare equal stories")
     void testEquals() {
         Story story1 = new Story();
         story1.setId(1);
+        story1.setTitle("Test");
 
         Story story2 = new Story();
         story2.setId(1);
+        story2.setTitle("Test");
 
-        assertEquals(story1, story2);
+        assertEquals(story1, story2, "Stories with same data should be equal");
+    }
+
+    @Test
+    @DisplayName("Should generate consistent hashCode")
+    void testHashCode() {
+        Story story1 = new Story();
+        story1.setId(1);
+        story1.setTitle("Test");
+
+        Story story2 = new Story();
+        story2.setId(1);
+        story2.setTitle("Test");
+
+        assertEquals(story1.hashCode(), story2.hashCode(), "Equal stories should have same hashCode");
+    }
+
+    @Test
+    @DisplayName("Should generate meaningful toString")
+    void testToString() {
+        sut.setId(1);
+        sut.setTitle("Test Story");
+        
+        String toString = sut.toString();
+        assertNotNull(toString, "toString should not be null");
+        assertTrue(toString.contains("1"), "toString should contain ID");
+        assertTrue(toString.contains("Test Story"), "toString should contain title");
     }
 }
