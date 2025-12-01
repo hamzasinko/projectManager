@@ -38,6 +38,9 @@
                                     th:onclick="'showDeleteConfirm(' + ${project.id} + ')'">
                                 Delete
                             </button>
+                            <a th:href="@{'/project/info/' + ${project.id}}" class="btn btn-primary btn-sm">
+                                Details
+                            </a>
                             <a th:href="@{'/board/' + ${project.id}}" class="btn btn-primary btn-sm">
                                 Open Board
                             </a>

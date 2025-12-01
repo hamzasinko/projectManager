@@ -33,13 +33,35 @@ public class ProjectController {
         @RequestParam(required=false) String description
     ) throws IOException {
         Project project = new Project();
+        if(repoFactory.getUserRepo().getAll().isEmpty()) {
+            User user = new User();
+            user.setId(1);
+            user.setName("user1");
+            user.setPassword("password1");
+            user.setEmail("email1@gmail.com");
+            repoFactory.getUserRepo().add(user);
+        }
         project.setName(name);
         project.setDescription(description);
+        project.setOwner(repoFactory.getUserRepo().getAll().get(0));
         repoFactory.getProjectRepo().persist(project);
         
         return "redirect:/project/list";
     }
-    
+
+    @GetMapping("/info/{id}")
+    public ModelAndView showProject(@PathVariable Long id) {
+        Project project = repoFactory.getProjectRepo().find(id);
+
+        if (project == null) {
+            return new ModelAndView("redirect:/project/list"); // Project not found
+        }
+
+        ModelAndView mav = new ModelAndView("project-detail");
+        mav.addObject("project", project);
+        return mav;
+    }
+
     /**
      * Liste tous les projets existants
      */
@@ -94,7 +116,7 @@ public class ProjectController {
                             .toList()
             );
         repoFactory.getProjectRepo().update(project);
-        return "redirect:/project/list";
+        return "redirect:/project/info/"+project.getId();
     }
 
     @PostMapping("/delete/{id}")
