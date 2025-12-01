@@ -8,6 +8,10 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import java.time.Duration;
 
 /**
  * Tests d'intégration Selenium pour la gestion des projets
@@ -168,6 +172,16 @@ public class ProjectIT {
         driver.findElement(By.cssSelector("button[type='submit']")).click();
 
         // Recharge page d'édition :
+        // Wait until the "Projects" button is visible and click it
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        WebElement projectsLink = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//a[text()='Projects']")
+        ));
+        projectsLink.click();
+
+// Optionally, wait until the project list page loads
+        wait.until(ExpectedConditions.urlContains("/project/list"));
+
         projectCard = driver.findElement(By.cssSelector(".card"));
         projectCard.findElement(By.linkText("Edit")).click();
 
@@ -204,7 +218,7 @@ public class ProjectIT {
 
         driver.findElement(By.cssSelector("button[type='submit']")).click();
 
-        driver.get(getBaseUrl() + "project/list");
+        driver.get(getBaseUrl() + "project/info/1");
 
         String page = driver.getPageSource();
 
@@ -249,5 +263,30 @@ public class ProjectIT {
         // 8. Verify project is gone from UI
         String pageSource = driver.getPageSource();
         assertFalse(pageSource.contains(projectName), "Project should be deleted from UI and backend");
+    }
+
+    @Test
+    @DisplayName("Should display project info correctly in UI")
+    public void testProjectInfoUI() {
+        // 1. Create a project via UI
+        driver.get(getBaseUrl() + "/project/new");
+        String projectName = "Selenium Display " + System.currentTimeMillis();
+        driver.findElement(By.id("projectName")).sendKeys(projectName);
+        driver.findElement(By.id("projectDescription")).sendKeys("Display test");
+        driver.findElement(By.id("createProjectBtn")).click();
+
+        // 2. Go to project info page
+        driver.get(getBaseUrl() + "/project/list");
+        WebElement card = driver.findElement(
+                By.xpath("//h5[contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'card')]")
+        );
+        card.findElement(By.xpath(".//a[contains(text(),'Details')]")).click();
+
+        // 3. Verify project info page displays the correct data
+        WebElement nameElem = driver.findElement(By.id("projectNameInfo"));
+        WebElement descElem = driver.findElement(By.id("projectDescriptionInfo"));
+
+        assertEquals(projectName, nameElem.getText());
+        assertEquals("Display test", descElem.getText());
     }
 }

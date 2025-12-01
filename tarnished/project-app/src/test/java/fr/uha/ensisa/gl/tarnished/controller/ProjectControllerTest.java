@@ -19,6 +19,7 @@ import fr.uha.ensisa.gl.tarnished.repos.ProjectRepo;
 import fr.uha.ensisa.gl.entities.Project;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Arrays;
 import java.util.List;
@@ -46,6 +47,13 @@ public class ProjectControllerTest {
         
         // Configure le mock pour retourner projectRepo
         when(repoFactory.getProjectRepo()).thenReturn(projectRepo);
+        when(repoFactory.getUserRepo()).thenReturn(userRepo);
+        User testUser = new User();
+        testUser.setId(1);
+        testUser.setName("user1");
+        testUser.setEmail("email1@gmail.com");
+        testUser.setPassword("password1");
+        when(userRepo.getAll()).thenReturn(List.of(testUser));
         
         // Crée le controller et injecte le mock
         sut = new ProjectController();
@@ -185,4 +193,31 @@ public class ProjectControllerTest {
         // And: verify that remove was called on the repository with the correct ID
         verify(projectRepo).remove(projectId);
     }
+
+    @Test
+    @DisplayName("ProjectController.info should return correct project and view")
+    void testProjectInfo() {
+        // Arrange
+        int projectId = 1;
+        Project p = new Project();
+        p.setId(projectId);
+        p.setName("Test Project");
+        p.setDescription("Description");
+        User owner = new User();
+        owner.setName("Owner Name");
+        p.setOwner(owner);
+        p.setMembers(List.of(owner));
+        when(repoFactory.getProjectRepo()).thenReturn(projectRepo);
+        when(projectRepo.find(projectId)).thenReturn(p);
+
+        // Act
+        ModelAndView mav = sut.showProject((long) projectId);
+
+        // Assert
+        assertEquals("project-detail", mav.getViewName(), "Should return project-info view");
+        Project projectInModel = (Project) mav.getModel().get("project");
+        assertEquals("Test Project", projectInModel.getName());
+        assertEquals("Description", projectInModel.getDescription());
+    }
+
 }
