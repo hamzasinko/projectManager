@@ -96,4 +96,10 @@ public class ProjectController {
         repoFactory.getProjectRepo().update(project);
         return "redirect:/project/list";
     }
+
+    @PostMapping("/delete/{id}")
+    public String deleteProject(@PathVariable Long id) {
+        repoFactory.getProjectRepo().remove(id);
+        return "redirect:/project/list"; // page with all projects
+    }
 }
