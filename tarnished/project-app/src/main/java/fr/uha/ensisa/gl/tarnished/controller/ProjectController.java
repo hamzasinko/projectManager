@@ -1,12 +1,14 @@
 package fr.uha.ensisa.gl.tarnished.controller;
 
 import fr.uha.ensisa.gl.entities.Project;
+import fr.uha.ensisa.gl.entities.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
 import java.io.IOException;
+import java.util.List;
 
 @Controller
 @RequestMapping("/project")
@@ -51,5 +53,47 @@ public class ProjectController {
         //mav.addObject("projects", Collections.emptyList());
         
         return mav;
+    }
+    @GetMapping("/edit/{id}")
+    public ModelAndView editProject(@PathVariable Long id) {
+        ModelAndView mav = new ModelAndView("project-edit");
+
+        Project project = repoFactory.getProjectRepo().find(id);
+        mav.addObject("project", project);
+        if(repoFactory.getUserRepo().getAll().isEmpty()) {
+            User user = new User();
+            user.setId(1);
+            user.setName("user1");
+            user.setPassword("password1");
+            user.setEmail("email1@gmail.com");
+            repoFactory.getUserRepo().add(user);
+        }
+        List<Integer> memberIds = project.getMembers() != null ?
+                project.getMembers().stream().map(User::getId).toList() :
+                List.of();
+        System.out.println("Member IDs: " + memberIds);
+        mav.addObject("memberIds", memberIds);
+        mav.addObject("users", repoFactory.getUserRepo().getAll());
+
+        return mav;
+    }
+    @PostMapping("/edit/{id}")
+    public String updateProject(
+            @PathVariable Long id,
+            @RequestParam(required = true) String name,
+            @RequestParam(required = true) String description,
+            @RequestParam(required = false) List<Long> memberIds
+    ) {
+        Project project = repoFactory.getProjectRepo().find(id);
+        project.setName(name);
+        project.setDescription(description);
+        if(!memberIds.isEmpty())
+            project.setMembers(
+                    repoFactory.getUserRepo().getAll()
+                            .stream().filter(user -> !memberIds.contains(user.getId()))
+                            .toList()
+            );
+        repoFactory.getProjectRepo().update(project);
+        return "redirect:/project/list";
     }
 }

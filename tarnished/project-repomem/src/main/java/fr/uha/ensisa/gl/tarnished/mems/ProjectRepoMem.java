@@ -15,6 +15,12 @@ public class ProjectRepoMem implements ProjectRepo {
     @Override
     public void persist(Project project) {
         project.setId(nextId++);
+        project.setDateStarted(Calendar.getInstance().getTime());
+        store.put((long)project.getId(), project);
+    }
+
+    @Override
+    public void update(Project project) {
         store.put((long)project.getId(), project);
     }
 

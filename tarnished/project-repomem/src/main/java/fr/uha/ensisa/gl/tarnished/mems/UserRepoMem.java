@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.ArrayList;
 
 @Component
-public class UserMem implements UserRepo {
+public class UserRepoMem implements UserRepo {
 
     private List<User> users = new ArrayList<>();
     private int nextId = 1;

@@ -6,7 +6,8 @@ import java.util.Collection;
 
 @Repository
 public interface ProjectRepo {
-    public void persist(Project column);
+    public void persist(Project project);
+    public void update(Project project);
     public void remove(long id);
     public Project find(long id);
     public Collection<Project> findAll();
