@@ -2,6 +2,7 @@ package fr.uha.ensisa.gl.tarnished.controller;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.http.RequestEntity.post;
 
 import fr.uha.ensisa.gl.entities.User;
 import fr.uha.ensisa.gl.tarnished.repos.UserRepo;
@@ -164,5 +165,24 @@ public class ProjectControllerTest {
 
         List<Integer> ids = (List<Integer>) mav.getModel().get("memberIds");
         assertTrue(ids.contains(10));
+    }
+
+    @Test
+    @DisplayName("deleteProject should call remove on repository and redirect")
+    void testDeleteProject() {
+        // Given
+        long projectId = 1L;
+
+        // Make repoFactory return the mocked projectRepo
+        when(repoFactory.getProjectRepo()).thenReturn(projectRepo);
+
+        // When: call the controller method directly
+        String result = sut.deleteProject(projectId);
+
+        // Then: verify the redirection string
+        assertEquals("redirect:/project/list", result, "Should redirect to project list");
+
+        // And: verify that remove was called on the repository with the correct ID
+        verify(projectRepo).remove(projectId);
     }
 }

@@ -25,7 +25,8 @@
                 <div th:each="project : ${projects}" 
                      class="col-md-4 mb-3"
                      th:id="${'project-' + project.id}">
-                    <div class="card">
+                    <div class="card"
+                         th:attr="data-id=${project.id}">
                         <div class="card-body">
                             <h5 class="card-title" th:text="${project.name}">Project Name</h5>
                             <p class="card-text" th:text="${project.description}">Description</p>
