@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Create Story</title>
+    <link rel="stylesheet" th:href="@{/libs/bootstrap/bootstrap.min.css}">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Create New Story</h1>
+        
+        <!-- Error message -->
+        <div th:if="${param.error}" class="alert alert-danger" role="alert">
+            <span th:text="${param.error}">Error message</span>
+        </div>
+        
+        <form th:action="@{/story/create}" method="POST" accept-charset="UTF-8">
+            <div class="mb-3">
+                <label for="storyTitle" class="form-label">Story Title *</label>
+                <input type="text" 
+                       class="form-control" 
+                       id="storyTitle"
+                       name="title" 
+                       required 
+                       placeholder="As a user, I want to...">
+                <div class="form-text">A clear and concise user story title</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="storyDescription" class="form-label">Description</label>
+                <textarea class="form-control" 
+                          id="storyDescription"
+                          name="description" 
+                          rows="5" 
+                          placeholder="Acceptance criteria:&#10;- When...&#10;- Then..."></textarea>
+                <div class="form-text">Details, acceptance criteria, and any relevant notes</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="projectId" class="form-label">Project</label>
+                <select class="form-select" id="projectId" name="projectId">
+                    <option value="">No project (backlog)</option>
+                    <option th:each="project : ${projects}" 
+                            th:value="${project.id}" 
+                            th:text="${project.name}">Project Name</option>
+                </select>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" id="createStoryBtn">
+                Create Story
+            </button>
+            <a th:href="@{/story/list}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+    
+    <script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
+</body>
+</html>
