@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head xmlns:th="http://www.thymeleaf.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Edit Project</title>
+    <link rel="stylesheet" th:href="@{/libs/bootstrap/bootstrap.min.css}">
+</head>
+<body>
+<div class="container mt-4">
+    <h3>Edit Project</h3>
+
+    <form th:action="@{'/project/edit/' + ${project.id}}" method="post">
+
+        <!-- Name -->
+        <div class="mb-3">
+            <label class="form-label">Project Name*</label>
+            <input class="form-control" type="text" name="name"
+                   th:value="${project.name}">
+        </div>
+
+        <!-- Description -->
+        <div class="mb-3">
+            <label class="form-label">Description*</label>
+            <textarea class="form-control" name="description"
+                      rows="3"
+                      th:text="${project.description}"></textarea>
+        </div>
+
+        <!-- Button to show the member form -->
+        <button type="button" class="btn btn-secondary mb-3"
+                onclick="toggleMemberForm()">
+            Add Members
+        </button>
+
+        <!-- Hidden member section -->
+        <div id="memberForm" style="display:none;" class="border p-3 rounded">
+
+            <h5>Select Members</h5>
+
+            <!-- Search Bar -->
+            <input type="text" class="form-control mb-3"
+                   placeholder="Search users..."
+                   onkeyup="filterUsers(this)">
+
+            <!-- User list -->
+            <div id="user-list">
+                <div th:each="user : ${users}" class="form-check mb-2">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           name="memberIds"
+                           th:value="${user.id}"
+                           th:checked="${memberIds.contains(user.id)}">
+                    <label class="form-check-label" th:text="${user.getName()}"></label>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="btn btn-primary mt-3">
+            Save Changes
+        </button>
+
+    </form>
+</div>
+<script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
+<script>
+    function toggleMemberForm() {
+        const f = document.getElementById("memberForm");
+        f.style.display = f.style.display === "none" ? "block" : "none";
+    }
+
+    function filterUsers(input) {
+        const filter = input.value.toLowerCase();
+        const users = document.querySelectorAll("#user-list .form-check");
+
+        users.forEach(u => {
+            const name = u.innerText.toLowerCase();
+            u.style.display = name.includes(filter) ? "" : "none";
+        });
+    }
+</script>
+</body>
+</html>

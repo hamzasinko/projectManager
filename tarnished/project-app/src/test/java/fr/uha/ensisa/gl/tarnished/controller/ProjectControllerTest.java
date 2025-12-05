@@ -2,7 +2,10 @@ package fr.uha.ensisa.gl.tarnished.controller;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.http.RequestEntity.post;
 
+import fr.uha.ensisa.gl.entities.User;
+import fr.uha.ensisa.gl.tarnished.repos.UserRepo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +21,7 @@ import fr.uha.ensisa.gl.entities.Project;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Tests unitaires avec Mockito pour ProjectController
@@ -30,6 +34,9 @@ public class ProjectControllerTest {
     
     @Mock 
     private ProjectRepo projectRepo;
+
+    @Mock
+    UserRepo userRepo;
     
     private ProjectController sut; // System Under Test
     
@@ -134,5 +141,48 @@ public class ProjectControllerTest {
         Collection<Project> projects = (Collection<Project>) result.getModelMap().get("projects");
         assertEquals(2, projects.size(), "Should have 2 projects");
         verify(projectRepo).findAll();
+    }
+
+    @Test
+    void testEditProject() {
+        Project p = new Project();
+        p.setId(1);
+        User u = new User();
+        u.setId(10);
+
+        p.setMembers(List.of(u));
+
+        when(repoFactory.getProjectRepo()).thenReturn(projectRepo);
+        when(repoFactory.getUserRepo()).thenReturn(userRepo);
+
+        when(projectRepo.find(1L)).thenReturn(p);
+        when(userRepo.getAll()).thenReturn(List.of(u));
+
+        ModelAndView mav = sut.editProject(1L);
+
+        assertEquals("project-edit", mav.getViewName());
+        assertEquals(p, mav.getModel().get("project"));
+
+        List<Integer> ids = (List<Integer>) mav.getModel().get("memberIds");
+        assertTrue(ids.contains(10));
+    }
+
+    @Test
+    @DisplayName("deleteProject should call remove on repository and redirect")
+    void testDeleteProject() {
+        // Given
+        long projectId = 1L;
+
+        // Make repoFactory return the mocked projectRepo
+        when(repoFactory.getProjectRepo()).thenReturn(projectRepo);
+
+        // When: call the controller method directly
+        String result = sut.deleteProject(projectId);
+
+        // Then: verify the redirection string
+        assertEquals("redirect:/project/list", result, "Should redirect to project list");
+
+        // And: verify that remove was called on the repository with the correct ID
+        verify(projectRepo).remove(projectId);
     }
 }

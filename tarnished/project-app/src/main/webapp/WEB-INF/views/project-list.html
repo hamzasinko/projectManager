@@ -25,20 +25,55 @@
                 <div th:each="project : ${projects}" 
                      class="col-md-4 mb-3"
                      th:id="${'project-' + project.id}">
-                    <div class="card">
+                    <div class="card"
+                         th:attr="data-id=${project.id}">
                         <div class="card-body">
                             <h5 class="card-title" th:text="${project.name}">Project Name</h5>
                             <p class="card-text" th:text="${project.description}">Description</p>
+                            <a th:href="@{'/project/edit/' + ${project.id}}"
+                               class="btn btn-warning btn-sm mt-2">
+                                Edit
+                            </a>
+                            <button class="btn btn-danger btn-sm mt-2"
+                                    th:onclick="'showDeleteConfirm(' + ${project.id} + ')'">
+                                Delete
+                            </button>
+                            <a th:href="@{'/project/info/' + ${project.id}}" class="btn btn-primary btn-sm">
+                                Details
+                            </a>
                             <a th:href="@{'/board/' + ${project.id}}" class="btn btn-primary btn-sm">
                                 Open Board
                             </a>
+                        </div>
+                    </div>
+                    <div th:id="'confirmCard-' + ${project.id}" class="card mt-2" style="display:none;">
+                    <div class="card-body">
+                            <h6>Do you really want to delete this project?</h6>
+                            <div class="mt-2">
+                                <form th:action="@{'/project/delete/' + ${project.id}}" method="post">
+                                    <button type="submit" class="btn btn-danger btn-sm">Yes, delete</button>
+                                </form>
+
+                                <button class="btn btn-secondary btn-sm"
+                                        th:onclick="'hideDeleteConfirm(' + ${project.id} + ')'">
+                                    No
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
+
+    <script>
+        function showDeleteConfirm(id) {
+            document.getElementById("confirmCard-" + id).style.display = "block";
+        }
+        function hideDeleteConfirm(id) {
+            document.getElementById("confirmCard-" + id).style.display = "none";
+        }
+    </script>
     <script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
 </body>
 </html>

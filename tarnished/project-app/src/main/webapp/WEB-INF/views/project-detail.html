@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title th:text="'Project: ' + ${project.name}">Project Info</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <script>
+    function showDeleteConfirm(projectId) {
+      document.getElementById('confirmCard-' + projectId).style.display = 'block';
+    }
+
+    function hideDeleteConfirm(projectId) {
+      document.getElementById('confirmCard-' + projectId).style.display = 'none';
+    }
+  </script>
+</head>
+<body>
+<div class="container mt-4">
+
+  <!-- Project Info Card -->
+  <div class="card">
+    <div class="card-body">
+      <h3 class="card-title" th:text="${project.name}">Project Name</h3>
+      <p class="card-text" th:text="${project.description}">Project Description</p>
+      <p>Date Started: <span th:text="${#dates.format(project.dateStarted, 'yyyy-MM-dd')}">Start Date</span></p>
+      <p>Date Ended: <span th:text="${#dates.format(project.dateEnded, 'yyyy-MM-dd')}">End Date</span></p>
+      <p>Owner: <span th:text="${project.owner.name}">Owner Name</span></p>
+      <p>Members:
+        <span th:each="member : ${project.members}" th:text="${member.name} + ' '">Member Names</span>
+      </p>
+
+      <a th:href="@{'/board/' + ${project.id}}" class="btn btn-primary btn-sm">Open Board</a>
+      <a th:href="'/project/list'" class="btn btn-primary btn-sm">Projects</a>
+      <!-- Delete Button -->
+      <button class="btn btn-danger btn-sm" th:onclick="'showDeleteConfirm(' + ${project.id} + ')'">
+        Delete Project
+      </button>
+
+      <!-- Confirmation Card -->
+      <div th:id="'confirmCard-' + ${project.id}" class="card mt-2" style="display:none;">
+        <div class="card-body">
+          <h6>Do you really want to delete this project?</h6>
+          <div class="mt-2">
+            <form th:action="@{'/project/delete/' + ${project.id}}" method="post">
+              <button type="submit" class="btn btn-danger btn-sm">Yes, delete</button>
+            </form>
+            <button class="btn btn-secondary btn-sm" th:onclick="'hideDeleteConfirm(' + ${project.id} + ')'">
+              No
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Workflow Columns
+  <div class="mt-4">
+    <h4>Workflow</h4>
+    <div class="row">
+      <div class="col-md-3" th:each="column : ${project.workFlow}">
+        <div class="card mb-3">
+          <div class="card-header" th:text="${column.name}">Column Name</div>
+          <div class="card-body">
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item" th:each="task : ${column.tasks}" th:text="${task.name}">
+                Task Name
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>-->
+
+</div>
+</body>
+</html>

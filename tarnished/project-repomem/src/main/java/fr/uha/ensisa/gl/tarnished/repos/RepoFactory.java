@@ -6,5 +6,6 @@ import org.springframework.stereotype.Repository;
 public interface RepoFactory {
     public ColumnRepo getColumnRepo();
     public ProjectRepo getProjectRepo();
+    public UserRepo getUserRepo();
     public StoryRepo getStoryRepo();
 }

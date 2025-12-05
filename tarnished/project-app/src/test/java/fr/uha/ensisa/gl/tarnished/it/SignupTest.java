@@ -2,7 +2,7 @@ package fr.uha.ensisa.gl.tarnished.it;
 
 import fr.uha.ensisa.gl.tarnished.controller.SignupController;
 import fr.uha.ensisa.gl.tarnished.repos.UserRepo;
-import fr.uha.ensisa.gl.tarnished.mems.UserMem;
+import fr.uha.ensisa.gl.tarnished.mems.UserRepoMem;
 import fr.uha.ensisa.gl.tarnished.services.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,7 +15,7 @@ public class SignupTest {
 
     @BeforeEach
     void setup() {
-        UserRepo repo = new UserMem();
+        UserRepo repo = new UserRepoMem();
         UserService service = new UserService(repo);
         controller = new SignupController(service);
     }
