@@ -135,4 +135,13 @@ public class StoryController {
         
         return "redirect:/story/" + id;
     }
+    
+    /**
+     * Supprime une story
+     */
+    @PostMapping("/{id}/delete")
+    public String deleteStory(@PathVariable long id) {
+        repoFactory.getStoryRepo().remove(id);
+        return "redirect:/story/list";
+    }
 }
