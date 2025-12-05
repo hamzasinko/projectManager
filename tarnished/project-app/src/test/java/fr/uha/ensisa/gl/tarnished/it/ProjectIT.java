@@ -51,7 +51,7 @@ public class ProjectIT {
     public void testShowCreateForm() {
         driver.get(getBaseUrl() + "project/new");
         
-        // Vérifie la présence du formulaire
+        //Vérifie la présence du formulaire
         WebElement nameInput = driver.findElement(By.id("projectName"));
         WebElement descriptionInput = driver.findElement(By.id("projectDescription"));
         WebElement createBtn = driver.findElement(By.id("createProjectBtn"));
@@ -73,14 +73,14 @@ public class ProjectIT {
         String testProjectName = "Test Project " + System.currentTimeMillis();
         String testDescription = "Test description for integration test";
         
-        // Remplit le formulaire
+        //Remplit le formulaire
         driver.findElement(By.id("projectName")).sendKeys(testProjectName);
         driver.findElement(By.id("projectDescription")).sendKeys(testDescription);
         
-        // Soumet le formulaire
+        //Soumet le formulaire
         driver.findElement(By.id("createProjectBtn")).click();
         
-        // Vérifie la redirection
+        //Vérifie la redirection
         assertTrue(driver.getCurrentUrl().contains("/project/list"), 
                    "Should redirect to project list after creation");
     }
@@ -90,14 +90,14 @@ public class ProjectIT {
     public void testListProjects() {
         driver.get(getBaseUrl() + "project/list");
         
-        // Vérifie la présence des éléments principaux
+        //Vérifie la présence des éléments principaux
         WebElement projectsList = driver.findElement(By.id("projectsList"));
         WebElement newBtn = driver.findElement(By.id("newProjectBtn"));
         
         assertNotNull(projectsList, "Projects list container should be present");
         assertNotNull(newBtn, "New project button should be present");
         
-        // Vérifie que le bouton est cliquable
+        //Vérifie que le bouton est cliquable
         assertTrue(newBtn.isDisplayed(), "New project button should be visible");
         assertTrue(newBtn.isEnabled(), "New project button should be enabled");
     }
@@ -117,15 +117,15 @@ public class ProjectIT {
     @Test
     @DisplayName("Should navigate between create form and list")
     public void testNavigation() {
-        // Va sur la liste
+        //Va sur la liste
         driver.get(getBaseUrl() + "project/list");
         
-        // Clique sur "New Project"
+        //Clique sur "New Project"
         driver.findElement(By.id("newProjectBtn")).click();
         assertTrue(driver.getCurrentUrl().contains("/project/new"), 
                    "Should navigate to create form");
         
-        // Clique sur "Cancel"
+        //Clique sur "Cancel"
         driver.findElement(By.linkText("Cancel")).click();
         assertTrue(driver.getCurrentUrl().contains("/project/list"), 
                    "Should navigate back to list");
