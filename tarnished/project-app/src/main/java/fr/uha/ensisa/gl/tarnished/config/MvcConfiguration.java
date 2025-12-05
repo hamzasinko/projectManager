@@ -60,7 +60,7 @@ public class MvcConfiguration implements WebMvcConfigurer {
 			.setCachePeriod(0); // for development
 		registry
 			.addResourceHandler("/libs/**")
-			.addResourceLocations("/libs/bootstrap/")
+			.addResourceLocations("/libs/")
 			.setCachePeriod((int)TimeUnit.DAYS.toSeconds(365))
 			.resourceChain(true)
 			.addResolver(new EncodedResourceResolver())

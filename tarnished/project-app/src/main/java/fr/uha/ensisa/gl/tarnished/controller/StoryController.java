@@ -18,6 +18,10 @@ public class StoryController {
     @Autowired
     public RepoFactory repoFactory;
     
+    public StoryController() {
+        System.out.println("*** StoryController CREATED ***");
+    }
+    
     /**
      * Affiche le formulaire de création de story
      */
@@ -69,7 +73,7 @@ public class StoryController {
      * Affiche les détails d'une story
      */
     @GetMapping("/{id}")
-    public ModelAndView showStory(@PathVariable long id) throws IOException {
+    public ModelAndView showStory(@PathVariable("id") Long id) throws IOException {
         ModelAndView mav = new ModelAndView("story-detail");
         Story story = repoFactory.getStoryRepo().find(id);
         
@@ -85,7 +89,7 @@ public class StoryController {
      * Affiche le formulaire d'édition d'une story
      */
     @GetMapping("/{id}/edit")
-    public ModelAndView editStory(@PathVariable long id) {
+    public ModelAndView editStory(@PathVariable("id") Long id) {
         ModelAndView mav = new ModelAndView("story-edit");
         Story story = repoFactory.getStoryRepo().find(id);
         
@@ -103,7 +107,7 @@ public class StoryController {
      */
     @PostMapping("/{id}/edit")
     public String updateStory(
-        @PathVariable long id,
+        @PathVariable("id") Long id,
         @RequestParam(required=true) String title,
         @RequestParam(required=false) String description,
         @RequestParam(required=false) String status
@@ -140,7 +144,7 @@ public class StoryController {
      * Supprime une story
      */
     @PostMapping("/{id}/delete")
-    public String deleteStory(@PathVariable long id) {
+    public String deleteStory(@PathVariable("id") Long id) {
         repoFactory.getStoryRepo().remove(id);
         return "redirect:/story/list";
     }
@@ -150,7 +154,7 @@ public class StoryController {
      */
     @PostMapping("/{id}/assign")
     public String assignStory(
-        @PathVariable long id,
+        @PathVariable("id") Long id,
         @RequestParam(required=true) int userId
     ) {
         Story story = repoFactory.getStoryRepo().find(id);
@@ -170,7 +174,7 @@ public class StoryController {
      * Désassigne une story d'un utilisateur
      */
     @PostMapping("/{id}/unassign")
-    public String unassignStory(@PathVariable long id) {
+    public String unassignStory(@PathVariable("id") Long id) {
         Story story = repoFactory.getStoryRepo().find(id);
         
         if (story != null) {

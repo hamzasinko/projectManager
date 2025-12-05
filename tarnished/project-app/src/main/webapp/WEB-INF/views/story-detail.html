@@ -44,10 +44,10 @@
         <div class="col-md-6">
           <p><strong>Created:</strong> <span th:text="${#dates.format(story.dateCreated, 'dd/MM/yyyy HH:mm')}">Creation Date</span></p>
         </div>
-        <div class="col-md-6" th:if="${story.assignedUser != null}">
-          <p><strong>Assigned to:</strong> <span th:text="${story.assignedUser.name}">Assignee Name</span></p>
+        <div class="col-md-6" th:if="${story.userAssigned != null}">
+          <p><strong>Assigned to:</strong> <span th:text="${story.userAssigned.name}">Assignee Name</span></p>
         </div>
-        <div class="col-md-6" th:if="${story.assignedUser == null}">
+        <div class="col-md-6" th:if="${story.userAssigned == null}">
           <p><strong>Assigned to:</strong> <span class="text-muted">Unassigned</span></p>
         </div>
       </div>
@@ -55,7 +55,7 @@
       <!-- Action Buttons -->
       <div class="mt-4">
         <a th:href="@{'/story/list'}" class="btn btn-primary btn-sm">Back to Stories</a>
-        <a th:href="@{'/story/edit/' + ${story.id}}" class="btn btn-warning btn-sm">Edit Story</a>
+        <a th:href="@{'/story/' + ${story.id} + '/edit'}" class="btn btn-warning btn-sm">Edit Story</a>
         
         <!-- Delete Button -->
         <button class="btn btn-danger btn-sm" th:onclick="'showDeleteConfirm(' + ${story.id} + ')'">
@@ -68,7 +68,7 @@
         <div class="card-body">
           <h6>Do you really want to delete this story?</h6>
           <div class="mt-2">
-            <form th:action="@{'/story/delete/' + ${story.id}}" method="post">
+            <form th:action="@{'/story/' + ${story.id} + '/delete'}" method="post">
               <button type="submit" class="btn btn-danger btn-sm">Yes, delete</button>
             </form>
             <button class="btn btn-secondary btn-sm" th:onclick="'hideDeleteConfirm(' + ${story.id} + ')'">

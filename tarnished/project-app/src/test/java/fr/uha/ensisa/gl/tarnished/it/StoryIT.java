@@ -240,7 +240,7 @@ public class StoryIT {
         editBtn.click();
         
         // 3. Vérifier que nous sommes sur la page d'édition
-        assertTrue(driver.getCurrentUrl().contains("/story/edit/"),
+        assertTrue(driver.getCurrentUrl().contains("/edit"),
                    "Should be on story edit page");
         
         // 4. Modifier les détails

@@ -59,7 +59,7 @@
                                 <a th:href="@{'/story/' + ${story.id}}" class="btn btn-primary btn-sm">
                                     Details
                                 </a>
-                                <a th:href="@{'/story/edit/' + ${story.id}}"
+                                <a th:href="@{'/story/' + ${story.id} + '/edit'}"
                                    class="btn btn-warning btn-sm">
                                     Edit
                                 </a>
@@ -74,7 +74,7 @@
                         <div class="card-body">
                             <h6>Do you really want to delete this story?</h6>
                             <div class="mt-2">
-                                <form th:action="@{'/story/delete/' + ${story.id}}" method="post">
+                                <form th:action="@{'/story/' + ${story.id} + '/delete'}" method="post">
                                     <button type="submit" class="btn btn-danger btn-sm">Yes, delete</button>
                                 </form>
                                 <button class="btn btn-secondary btn-sm"
