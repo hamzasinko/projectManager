@@ -68,16 +68,67 @@ public class StoryController {
     /**
      * Affiche les détails d'une story
      */
-    @GetMapping("/{id}")
-    public ModelAndView showStory(@PathVariable long id) throws IOException {
-        ModelAndView mav = new ModelAndView("story-detail");
+    @GetMapping("/info/{id}")
+    public ModelAndView showStory(@PathVariable Long id) throws IOException {
         Story story = repoFactory.getStoryRepo().find(id);
-        
+
+        if (story == null) {
+            return new ModelAndView("redirect:/story/list"); // Story not found
+        }
+
+        ModelAndView mav = new ModelAndView("story-detail");
+        mav.addObject("story", story);
+        return mav;
+    }
+    
+    /**
+     * Affiche le formulaire d'édition d'une story
+     */
+    @GetMapping("/edit/{id}")
+    public ModelAndView editStory(@PathVariable Long id) {
+        ModelAndView mav = new ModelAndView("story-edit");
+
+        Story story = repoFactory.getStoryRepo().find(id);
         if (story == null) {
             return new ModelAndView("redirect:/story/list");
         }
         
         mav.addObject("story", story);
+        mav.addObject("users", repoFactory.getUserRepo().getAll());
+        mav.addObject("statuses", StoryStatus.values());
+        
         return mav;
+    }
+    
+    /**
+     * Traite la mise à jour d'une story
+     */
+    @PostMapping("/edit/{id}")
+    public String updateStory(
+            @PathVariable Long id,
+            @RequestParam(required = true) String title,
+            @RequestParam(required = false) String description,
+            @RequestParam(required = false) String status
+    ) {
+        Story story = repoFactory.getStoryRepo().find(id);
+        if (story == null) {
+            return "redirect:/story/list";
+        }
+        
+        story.setTitle(title);
+        story.setDescription(description);
+        
+        if (status != null && !status.isEmpty()) {
+            try {
+                story.setStatus(StoryStatus.valueOf(status));
+            } catch (IllegalArgumentException e) {
+                // Invalid status, keep current status
+            }
+        }
+        
+        // Update story in repository (assuming update method exists)
+        repoFactory.getStoryRepo().persist(story);
+        
+        return "redirect:/story/info/" + story.getId();
     }
 }
