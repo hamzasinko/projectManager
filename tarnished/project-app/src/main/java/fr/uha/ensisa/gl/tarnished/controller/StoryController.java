@@ -144,4 +144,39 @@ public class StoryController {
         repoFactory.getStoryRepo().remove(id);
         return "redirect:/story/list";
     }
+    
+    /**
+     * Assigne une story à un utilisateur
+     */
+    @PostMapping("/{id}/assign")
+    public String assignStory(
+        @PathVariable long id,
+        @RequestParam(required=true) int userId
+    ) {
+        Story story = repoFactory.getStoryRepo().find(id);
+        
+        if (story != null) {
+            // Find user by ID
+            fr.uha.ensisa.gl.entities.User user = repoFactory.getUserRepo().find(userId);
+            if (user != null) {
+                story.setUserAssigned(user);
+            }
+        }
+        
+        return "redirect:/story/list";
+    }
+    
+    /**
+     * Désassigne une story d'un utilisateur
+     */
+    @PostMapping("/{id}/unassign")
+    public String unassignStory(@PathVariable long id) {
+        Story story = repoFactory.getStoryRepo().find(id);
+        
+        if (story != null) {
+            story.setUserAssigned(null);
+        }
+        
+        return "redirect:/story/list";
+    }
 }
