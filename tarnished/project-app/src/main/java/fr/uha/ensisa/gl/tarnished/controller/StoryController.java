@@ -68,15 +68,15 @@ public class StoryController {
     /**
      * Affiche les détails d'une story
      */
-    @GetMapping("/info/{id}")
-    public ModelAndView showStory(@PathVariable Long id) throws IOException {
-        Story story = repoFactory.getStoryRepo().find(id);
-
-        if (story == null) {
-            return new ModelAndView("redirect:/story/list"); // Story not found
-        }
-
+    @GetMapping("/{id}")
+    public ModelAndView showStory(@PathVariable long id) throws IOException {
         ModelAndView mav = new ModelAndView("story-detail");
+        Story story = repoFactory.getStoryRepo().find(id);
+        
+        if (story == null) {
+            return new ModelAndView("redirect:/story/list");
+        }
+        
         mav.addObject("story", story);
         return mav;
     }
@@ -84,35 +84,39 @@ public class StoryController {
     /**
      * Affiche le formulaire d'édition d'une story
      */
-    @GetMapping("/edit/{id}")
-    public ModelAndView editStory(@PathVariable Long id) {
+    @GetMapping("/{id}/edit")
+    public ModelAndView editStory(@PathVariable long id) {
         ModelAndView mav = new ModelAndView("story-edit");
-
         Story story = repoFactory.getStoryRepo().find(id);
+        
         if (story == null) {
             return new ModelAndView("redirect:/story/list");
         }
         
         mav.addObject("story", story);
         mav.addObject("users", repoFactory.getUserRepo().getAll());
-        mav.addObject("statuses", StoryStatus.values());
-        
         return mav;
     }
     
     /**
      * Traite la mise à jour d'une story
      */
-    @PostMapping("/edit/{id}")
+    @PostMapping("/{id}/edit")
     public String updateStory(
-            @PathVariable Long id,
-            @RequestParam(required = true) String title,
-            @RequestParam(required = false) String description,
-            @RequestParam(required = false) String status
+        @PathVariable long id,
+        @RequestParam(required=true) String title,
+        @RequestParam(required=false) String description,
+        @RequestParam(required=false) String status
     ) {
         Story story = repoFactory.getStoryRepo().find(id);
+        
         if (story == null) {
             return "redirect:/story/list";
+        }
+        
+        // Validate title
+        if (title == null || title.trim().isEmpty()) {
+            return "redirect:/story/" + id + "/edit?error=Title is required";
         }
         
         story.setTitle(title);
@@ -126,18 +130,9 @@ public class StoryController {
             }
         }
         
-        // Update story in repository (assuming update method exists)
-        repoFactory.getStoryRepo().persist(story);
+        // Note: StoryRepoMem doesn't have update method, but since objects are references
+        // the changes are automatically persisted in memory
         
-        return "redirect:/story/info/" + story.getId();
-    }
-    
-    /**
-     * Supprime une story
-     */
-    @PostMapping("/delete/{id}")
-    public String deleteStory(@PathVariable Long id) {
-        repoFactory.getStoryRepo().remove(id);
-        return "redirect:/story/list"; // Redirect to story list
+        return "redirect:/story/" + id;
     }
 }
