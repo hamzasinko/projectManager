@@ -17,7 +17,11 @@ public class StoryRepoMem implements StoryRepo {
 
     @Override
     public void persist(Story story) {
-        story.setId(nextId++);
+        if (story.getId() == 0) {
+            // New story
+            story.setId(nextId++);
+        }
+        // Update or insert
         store.put((long)story.getId(), story);
     }
 
@@ -60,6 +64,14 @@ public class StoryRepoMem implements StoryRepo {
         Story story = find(storyId);
         if (story != null) {
             story.setColumnId(columnId);
+        }
+    }
+    
+    @Override
+    public void updateStatus(Long storyId, fr.uha.ensisa.gl.entities.StoryStatus status) {
+        Story story = find(storyId);
+        if (story != null) {
+            story.setStatus(status);
         }
     }
 

@@ -121,7 +121,24 @@ public class StoryController {
         
         mav.addObject("story", story);
         mav.addObject("users", repoFactory.getUserRepo().getAll());
+        
+        // Check if story is in a default column
+        if (story.getColumnId() != null) {
+            fr.uha.ensisa.gl.entities.Column column = repoFactory.getColumnRepo().find(story.getColumnId());
+            if (column != null) {
+                mav.addObject("column", column);
+                mav.addObject("isDefaultColumn", isDefaultColumn(column.getName()));
+            }
+        }
+        
         return mav;
+    }
+    
+    private boolean isDefaultColumn(String columnName) {
+        if (columnName == null) return false;
+        String normalized = columnName.toUpperCase().replace(" ", "_");
+        return normalized.equals("TODO") || normalized.equals("IN_PROGRESS") || 
+               normalized.equals("REVIEW") || normalized.equals("DONE") || normalized.equals("BLOCKED");
     }
     
     /**
@@ -148,7 +165,17 @@ public class StoryController {
         story.setTitle(title);
         story.setDescription(description);
         
-        if (status != null && !status.isEmpty()) {
+        // Check if story is in a default column
+        boolean inDefaultColumn = false;
+        if (story.getColumnId() != null) {
+            fr.uha.ensisa.gl.entities.Column column = repoFactory.getColumnRepo().find(story.getColumnId());
+            if (column != null) {
+                inDefaultColumn = isDefaultColumn(column.getName());
+            }
+        }
+        
+        // Only allow status change if NOT in default column
+        if (!inDefaultColumn && status != null && !status.isEmpty()) {
             try {
                 story.setStatus(StoryStatus.valueOf(status));
             } catch (IllegalArgumentException e) {
@@ -156,8 +183,9 @@ public class StoryController {
             }
         }
         
-        // Note: StoryRepoMem doesn't have update method, but since objects are references
-        // the changes are automatically persisted in memory
+        // DON'T call persist() - in-memory objects are references
+        // Modifying the story object is enough, no need to persist
+        // Calling persist() can duplicate the story if getId() == 0
         
         return "redirect:/story/" + id;
     }

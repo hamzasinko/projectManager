@@ -81,10 +81,7 @@ public class ColumnRepoMem implements ColumnRepo {
             if (storyRepo != null) {
                 storyRepo.moveToColumn(storyId, columnId);
             }
-            // Refresh column's stories list
-            if (storyRepo != null) {
-                column.setStories(new ArrayList<>(storyRepo.findByColumn(columnId)));
-            }
+            // Don't modify column.stories - let BoardController load it fresh
         }
     }
 
@@ -93,19 +90,27 @@ public class ColumnRepoMem implements ColumnRepo {
         if (storyRepo != null) {
             storyRepo.moveToColumn(storyId, null);
         }
-        Column column = find(columnId);
-        if (column != null && storyRepo != null) {
-            column.setStories(new ArrayList<>(storyRepo.findByColumn(columnId)));
-        }
+        // Don't modify column.stories - let BoardController load it fresh
     }
 
     @Override
     public void moveStoryBetweenColumns(Long storyId, Long fromColumnId, Long toColumnId) {
-        if (fromColumnId != null) {
-            removeStoryFromColumn(storyId, fromColumnId);
+        // Check target column capacity BEFORE moving
+        if (toColumnId != null && storyRepo != null) {
+            Column targetColumn = find(toColumnId);
+            if (targetColumn != null && targetColumn.getMaxCapacity() > 0) {
+                // Count stories currently in target column
+                long currentCount = storyRepo.findByColumn(toColumnId).size();
+                if (currentCount >= targetColumn.getMaxCapacity()) {
+                    throw new IllegalStateException("Target column is full");
+                }
+            }
         }
-        if (toColumnId != null) {
-            addStoryToColumn(storyId, toColumnId);
+        
+        // Simply update the story's columnId - don't touch column.stories lists
+        // They will be refreshed by BoardController when the page is loaded/displayed
+        if (storyRepo != null) {
+            storyRepo.moveToColumn(storyId, toColumnId);
         }
     }
 }

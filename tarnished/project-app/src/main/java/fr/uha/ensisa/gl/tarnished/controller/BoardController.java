@@ -47,9 +47,10 @@ public class BoardController {
     }
 
     /**
-     * Déplace une story vers une autre colonne
+     * Déplace une story vers une autre colonne (AJAX)
      */
     @PostMapping("/{projectId}/move-story")
+    @ResponseBody
     public String moveStory(
             @PathVariable Long projectId,
             @RequestParam Long storyId,
@@ -57,12 +58,54 @@ public class BoardController {
             @RequestParam(required = false) Long fromColumnId) {
         
         try {
+            // Check if target column is full before moving
+            Column targetColumn = repoFactory.getColumnRepo().find(toColumnId);
+            if (targetColumn != null && targetColumn.getMaxCapacity() > 0) {
+                Collection<Story> storiesInColumn = repoFactory.getStoryRepo().findByColumn(toColumnId);
+                if (storiesInColumn.size() >= targetColumn.getMaxCapacity()) {
+                    return "{\"success\":false,\"error\":\"Column is full (max " + targetColumn.getMaxCapacity() + ")\"}";
+                }
+            }
+            
             repoFactory.getColumnRepo().moveStoryBetweenColumns(storyId, fromColumnId, toColumnId);
+            
+            // Auto-update status if column is a default column
+            String newStatusStr = null;
+            if (targetColumn != null) {
+                Story story = repoFactory.getStoryRepo().find(storyId);
+                if (story != null) {
+                    fr.uha.ensisa.gl.entities.StoryStatus newStatus = mapColumnNameToStatus(targetColumn.getName());
+                    if (newStatus != null) {
+                        story.setStatus(newStatus);
+                        // No need to persist - in-memory objects are references
+                        newStatusStr = newStatus.name();
+                    }
+                }
+            }
+            
+            if (newStatusStr != null) {
+                return "{\"success\":true,\"newStatus\":\"" + newStatusStr + "\"}";
+            }
+            return "{\"success\":true}";
         } catch (IllegalStateException e) {
-            return "redirect:/board/" + projectId + "?error=Column is full";
+            return "{\"success\":false,\"error\":\"" + e.getMessage() + "\"}";
         }
-
-        return "redirect:/board/" + projectId;
+    }
+    
+    /**
+     * Maps default column names to story statuses
+     */
+    private fr.uha.ensisa.gl.entities.StoryStatus mapColumnNameToStatus(String columnName) {
+        if (columnName == null) return null;
+        String normalized = columnName.toUpperCase().replace(" ", "_");
+        switch (normalized) {
+            case "TODO": return fr.uha.ensisa.gl.entities.StoryStatus.TODO;
+            case "IN_PROGRESS": return fr.uha.ensisa.gl.entities.StoryStatus.IN_PROGRESS;
+            case "REVIEW": return fr.uha.ensisa.gl.entities.StoryStatus.REVIEW;
+            case "DONE": return fr.uha.ensisa.gl.entities.StoryStatus.DONE;
+            case "BLOCKED": return fr.uha.ensisa.gl.entities.StoryStatus.BLOCKED;
+            default: return null;
+        }
     }
 
     /**
@@ -91,5 +134,64 @@ public class BoardController {
         repoFactory.getColumnRepo().persist(column);
 
         return "redirect:/board/" + projectId;
+    }
+    
+    /**
+     * Supprime une colonne
+     */
+    @PostMapping("/{projectId}/delete-column/{columnId}")
+    public String deleteColumn(
+            @PathVariable Long projectId,
+            @PathVariable Long columnId) {
+        
+        repoFactory.getColumnRepo().remove(columnId);
+        return "redirect:/board/" + projectId;
+    }
+    
+    /**
+     * Réordonne les colonnes (AJAX)
+     */
+    @PostMapping("/{projectId}/reorder-columns")
+    @ResponseBody
+    public String reorderColumns(
+            @PathVariable Long projectId,
+            @RequestParam String columnOrder) {
+        
+        String[] columnIds = columnOrder.split(",");
+        for (int i = 0; i < columnIds.length; i++) {
+            Long columnId = Long.parseLong(columnIds[i]);
+            repoFactory.getColumnRepo().reorder(columnId, i + 1);
+        }
+        
+        return "{\"success\":true}";
+    }
+    
+    /**
+     * Met à jour le nom d'une colonne (AJAX)
+     */
+    @PostMapping("/{projectId}/update-column")
+    @ResponseBody
+    public String updateColumnName(
+            @PathVariable Long projectId,
+            @RequestParam Long columnId,
+            @RequestParam String newName) {
+        
+        try {
+            Column column = repoFactory.getColumnRepo().find(columnId);
+            if (column == null) {
+                return "{\"success\":false,\"error\":\"Column not found\"}";
+            }
+            
+            if (newName == null || newName.trim().isEmpty()) {
+                return "{\"success\":false,\"error\":\"Column name cannot be empty\"}";
+            }
+            
+            column.setName(newName.trim());
+            repoFactory.getColumnRepo().persist(column);
+            
+            return "{\"success\":true}";
+        } catch (Exception e) {
+            return "{\"success\":false,\"error\":\"" + e.getMessage() + "\"}";
+        }
     }
 }
