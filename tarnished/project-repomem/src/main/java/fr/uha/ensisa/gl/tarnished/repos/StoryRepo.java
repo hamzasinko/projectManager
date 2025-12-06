@@ -13,6 +13,8 @@ public interface StoryRepo {
     public Story find(long id);
     public Collection<Story> findAll();
     public Collection<Story> findByProject(long projectId);
+    Collection<Story> findByColumn(Long columnId);
+    void moveToColumn(Long storyId, Long columnId);
     void addWorkLog(Long storyId, WorkLog workLog);
     void removeWorkLog(Long storyId, Long workLogId);
     Long calculateTotalTime(Long storyId);

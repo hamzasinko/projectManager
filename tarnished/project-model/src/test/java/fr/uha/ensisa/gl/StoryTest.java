@@ -134,20 +134,26 @@ public class StoryTest {
     @Test
     @DisplayName("Should add work log successfully")
     void testAddWorkLog() {
-        WorkLog log = new WorkLog(1, 2.5f, new Date(), new Date(), new User());
+        WorkLog log = new WorkLog();
+        log.setId(1);
+        log.setDuration(30);
         List<WorkLog> modifiedWorkLogs = sut.getWorkLogs();
         modifiedWorkLogs.add(log);
         sut.setWorkLogs(modifiedWorkLogs);
         
         assertEquals(1, sut.getWorkLogs().size(), "Should have 1 work log");
-        assertEquals(2.5f, sut.getWorkLogs().get(0).getDuration(), "Work log duration should be 2.5");
+        assertEquals(30, sut.getWorkLogs().get(0).getDuration(), "Work log duration should be 30");
     }
 
     @Test
     @DisplayName("Should add multiple work logs successfully")
     void testAddMultipleWorkLogs() {
-        WorkLog log1 = new WorkLog(1, 2.5f, new Date(), new Date(), new User());
-        WorkLog log2 = new WorkLog(2, 3.0f, new Date(), new Date(), new User());
+        WorkLog log1 = new WorkLog();
+        log1.setId(1);
+        log1.setDuration(30);
+        WorkLog log2 = new WorkLog();
+        log2.setId(2);
+        log2.setDuration(45);
         
         List<WorkLog> modifiedWorkLogs = sut.getWorkLogs();
         modifiedWorkLogs.add(log1);
@@ -160,7 +166,9 @@ public class StoryTest {
     @Test
     @DisplayName("Should remove work log successfully")
     void testRemoveWorkLog() {
-        WorkLog log = new WorkLog(1, 2.5f, new Date(), new Date(), new User());
+        WorkLog log = new WorkLog();
+        log.setId(1);
+        log.setDuration(30);
         List<WorkLog> modifiedWorkLogs = sut.getWorkLogs();
         modifiedWorkLogs.add(log);
         modifiedWorkLogs.remove(0);
@@ -196,8 +204,11 @@ public class StoryTest {
         Date dateCreated = new Date();
         Date dateEnd = new Date();
         List<WorkLog> workLogs = new ArrayList<>();
+        long totalTimeSpent = 0;
+        Long projectId = null;
+        Long columnId = null;
         
-        Story story = new Story(id, title, description, status, user, dateStart, dateCreated, dateEnd, workLogs);
+        Story story = new Story(id, title, description, status, user, dateStart, dateCreated, dateEnd, workLogs, totalTimeSpent, projectId, columnId);
         
         assertEquals(id, story.getId());
         assertEquals(title, story.getTitle());

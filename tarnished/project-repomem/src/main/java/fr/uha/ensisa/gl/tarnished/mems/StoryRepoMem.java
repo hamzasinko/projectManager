@@ -38,10 +38,29 @@ public class StoryRepoMem implements StoryRepo {
 
     @Override
     public Collection<Story> findByProject(long projectId) {
-        // Note: Story doesn't have projectId in current model
-        // This method will return empty collection for now
-        // Should be implemented when Story model is updated with project reference
-        return new ArrayList<>();
+        return store.values().stream()
+                .filter(story -> story.getProjectId() != null && story.getProjectId() == projectId)
+                .toList();
+    }
+
+    @Override
+    public Collection<Story> findByColumn(Long columnId) {
+        if (columnId == null) {
+            return store.values().stream()
+                    .filter(story -> story.getColumnId() == null)
+                    .toList();
+        }
+        return store.values().stream()
+                .filter(story -> columnId.equals(story.getColumnId()))
+                .toList();
+    }
+
+    @Override
+    public void moveToColumn(Long storyId, Long columnId) {
+        Story story = find(storyId);
+        if (story != null) {
+            story.setColumnId(columnId);
+        }
     }
 
     @Override

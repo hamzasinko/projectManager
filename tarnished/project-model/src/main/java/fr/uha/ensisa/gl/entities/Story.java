@@ -22,6 +22,8 @@ public class Story {
     private Date dateEnd;
     private List<WorkLog> workLogs = new ArrayList<>();
     private long totalTimeSpent;
+    private Long projectId;
+    private Long columnId;
 
     public void addWorkLog(WorkLog workLog) {
         if (workLogs == null) {
