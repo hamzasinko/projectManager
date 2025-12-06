@@ -26,10 +26,20 @@ public class StoryController {
      * Affiche le formulaire de création de story
      */
     @GetMapping("/new")
-    public ModelAndView showCreateForm() {
+    public ModelAndView showCreateForm(
+        @RequestParam(required=false) Long projectId,
+        @RequestParam(required=false) Long columnId
+    ) {
         ModelAndView mav = new ModelAndView("story-create");
         // Add all projects to select from
         mav.addObject("projects", repoFactory.getProjectRepo().findAll());
+        // Pass projectId and columnId if provided
+        if (projectId != null) {
+            mav.addObject("projectId", projectId);
+        }
+        if (columnId != null) {
+            mav.addObject("columnId", columnId);
+        }
         return mav;
     }
     
@@ -40,7 +50,8 @@ public class StoryController {
     public String createStory(
         @RequestParam(required=true) String title,
         @RequestParam(required=false) String description,
-        @RequestParam(required=false) Long projectId
+        @RequestParam(required=false) Long projectId,
+        @RequestParam(required=false) Long columnId
     ) throws IOException {
         
         // Validate title
@@ -53,9 +64,19 @@ public class StoryController {
         story.setDescription(description);
         story.setStatus(StoryStatus.TODO);
         story.setDateCreated(new Date());
+        if (projectId != null) {
+            story.setProjectId(projectId);
+        }
+        if (columnId != null) {
+            story.setColumnId(columnId);
+        }
         
         repoFactory.getStoryRepo().persist(story);
         
+        // If projectId is provided, redirect back to board, otherwise to story list
+        if (projectId != null) {
+            return "redirect:/board/" + projectId;
+        }
         return "redirect:/story/list";
     }
     
@@ -66,6 +87,7 @@ public class StoryController {
     public ModelAndView listStories() throws IOException {
         ModelAndView mav = new ModelAndView("story-list");
         mav.addObject("stories", repoFactory.getStoryRepo().findAll());
+        mav.addObject("columns", repoFactory.getColumnRepo().findAll());
         return mav;
     }
     
@@ -184,15 +206,15 @@ public class StoryController {
         return "redirect:/story/list";
     }
 
-    @PostMapping("/stories/{id}/timer/start")
-    public String startTimer(@PathVariable Long id, @RequestParam(required = false, defaultValue = "1") Long userId) {
+    @PostMapping("/{id}/timer/start")
+    public String startTimer(@PathVariable("id") Long id, @RequestParam(required = false, defaultValue = "1") Long userId) {
         repoFactory.getStoryRepo().startTimer(id, userId);
-        return "redirect:/stories";
+        return "redirect:/story/list";
     }
 
-    @PostMapping("/stories/{id}/timer/stop")
-    public String stopTimer(@PathVariable Long id, @RequestParam Long workLogId) {
+    @PostMapping("/{id}/timer/stop")
+    public String stopTimer(@PathVariable("id") Long id, @RequestParam Long workLogId) {
         repoFactory.getStoryRepo().stopTimer(id, workLogId);
-        return "redirect:/stories";
+        return "redirect:/story/list";
     }
 }

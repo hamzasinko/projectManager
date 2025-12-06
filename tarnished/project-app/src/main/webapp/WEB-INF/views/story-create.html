@@ -3,11 +3,20 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>Create Story</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/libs/bootstrap/bootstrap.min.css}">
+    <style>
+        * { font-family: 'Space Grotesk', system-ui, sans-serif !important; }
+    </style>
 </head>
 <body>
     <div class="container mt-5">
-        <h1 class="mb-4">Create New Story</h1>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Create New Story</h1>
+            <a th:href="@{/}" class="btn btn-outline-secondary">Home</a>
+        </div>
         
         <!-- Error message -->
         <div th:if="${param.error}" class="alert alert-danger" role="alert">
@@ -15,6 +24,10 @@
         </div>
         
         <form th:action="@{/story/create}" method="POST" accept-charset="UTF-8">
+            <!-- Hidden fields for projectId and columnId if provided -->
+            <input type="hidden" name="projectId" th:value="${projectId}" th:if="${projectId != null}">
+            <input type="hidden" name="columnId" th:value="${columnId}" th:if="${columnId != null}">
+            
             <div class="mb-3">
                 <label for="storyTitle" class="form-label">Story Title *</label>
                 <input type="text" 
@@ -36,7 +49,8 @@
                 <div class="form-text">Details, acceptance criteria, and any relevant notes</div>
             </div>
             
-            <div class="mb-3">
+            <!-- Show project selector only if projectId is not provided from board -->
+            <div class="mb-3" th:if="${projectId == null}">
                 <label for="projectId" class="form-label">Project</label>
                 <select class="form-select" id="projectId" name="projectId">
                     <option value="">No project (backlog)</option>
@@ -46,10 +60,19 @@
                 </select>
             </div>
             
+            <!-- Show project info if coming from board -->
+            <div class="mb-3" th:if="${projectId != null}">
+                <label class="form-label">Project</label>
+                <div class="alert alert-info">
+                    This story will be added to the selected project and column
+                </div>
+            </div>
+            
             <button type="submit" class="btn btn-primary" id="createStoryBtn">
                 Create Story
             </button>
-            <a th:href="@{/story/list}" class="btn btn-secondary">Cancel</a>
+            <a th:href="@{/story/list}" class="btn btn-secondary" th:if="${projectId == null}">Cancel</a>
+            <a th:href="@{/board/{projectId}(projectId=${projectId})}" class="btn btn-secondary" th:if="${projectId != null}">Cancel</a>
         </form>
     </div>
     
