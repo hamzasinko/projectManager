@@ -71,4 +71,9 @@ public class MvcConfiguration implements WebMvcConfigurer {
 	public MultipartResolver multipartResolver(){
 		return new StandardServletMultipartResolver();
 	}
+
+	@Bean
+	public fr.uha.ensisa.gl.tarnished.repos.ColumnRepo columnRepo() {
+		return new fr.uha.ensisa.gl.tarnished.mems.ColumnRepoMem();
+	}
 }
