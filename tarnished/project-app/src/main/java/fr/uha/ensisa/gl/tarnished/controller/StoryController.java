@@ -183,4 +183,16 @@ public class StoryController {
         
         return "redirect:/story/list";
     }
+
+    @PostMapping("/stories/{id}/timer/start")
+    public String startTimer(@PathVariable Long id, @RequestParam(required = false, defaultValue = "1") Long userId) {
+        repoFactory.getStoryRepo().startTimer(id, userId);
+        return "redirect:/stories";
+    }
+
+    @PostMapping("/stories/{id}/timer/stop")
+    public String stopTimer(@PathVariable Long id, @RequestParam Long workLogId) {
+        repoFactory.getStoryRepo().stopTimer(id, workLogId);
+        return "redirect:/stories";
+    }
 }

@@ -249,4 +249,24 @@ public class StoryTest {
         assertTrue(toString.contains("1"), "toString should contain ID");
         assertTrue(toString.contains("Test Story"), "toString should contain title");
     }
+
+    @Test
+    @DisplayName("Should calculate total time correctly from worklogs")
+    void testCalculateTotalTimeFromWorkLogs() {
+        List<WorkLog> workLogs = new ArrayList<>();
+        
+        WorkLog workLog1 = new WorkLog();
+        workLog1.setDuration(30);
+        workLogs.add(workLog1);
+        
+        WorkLog workLog2 = new WorkLog();
+        workLog2.setDuration(45);
+        workLogs.add(workLog2);
+        
+        sut.setWorkLogs(workLogs);
+        
+        long totalTime = sut.getWorkLogs().stream().mapToLong(WorkLog::getDuration).sum();
+        
+        assertEquals(75, totalTime);
+    }
 }
