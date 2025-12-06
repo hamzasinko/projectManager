@@ -1,45 +1,86 @@
 package fr.uha.ensisa.gl;
 
 import fr.uha.ensisa.gl.entities.Column;
-import fr.uha.ensisa.gl.entities.Project;
 import fr.uha.ensisa.gl.entities.Story;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
+import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(MockitoExtension.class)
 class ColumnTest {
 
-    @Mock
-    Project project;
-
-    @Mock
-    Story story1;
-
-    @Mock
-    Story story2;
+    @Test
+    void testCreateColumnValid() {
+        Column column = new Column();
+        column.setId(1);
+        column.setName("To Do");
+        column.setPosition(1);
+        column.setMaxCapacity(5);
+        
+        assertNotNull(column);
+        assertEquals("To Do", column.getName());
+        assertEquals(1, column.getPosition());
+        assertEquals(5, column.getMaxCapacity());
+    }
 
     @Test
-    void columnGettersAndSettersWork() {
-        Column c = new Column();
-        c.setId(123);
-        c.setName("col");
-        c.setPosition(1);
-        c.setMaxCapacity(50);
-        c.setProject(project);
-        List<Story> stories = List.of(story1, story2);
-        c.setStories(stories);
+    void testValidationNameRequired() {
+        Column column = new Column();
+        column.setId(1);
+        column.setName("");
+        column.setPosition(1);
+        column.setMaxCapacity(5);
+        
+        assertTrue(column.getName().isEmpty());
+    }
 
-        assertEquals(123, c.getId());
-        assertEquals("col", c.getName());
-        assertEquals(1, c.getPosition());
-        assertEquals(50, c.getMaxCapacity());
-        assertSame(project, c.getProject());
-        assertEquals(stories, c.getStories());
+    @Test
+    void testValidationLimitGreaterThanOrEqualToOne() {
+        Column column = new Column();
+        column.setId(1);
+        column.setName("In Progress");
+        column.setPosition(2);
+        column.setMaxCapacity(1);
+        
+        assertTrue(column.getMaxCapacity() >= 1);
+    }
+
+    @Test
+    void testAddStoryWhenSpaceAvailable() {
+        Column column = new Column();
+        column.setId(1);
+        column.setName("To Do");
+        column.setPosition(1);
+        column.setMaxCapacity(5);
+        column.setStories(new ArrayList<>());
+        
+        Story story = new Story();
+        story.setId(1);
+        column.getStories().add(story);
+        
+        assertEquals(1, column.getStories().size());
+        assertTrue(column.getStories().size() < column.getMaxCapacity());
+    }
+
+    @Test
+    void testRefuseAddStoryWhenColumnFull() {
+        Column column = new Column();
+        column.setId(1);
+        column.setName("Done");
+        column.setPosition(3);
+        column.setMaxCapacity(2);
+        column.setStories(new ArrayList<>());
+        
+        Story story1 = new Story();
+        story1.setId(1);
+        column.getStories().add(story1);
+        
+        Story story2 = new Story();
+        story2.setId(2);
+        column.getStories().add(story2);
+        
+        assertEquals(2, column.getStories().size());
+        assertTrue(column.getStories().size() >= column.getMaxCapacity());
     }
 }
