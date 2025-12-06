@@ -18,6 +18,7 @@ public class RepoFactoryMem implements RepoFactory {
     public RepoFactoryMem() {
         columnRepoMem.setStoryRepo(storyRepo);
         this.columnRepo = columnRepoMem;
+        ((ProjectRepoMem) projectRepo).setColumnRepo(columnRepo);
     }
 
     @Override

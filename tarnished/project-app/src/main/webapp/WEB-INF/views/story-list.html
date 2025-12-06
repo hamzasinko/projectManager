@@ -49,7 +49,7 @@
                                 <h5 class="card-title mb-0" th:text="${story.title}">Story Title</h5>
                                 <span class="badge status-badge"
                                       th:classappend="${'status-' + story.status}"
-                                      th:text="${story.status}">TODO</span>
+                                      th:text="${#strings.replace(story.status.toString(), '_', ' ')}">TODO</span>
                             </div>
                             
                             <p class="card-text text-muted small" 

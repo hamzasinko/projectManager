@@ -38,13 +38,17 @@
         <!-- Status -->
         <div class="mb-3">
             <label class="form-label">Status</label>
-            <select class="form-select" name="status" id="storyStatus">
+            <select class="form-select" name="status" id="storyStatus" 
+                    th:disabled="${isDefaultColumn != null and isDefaultColumn}">
                 <option value="TODO" th:selected="${story.status == T(fr.uha.ensisa.gl.entities.StoryStatus).TODO}">TODO</option>
                 <option value="IN_PROGRESS" th:selected="${story.status == T(fr.uha.ensisa.gl.entities.StoryStatus).IN_PROGRESS}">IN PROGRESS</option>
                 <option value="REVIEW" th:selected="${story.status == T(fr.uha.ensisa.gl.entities.StoryStatus).REVIEW}">REVIEW</option>
                 <option value="DONE" th:selected="${story.status == T(fr.uha.ensisa.gl.entities.StoryStatus).DONE}">DONE</option>
                 <option value="BLOCKED" th:selected="${story.status == T(fr.uha.ensisa.gl.entities.StoryStatus).BLOCKED}">BLOCKED</option>
             </select>
+            <small class="text-muted" th:if="${isDefaultColumn != null and isDefaultColumn}">
+                Status is automatically set by the column. Move story to a custom column to change status manually.
+            </small>
         </div>
 
         <!-- Assigned User Section -->

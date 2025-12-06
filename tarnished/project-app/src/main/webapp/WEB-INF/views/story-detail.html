@@ -39,7 +39,7 @@
         <h3 class="card-title" th:text="${story.title}">Story Title</h3>
         <span class="badge status-badge"
               th:classappend="${'status-' + story.status}"
-              th:text="${story.status}">TODO</span>
+              th:text="${#strings.replace(story.status.toString(), '_', ' ')}">TODO</span>
       </div>
       
       <p class="card-text" th:text="${story.description != null ? story.description : 'No description'}">Story Description</p>

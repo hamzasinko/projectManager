@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Tarnished - Visualize your flows, eliminate bottlenecks</title>
+    <title>Tarnished</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -438,7 +438,7 @@
                             <div class="story-desc" th:text="${story.description}">Description</div>
                         </div>
                         <div class="story-meta">
-                            <span class="badge bg-primary" th:text="${story.status}">Status</span>
+                            <span class="badge bg-primary" th:text="${#strings.replace(story.status.toString(), '_', ' ')}">Status</span>
                             <a th:href="@{'/story/' + ${story.id}}" class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-arrow-right"></i>
                             </a>

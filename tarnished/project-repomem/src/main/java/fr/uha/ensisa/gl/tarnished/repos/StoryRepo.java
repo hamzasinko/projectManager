@@ -15,6 +15,7 @@ public interface StoryRepo {
     public Collection<Story> findByProject(long projectId);
     Collection<Story> findByColumn(Long columnId);
     void moveToColumn(Long storyId, Long columnId);
+    void updateStatus(Long storyId, fr.uha.ensisa.gl.entities.StoryStatus status);
     void addWorkLog(Long storyId, WorkLog workLog);
     void removeWorkLog(Long storyId, Long workLogId);
     Long calculateTotalTime(Long storyId);
