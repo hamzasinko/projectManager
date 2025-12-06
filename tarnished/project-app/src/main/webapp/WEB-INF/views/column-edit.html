@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head xmlns:th="http://www.thymeleaf.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Edit Column</title>
+    <link rel="stylesheet" th:href="@{/libs/bootstrap/bootstrap.min.css}">
+</head>
+<body>
+<div class="container mt-4">
+    <h3>Edit Column</h3>
+
+    <form id="column_edit_form" th:action="@{'/columns/' + ${column.id} + '/edit'}" method="post">
+
+        <div class="mb-3">
+            <label class="form-label">Column Name*</label>
+            <input id="column_name_edit" class="form-control" type="text" name="name" th:value="${column.name}" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Order*</label>
+            <input id="column_order_edit" class="form-control" type="number" name="order" th:value="${column.position}" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Limit*</label>
+            <input id="column_limit_edit" class="form-control" type="number" name="limit" th:value="${column.maxCapacity}" min="1" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a th:href="@{/columns}" class="btn btn-secondary">Cancel</a>
+
+    </form>
+</div>
+<script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
+</body>
+</html>
