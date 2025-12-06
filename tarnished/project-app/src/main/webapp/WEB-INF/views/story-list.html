@@ -68,6 +68,45 @@
                                     Delete
                                 </button>
                             </div>
+                            
+                            <div class="mt-3">
+                                <form th:id="'move_story_' + ${story.id}" 
+                                      th:action="@{'/stories/' + ${story.id} + '/move'}" 
+                                      method="post" 
+                                      class="d-inline-block">
+                                    <select name="toColumnId" class="form-select form-select-sm d-inline-block" style="width: auto;">
+                                        <option value="">Select Column</option>
+                                        <option th:each="column : ${columns}" 
+                                                th:value="${column.id}" 
+                                                th:text="${column.name}">Column</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-info">Move</button>
+                                </form>
+                            </div>
+                            
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    Time: <span th:text="${story.workLogs != null ? story.workLogs.stream().mapToLong(wl -> wl.duration).sum() : 0}">0</span> min
+                                </small>
+                            </div>
+                            
+                            <div class="mt-2">
+                                <form th:id="'timer_start_' + ${story.id}" 
+                                      th:action="@{'/stories/' + ${story.id} + '/timer/start'}" 
+                                      method="post" 
+                                      class="d-inline-block">
+                                    <button type="submit" class="btn btn-sm btn-success">Start Timer</button>
+                                </form>
+                                
+                                <form th:id="'timer_stop_' + ${story.id}" 
+                                      th:action="@{'/stories/' + ${story.id} + '/timer/stop'}" 
+                                      method="post" 
+                                      class="d-inline-block"
+                                      th:if="${story.workLogs != null && !story.workLogs.isEmpty()}">
+                                    <input type="hidden" name="workLogId" th:value="${story.workLogs.get(story.workLogs.size() - 1).id}">
+                                    <button type="submit" class="btn btn-sm btn-danger">Stop Timer</button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                     <div th:id="'confirmCard-' + ${story.id}" class="card mt-2" style="display:none;">
