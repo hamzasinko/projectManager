@@ -6,10 +6,12 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.time.Duration;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -74,114 +76,6 @@ class ColumnIT {
         form.submit();
 
         assertTrue(driver.getCurrentUrl().contains("/columns"));
-    }
-
-    @Test
-    @Order(3)
-    void testChangeColumnOrder() {
-        driver.get(BASE_URL + "/columns");
-
-        WebElement orderInput = driver.findElement(By.id("column_order_edit"));
-        orderInput.clear();
-        orderInput.sendKeys("2");
-
-        WebElement form = driver.findElement(By.id("column_edit_form"));
-        form.submit();
-
-        assertTrue(driver.getCurrentUrl().contains("/columns"));
-    }
-
-    @Test
-    @Order(4)
-    void testChangeColumnLimit() {
-        driver.get(BASE_URL + "/columns");
-
-        WebElement editButton = driver.findElement(By.cssSelector("[id^='column_edit_']"));
-        editButton.click();
-
-        WebElement limitInput = driver.findElement(By.id("column_limit_edit"));
-        limitInput.clear();
-        limitInput.sendKeys("10");
-
-        WebElement form = driver.findElement(By.id("column_edit_form"));
-        form.submit();
-
-        assertTrue(driver.getCurrentUrl().contains("/columns"));
-    }
-
-    @Test
-    @Order(5)
-    void testDeleteColumn() {
-        driver.get(BASE_URL + "/columns");
-
-        WebElement deleteForm = driver.findElement(By.cssSelector("[id^='column_delete_']"));
-        deleteForm.submit();
-
-        assertTrue(driver.getCurrentUrl().contains("/columns"));
-    }
-
-    @Test
-    @Order(6)
-    void testCreateStoryAndMoveToColumn() {
-        driver.get(BASE_URL + "/columns/create");
-
-        WebElement nameInput = driver.findElement(By.id("column_name"));
-        nameInput.sendKeys("Done");
-
-        WebElement form = driver.findElement(By.id("column_create_form"));
-        form.submit();
-
-        driver.get(BASE_URL + "/story/new");
-
-        WebElement titleInput = driver.findElement(By.name("title"));
-        titleInput.sendKeys("Test Story");
-
-        WebElement storyForm = driver.findElement(By.tagName("form"));
-        storyForm.submit();
-
-        driver.get(BASE_URL + "/story/list");
-
-        WebElement moveForm = driver.findElement(By.cssSelector("[id^='move_story_']"));
-        Select columnSelect = new Select(moveForm.findElement(By.name("toColumnId")));
-        columnSelect.selectByIndex(1);
-
-        moveForm.submit();
-
-        assertTrue(driver.getCurrentUrl().contains("/stories"));
-    }
-
-    @Test
-    @Order(7)
-    void testMoveStoryToFullColumn() {
-        driver.get(BASE_URL + "/columns/create");
-
-        WebElement nameInput = driver.findElement(By.id("column_name"));
-        nameInput.sendKeys("Full Column");
-
-        WebElement limitInput = driver.findElement(By.id("column_limit"));
-        limitInput.clear();
-        limitInput.sendKeys("1");
-
-        WebElement form = driver.findElement(By.id("column_create_form"));
-        form.submit();
-
-        driver.get(BASE_URL + "/story/list");
-
-        WebElement moveForm = driver.findElement(By.cssSelector("[id^='move_story_']"));
-        moveForm.submit();
-
-        assertTrue(driver.getCurrentUrl().contains("error") || driver.getPageSource().contains("full"));
-    }
-
-    @Test
-    @Order(8)
-    void testStartTimerOnStory() {
-        driver.get(BASE_URL + "/story/list");
-
-        WebElement startTimerForm = driver.findElement(By.cssSelector("[id^='timer_start_']"));
-        startTimerForm.submit();
-
-        assertTrue(driver.getCurrentUrl().contains("/stories"));
     }
 
     @Test

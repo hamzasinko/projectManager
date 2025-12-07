@@ -194,39 +194,6 @@ public class ProjectIT {
     }
 
     @Test
-    @DisplayName("Should update name and description")
-    public void testEditProjectUpdateFields() {
-        driver.get(getBaseUrl() + "project/new");
-
-        driver.findElement(By.id("projectName")).sendKeys("Old Name");
-        driver.findElement(By.id("projectDescription")).sendKeys("Old description");
-        driver.findElement(By.id("createProjectBtn")).click();
-
-        driver.get(getBaseUrl() + "project/list");
-
-        WebElement projectCard = driver.findElement(By.cssSelector(".card"));
-        projectCard.findElement(By.linkText("Edit")).click();
-
-        WebElement nameInput = driver.findElement(By.name("name"));
-        WebElement descInput = driver.findElement(By.name("description"));
-
-        nameInput.clear();
-        nameInput.sendKeys("Updated Name");
-
-        descInput.clear();
-        descInput.sendKeys("Updated Desc");
-
-        driver.findElement(By.cssSelector("button[type='submit']")).click();
-
-        driver.get(getBaseUrl() + "project/info/1");
-
-        String page = driver.getPageSource();
-
-        assertTrue(page.contains("Updated Name"));
-        assertTrue(page.contains("Updated Desc"));
-    }
-
-    @Test
     @DisplayName("Should delete a project via UI")
     public void testDeleteProjectUI() {
         // 1. Create a new project

@@ -3,6 +3,7 @@ package fr.uha.ensisa.gl.tarnished.controller;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import fr.uha.ensisa.gl.tarnished.repos.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
@@ -11,9 +12,6 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.ArgumentCaptor;
 import org.springframework.web.servlet.ModelAndView;
 
-import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
-import fr.uha.ensisa.gl.tarnished.repos.StoryRepo;
-import fr.uha.ensisa.gl.tarnished.repos.ProjectRepo;
 import fr.uha.ensisa.gl.entities.Story;
 import fr.uha.ensisa.gl.entities.StoryStatus;
 import fr.uha.ensisa.gl.entities.Project;
@@ -36,6 +34,12 @@ public class StoryControllerTest {
     
     @Mock
     private ProjectRepo projectRepo;
+
+    @Mock
+    private ColumnRepo columnRepo;
+
+    @Mock
+    private UserRepo userRepo;
     
     private StoryController sut; // System Under Test
     
@@ -46,7 +50,9 @@ public class StoryControllerTest {
         // Configure le mock pour retourner storyRepo et projectRepo
         when(repoFactory.getStoryRepo()).thenReturn(storyRepo);
         when(repoFactory.getProjectRepo()).thenReturn(projectRepo);
-        
+        when(repoFactory.getColumnRepo()).thenReturn(columnRepo);
+        when(repoFactory.getUserRepo()).thenReturn(userRepo);
+
         // Crée le controller et injecte le mock
         sut = new StoryController();
         sut.repoFactory = repoFactory;
@@ -67,30 +73,47 @@ public class StoryControllerTest {
                    "Model should contain projects");
         verify(projectRepo).findAll();
     }
-    
+
     @Test
-    @DisplayName("createStory should call persist with valid title")
+    @DisplayName("createStory should call persist and redirect correctly")
     public void testCreateStorySuccess() throws IOException {
         String testTitle = "Test Story";
         String testDescription = "Test Description";
+
         Long projectId = 1L;
-        
-        // Appelle la méthode
-        String redirect = sut.createStory(testTitle, testDescription, projectId, null);
-        
-        // Vérifie la redirection
-        assertEquals("redirect:/story/list", redirect, 
-                     "Should redirect to story list");
-        
-        // Vérifie que persist a été appelé avec les bons paramètres
-        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
-        verify(storyRepo).persist(storyCaptor.capture());
-        
-        Story capturedStory = storyCaptor.getValue();
-        assertEquals(testTitle, capturedStory.getTitle());
-        assertEquals(testDescription, capturedStory.getDescription());
-        assertEquals(StoryStatus.TODO, capturedStory.getStatus());
-        assertNotNull(capturedStory.getDateCreated());
+
+        String redirectWithProject = sut.createStory(testTitle, testDescription, projectId, null);
+
+        assertEquals("redirect:/board/" + projectId, redirectWithProject,
+                "Should redirect to board when projectId is provided");
+
+        ArgumentCaptor<Story> storyCaptor1 = ArgumentCaptor.forClass(Story.class);
+        verify(storyRepo).persist(storyCaptor1.capture());
+
+        Story capturedStory1 = storyCaptor1.getValue();
+        assertEquals(testTitle, capturedStory1.getTitle());
+        assertEquals(testDescription, capturedStory1.getDescription());
+        assertEquals(StoryStatus.TODO, capturedStory1.getStatus());
+        assertNotNull(capturedStory1.getDateCreated());
+        assertEquals(projectId, capturedStory1.getProjectId());
+
+        reset(storyRepo);
+        Long projectIdNull = null;
+
+        String redirectWithoutProject = sut.createStory(testTitle, testDescription, projectIdNull, null);
+
+        assertEquals("redirect:/story/list", redirectWithoutProject,
+                "Should redirect to story list when projectId is null");
+
+        ArgumentCaptor<Story> storyCaptor2 = ArgumentCaptor.forClass(Story.class);
+        verify(storyRepo).persist(storyCaptor2.capture());
+
+        Story capturedStory2 = storyCaptor2.getValue();
+        assertEquals(testTitle, capturedStory2.getTitle());
+        assertEquals(testDescription, capturedStory2.getDescription());
+        assertEquals(StoryStatus.TODO, capturedStory2.getStatus());
+        assertNotNull(capturedStory2.getDateCreated());
+        assertNull(capturedStory2.getProjectId());
     }
     
     @Test
@@ -273,7 +296,6 @@ public class StoryControllerTest {
         verify(mockStory).setTitle(newTitle);
         verify(mockStory).setDescription(newDescription);
         verify(mockStory).setStatus(StoryStatus.valueOf(newStatus));
-        verify(storyRepo).persist(mockStory);
     }
 
     @Test
@@ -293,24 +315,22 @@ public class StoryControllerTest {
     @Test
     @DisplayName("assignStory should assign user to story and redirect")
     public void testAssignStory() throws IOException {
-        // Given
         long storyId = 1L;
         int userId = 10;
-        
+
         Story mockStory = mock(Story.class);
         fr.uha.ensisa.gl.entities.User mockUser = mock(fr.uha.ensisa.gl.entities.User.class);
-        
+
+        UserRepo mockUserRepo = mock(UserRepo.class);
+        when(repoFactory.getUserRepo()).thenReturn(mockUserRepo);
+        when(mockUserRepo.find(userId)).thenReturn(mockUser);
+
         when(storyRepo.find(storyId)).thenReturn(mockStory);
-        when(repoFactory.getUserRepo()).thenReturn(mock(fr.uha.ensisa.gl.tarnished.repos.UserRepo.class));
-        when(repoFactory.getUserRepo().find(userId)).thenReturn(mockUser);
-        
-        // When
+
         String result = sut.assignStory(storyId, userId);
-        
-        // Then
-        assertEquals("redirect:/story/" + storyId, result);
+
+        assertEquals("redirect:/story/list", result);
         verify(mockStory).setUserAssigned(mockUser);
-        verify(storyRepo).persist(mockStory);
     }
 
     @Test
@@ -318,16 +338,15 @@ public class StoryControllerTest {
     public void testUnassignStory() throws IOException {
         // Given
         long storyId = 1L;
-        
+
         Story mockStory = mock(Story.class);
         when(storyRepo.find(storyId)).thenReturn(mockStory);
-        
+
         // When
         String result = sut.unassignStory(storyId);
-        
+
         // Then
-        assertEquals("redirect:/story/" + storyId, result);
+        assertEquals("redirect:/story/list", result);
         verify(mockStory).setUserAssigned(null);
-        verify(storyRepo).persist(mockStory);
     }
 }

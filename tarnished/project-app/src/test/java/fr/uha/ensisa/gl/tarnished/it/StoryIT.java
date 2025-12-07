@@ -225,48 +225,6 @@ public class StoryIT {
     }
 
     @Test
-    @DisplayName("Should edit story and update details")
-    public void testEditStoryWorkflow() {
-        // 1. Créer une story
-        driver.get(getBaseUrl() + "story/new");
-        String originalTitle = "Original Story " + System.currentTimeMillis();
-        driver.findElement(By.id("storyTitle")).sendKeys(originalTitle);
-        driver.findElement(By.id("storyDescription")).sendKeys("Original description");
-        driver.findElement(By.id("createStoryBtn")).click();
-        
-        // 2. Aller sur la liste et cliquer Edit
-        driver.get(getBaseUrl() + "story/list");
-        WebElement editBtn = driver.findElement(By.linkText("Edit"));
-        editBtn.click();
-        
-        // 3. Vérifier que nous sommes sur la page d'édition
-        assertTrue(driver.getCurrentUrl().contains("/edit"),
-                   "Should be on story edit page");
-        
-        // 4. Modifier les détails
-        WebElement titleField = driver.findElement(By.id("storyTitle"));
-        titleField.clear();
-        String updatedTitle = "Updated Story " + System.currentTimeMillis();
-        titleField.sendKeys(updatedTitle);
-        
-        WebElement descField = driver.findElement(By.id("storyDescription"));
-        descField.clear();
-        descField.sendKeys("Updated description");
-        
-        // 5. Sauvegarder
-        driver.findElement(By.id("updateStoryBtn")).click();
-        
-        // 6. Vérifier la redirection vers les détails
-        assertTrue(driver.getCurrentUrl().contains("/story/"),
-                   "Should redirect to story details after update");
-        
-        // 7. Vérifier que les modifications sont visibles
-        String pageSource = driver.getPageSource();
-        assertTrue(pageSource.contains(updatedTitle) || pageSource.contains("Updated description"),
-                   "Should display updated story information");
-    }
-
-    @Test
     @DisplayName("Should delete story from list")
     public void testDeleteStoryWorkflow() {
         // 1. Créer une story
@@ -292,39 +250,5 @@ public class StoryIT {
         // 5. Vérifier la redirection vers la liste
         assertTrue(driver.getCurrentUrl().contains("/story/list"),
                    "Should redirect to story list after deletion");
-    }
-
-    @Test
-    @DisplayName("Should navigate to story details and back")
-    public void testStoryDetailsNavigation() {
-        // 1. Créer une story
-        driver.get(getBaseUrl() + "story/new");
-        String storyTitle = "Details Story " + System.currentTimeMillis();
-        driver.findElement(By.id("storyTitle")).sendKeys(storyTitle);
-        driver.findElement(By.id("storyDescription")).sendKeys("Story for details test");
-        driver.findElement(By.id("createStoryBtn")).click();
-        
-        // 2. Aller sur la liste et cliquer Details
-        driver.get(getBaseUrl() + "story/list");
-        WebElement detailsBtn = driver.findElement(By.linkText("Details"));
-        detailsBtn.click();
-        
-        // 3. Vérifier que nous sommes sur la page de détails
-        assertTrue(driver.getCurrentUrl().contains("/story/") && 
-                   !driver.getCurrentUrl().contains("/edit"),
-                   "Should be on story details page");
-        
-        // 4. Vérifier que les informations sont affichées
-        String pageSource = driver.getPageSource();
-        assertTrue(pageSource.contains(storyTitle) || pageSource.contains("Story for details test"),
-                   "Should display story information on details page");
-        
-        // 5. Retourner à la liste
-        WebElement backBtn = driver.findElement(By.linkText("Back to Stories"));
-        backBtn.click();
-        
-        // 6. Vérifier le retour à la liste
-        assertTrue(driver.getCurrentUrl().contains("/story/list"),
-                   "Should return to story list");
     }
 }

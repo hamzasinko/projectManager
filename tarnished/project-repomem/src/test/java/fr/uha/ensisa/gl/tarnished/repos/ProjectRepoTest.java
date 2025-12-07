@@ -4,16 +4,21 @@ import fr.uha.ensisa.gl.entities.Project;
 import fr.uha.ensisa.gl.tarnished.mems.ProjectRepoMem;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class ProjectRepoTest {
-    ProjectRepo repo;
+    private ProjectRepoMem repo;
 
     @BeforeEach
     void setup() {
         repo = new ProjectRepoMem();
+
+        // Mock the ColumnRepo and inject it into ProjectRepoMem
+        ColumnRepo columnRepo = Mockito.mock(ColumnRepo.class);
+        repo.setColumnRepo(columnRepo); // assuming setter exists in ProjectRepoMem
     }
 
     @Test
