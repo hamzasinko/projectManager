@@ -1,37 +1,116 @@
 package fr.uha.ensisa.gl.tarnished.mems;
 
 import fr.uha.ensisa.gl.entities.Column;
+import fr.uha.ensisa.gl.entities.Story;
 import fr.uha.ensisa.gl.tarnished.repos.ColumnRepo;
-import org.springframework.stereotype.Component;
+import fr.uha.ensisa.gl.tarnished.repos.StoryRepo;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
-@Component
 public class ColumnRepoMem implements ColumnRepo {
-    private final Map<Long, Column> store =
-            Collections.synchronizedMap(new TreeMap<Long, Column>());
+    private final Map<Long, Column> columns = new HashMap<>();
+    private int nextId = 1;
+    private StoryRepo storyRepo;
+
+    public void setStoryRepo(StoryRepo storyRepo) {
+        this.storyRepo = storyRepo;
+    }
 
     @Override
     public void persist(Column column) {
-        store.put((long)column.getId(), column);
+        if (column.getId() == 0) {
+            column.setId(nextId++);
+        }
+        columns.put((long) column.getId(), column);
     }
 
     @Override
-    public void remove(long id) {
-        store.remove(id);
-    }
-
-    @Override
-    public Column find(long id) {
-        return store.get(id);
+    public Column find(Long id) {
+        return columns.get(id);
     }
 
     @Override
     public Collection<Column> findAll() {
-        return store.values();
+        return new ArrayList<>(columns.values());
     }
 
-    public long count() {
-        return store.size();
+    @Override
+    public void remove(Long id) {
+        columns.remove(id);
+    }
+
+    @Override
+    public Collection<Column> findByProject(Long projectId) {
+        return columns.values().stream()
+                .filter(c -> c.getProject() != null && c.getProject().getId() == projectId)
+                .sorted(Comparator.comparing(Column::getPosition))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void reorder(Long columnId, Integer newOrder) {
+        Column column = find(columnId);
+        if (column != null) {
+            column.setPosition(newOrder);
+        }
+    }
+
+    @Override
+    public boolean isColumnFull(Long columnId) {
+        Column column = find(columnId);
+        if (column == null || column.getMaxCapacity() == 0) {
+            return false;
+        }
+        int storyCount = column.getStories() != null ? column.getStories().size() : 0;
+        return storyCount >= column.getMaxCapacity();
+    }
+
+    @Override
+    public boolean canAcceptStory(Long columnId) {
+        return !isColumnFull(columnId);
+    }
+
+    @Override
+    public void addStoryToColumn(Long storyId, Long columnId) {
+        Column column = find(columnId);
+        if (column != null) {
+            if (isColumnFull(columnId)) {
+                throw new IllegalStateException("Column is full");
+            }
+            if (storyRepo != null) {
+                storyRepo.moveToColumn(storyId, columnId);
+            }
+            // Don't modify column.stories - let BoardController load it fresh
+        }
+    }
+
+    @Override
+    public void removeStoryFromColumn(Long storyId, Long columnId) {
+        if (storyRepo != null) {
+            storyRepo.moveToColumn(storyId, null);
+        }
+        // Don't modify column.stories - let BoardController load it fresh
+    }
+
+    @Override
+    public void moveStoryBetweenColumns(Long storyId, Long fromColumnId, Long toColumnId) {
+        // Check target column capacity BEFORE moving
+        if (toColumnId != null && storyRepo != null) {
+            Column targetColumn = find(toColumnId);
+            if (targetColumn != null && targetColumn.getMaxCapacity() > 0) {
+                // Count stories currently in target column
+                long currentCount = storyRepo.findByColumn(toColumnId).size();
+                if (currentCount >= targetColumn.getMaxCapacity()) {
+                    throw new IllegalStateException("Target column is full");
+                }
+            }
+        }
+        
+        // Simply update the story's columnId - don't touch column.stories lists
+        // They will be refreshed by BoardController when the page is loaded/displayed
+        if (storyRepo != null) {
+            storyRepo.moveToColumn(storyId, toColumnId);
+        }
     }
 }

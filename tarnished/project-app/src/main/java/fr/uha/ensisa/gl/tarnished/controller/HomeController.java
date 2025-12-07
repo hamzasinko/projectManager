@@ -1,23 +1,40 @@
 package fr.uha.ensisa.gl.tarnished.controller;
 
+import fr.uha.ensisa.gl.entities.Story;
+import fr.uha.ensisa.gl.entities.StoryStatus;
+import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
+
+import java.util.Collection;
 
 @Controller
 public class HomeController {
 
+	@Autowired
+	private RepoFactory repoFactory;
+
 	@RequestMapping(value="/")
-	public String home(){
-		return "redirect:/hello";
+	public ModelAndView home(){
+		ModelAndView mav = new ModelAndView("home");
+		mav.addObject("projects", repoFactory.getProjectRepo().findAll());
+		
+		Collection<Story> allStories = repoFactory.getStoryRepo().findAll();
+		mav.addObject("recentStories", allStories);
+		
+		// Calculate stories in progress
+		long inProgressCount = allStories.stream()
+			.filter(s -> s.getStatus() == StoryStatus.IN_PROGRESS)
+			.count();
+		mav.addObject("inProgressCount", inProgressCount);
+		
+		return mav;
 	}
 
 	@RequestMapping(value="/hello")
-	public ModelAndView hello(@RequestParam(required=false, defaultValue="World") String name) {
-		ModelAndView ret = new ModelAndView("home");
-		// Adds an objet to be used in home.jsp
-		ret.addObject("name", name);
-		return ret;
+	public String hello() {
+		return "redirect:/";
 	}
 }

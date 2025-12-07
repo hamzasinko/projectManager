@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="'Kanban Board - ' + ${project.name}">Kanban Board</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/libs/bootstrap/bootstrap.min.css}">
+    <style>
+        * { font-family: 'Space Grotesk', system-ui, sans-serif !important; }
+        .kanban-container {
+            display: flex;
+            overflow-x: auto;
+            gap: 20px;
+            padding: 20px;
+            min-height: 600px;
+            scroll-behavior: smooth;
+        }
+        .kanban-column {
+            flex: 0 0 300px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        .column-header {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+        .column-capacity {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        .story-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: move;
+            transition: box-shadow 0.2s;
+        }
+        .story-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .story-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #212529;
+        }
+        .story-meta {
+            font-size: 0.85em;
+            color: #6c757d;
+        }
+        .story-actions {
+            margin-top: 8px;
+            display: flex;
+            gap: 5px;
+        }
+        .add-story-btn {
+            width: 100%;
+            margin-top: 10px;
+        }
+        .project-header {
+            background: #343a40;
+            color: white;
+            padding: 20px;
+            margin-bottom: 0;
+        }
+        .drag-over {
+            background-color: #e7f3ff;
+            border: 2px dashed #0d6efd;
+        }
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+        .status-TODO { background-color: #6c757d; color: white; }
+        .status-IN_PROGRESS { background-color: #0d6efd; color: white; }
+        .status-REVIEW { background-color: #ffc107; color: #000; }
+        .status-DONE { background-color: #198754; color: white; }
+        .status-BLOCKED { background-color: #dc3545; color: white; }
+        .column-drag-over {
+            border: 3px dashed #0d6efd;
+            opacity: 0.5;
+        }
+        .dragging {
+            opacity: 0.5;
+            border: 2px dashed #0d6efd;
+        }
+        .column-header {
+            cursor: move;
+        }
+    </style>
+</head>
+<body>
+    <div class="project-header">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 th:text="${project.name}">Project Name</h2>
+                    <p class="mb-0" th:text="${project.description}">Project Description</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a th:href="@{/}" class="btn btn-light">Home</a>
+                    <a th:href="@{'/project/info/' + ${project.id}}" class="btn btn-outline-light btn-sm">
+                        Back to Project
+                    </a>
+                    <a th:href="@{'/story/new?projectId=' + ${project.id}}" class="btn btn-success btn-sm">
+                        + New Story
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="kanban-container" id="kanban-container">
+            <!-- Column for each workflow column -->
+            <div th:each="column : ${columns}" 
+                 class="kanban-column" 
+                 th:id="'column-' + ${column.id}"
+                 th:data-column-id="${column.id}"
+                 ondrop="drop(event)" 
+                 ondragover="allowDrop(event)"
+                 ondragleave="dragLeave(event)">
+                
+                <div class="column-header">
+                    <span th:text="${#strings.replace(column.name, '_', ' ')}" 
+                          th:id="'column-name-' + ${column.id}"
+                          draggable="true" 
+                          ondragstart="dragColumn(event)" 
+                          style="cursor: move; flex-grow: 1;">Column Name</span>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <span class="column-capacity" th:if="${column.maxCapacity > 0}">
+                            <span th:text="${column.stories != null ? column.stories.size() : 0}">0</span>/<span th:text="${column.maxCapacity}">5</span>
+                        </span>
+                        <button onclick="editColumnName(this)" 
+                                th:attr="data-column-id=${column.id},data-column-name=${column.name}"
+                                class="btn btn-sm btn-outline-secondary" 
+                                style="padding: 2px 8px; font-size: 0.8em;" 
+                                draggable="false"
+                                title="Edit column name">
+                            Edit
+                        </button>
+                        <form th:action="@{'/board/' + ${project.id} + '/delete-column/' + ${column.id}}" 
+                              method="post" 
+                              style="display:inline;"
+                              onsubmit="return confirm('Delete this column? Stories will not be deleted.');">
+                            <button type="submit" 
+                                    class="btn btn-sm btn-outline-danger" 
+                                    style="padding: 2px 8px; font-size: 0.8em;" 
+                                    draggable="false"
+                                    title="Delete column">
+                                X
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Stories in this column -->
+                <div class="column-stories">
+                    <div th:each="story : ${column.stories}" 
+                         class="story-card"
+                         th:id="'story-' + ${story.id}"
+                         th:data-story-id="${story.id}"
+                         draggable="true"
+                         ondragstart="drag(event)">
+                        
+                        <div class="story-title" th:text="${story.title}">Story Title</div>
+                        
+                        <div class="story-meta">
+                            <span class="badge status-badge"
+                                  th:classappend="${'status-' + story.status}"
+                                  th:text="${#strings.replace(story.status.toString(), '_', ' ')}">TODO</span>
+                            
+                            <div class="mt-2" th:if="${story.totalTimeSpent > 0}">
+                                <i class="bi bi-clock"></i> 
+                                <span th:text="${story.totalTimeSpent}">0</span> min
+                            </div>
+                        </div>
+
+                        <div class="story-actions">
+                            <a th:href="@{'/story/' + ${story.id}}" 
+                               class="btn btn-sm btn-outline-primary">
+                                Details
+                            </a>
+                            <a th:href="@{'/story/' + ${story.id} + '/edit'}" 
+                               class="btn btn-sm btn-outline-warning">
+                                Edit
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-outline-secondary btn-sm add-story-btn"
+                        th:onclick="'addStoryToColumn(' + ${column.id} + ')'">
+                    + Add Story
+                </button>
+            </div>
+
+            <!-- Add new column button -->
+            <div class="kanban-column" style="background: transparent; border: 2px dashed #dee2e6;">
+                <button class="btn btn-outline-secondary" onclick="showAddColumnForm()">
+                    + Add Column
+                </button>
+                
+                <form th:action="@{'/board/' + ${project.id} + '/add-column'}" 
+                      method="post" 
+                      id="addColumnForm" 
+                      style="display:none; margin-top: 15px;">
+                    <div class="mb-2">
+                        <input type="text" 
+                               name="name" 
+                               class="form-control form-control-sm" 
+                               placeholder="Column Name" 
+                               required>
+                    </div>
+                    <div class="mb-2">
+                        <input type="number" 
+                               name="maxCapacity" 
+                               class="form-control form-control-sm" 
+                               placeholder="Max Capacity (0 = unlimited)" 
+                               min="0" 
+                               value="0">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">Create</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="hideAddColumnForm()">Cancel</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let draggedColumn = null;
+        let draggedStory = null;
+        let autoScrollInterval = null;
+        const projectId = /*[[${project.id}]]*/ '1';
+        
+        // Auto-scroll functionality
+        function autoScroll(ev) {
+            const container = document.getElementById('kanban-container');
+            const scrollSpeed = 15;
+            const edgeSize = 100;
+            
+            const rect = container.getBoundingClientRect();
+            const x = ev.clientX - rect.left;
+            
+            if (x < edgeSize) {
+                container.scrollLeft -= scrollSpeed;
+            } else if (x > rect.width - edgeSize) {
+                container.scrollLeft += scrollSpeed;
+            }
+        }
+        
+        function allowDrop(ev) {
+            if (draggedStory) {
+                ev.preventDefault();
+                const columnElement = ev.currentTarget.closest('.kanban-column') || ev.currentTarget;
+                columnElement.classList.add('drag-over');
+                autoScroll(ev);
+            }
+        }
+
+        function dragLeave(ev) {
+            const columnElement = ev.currentTarget.closest('.kanban-column') || ev.currentTarget;
+            columnElement.classList.remove('drag-over');
+        }
+
+        function drag(ev) {
+            // Get the story card element (might be a child element that was clicked)
+            const storyCard = ev.target.closest('.story-card');
+            if (!storyCard) return;
+            
+            draggedStory = storyCard;
+            const storyId = storyCard.dataset.storyId;
+            const columnElement = storyCard.closest('.kanban-column');
+            const columnId = columnElement ? columnElement.dataset.columnId : null;
+            
+            if (!storyId || !columnId) {
+                console.error('Missing storyId or columnId', {storyId, columnId});
+                return;
+            }
+            
+            ev.dataTransfer.setData("storyId", storyId);
+            ev.dataTransfer.setData("fromColumnId", columnId);
+            storyCard.style.opacity = '0.5';
+            
+            // Start auto-scroll
+            autoScrollInterval = setInterval(() => {
+                if (draggedStory) {
+                    const lastEvent = window.lastDragEvent;
+                    if (lastEvent) autoScroll(lastEvent);
+                }
+            }, 50);
+        }
+
+        function drop(ev) {
+            if (draggedStory) {
+                ev.preventDefault();
+                
+                // Get the column element (might drop on child elements)
+                const columnElement = ev.currentTarget.closest('.kanban-column') || ev.currentTarget;
+                columnElement.classList.remove('drag-over');
+                
+                const storyId = ev.dataTransfer.getData("storyId");
+                const fromColumnId = ev.dataTransfer.getData("fromColumnId");
+                const toColumnId = columnElement.dataset.columnId;
+
+                const movedStoryElement = draggedStory;
+                clearInterval(autoScrollInterval);
+                draggedStory = null;
+
+                if (!storyId || !fromColumnId || !toColumnId) {
+                    console.error('Missing data in drop', {storyId, fromColumnId, toColumnId});
+                    movedStoryElement.style.opacity = '1';
+                    alert('Error: Missing story or column ID. Please refresh the page.');
+                    return;
+                }
+
+                if (fromColumnId === toColumnId) {
+                    movedStoryElement.style.opacity = '1';
+                    return;
+                }
+
+                // Move story via AJAX
+                const formData = new URLSearchParams();
+                formData.append('storyId', storyId);
+                formData.append('fromColumnId', fromColumnId);
+                formData.append('toColumnId', toColumnId);
+
+                fetch('/board/' + projectId + '/move-story', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        movedStoryElement.style.opacity = '1';
+                        
+                        // Update status badge if server returned new status
+                        if (data.newStatus) {
+                            const statusBadge = movedStoryElement.querySelector('.status-badge');
+                            if (statusBadge) {
+                                // Remove old status classes
+                                statusBadge.className = 'badge status-badge';
+                                // Add new status class
+                                statusBadge.classList.add('status-' + data.newStatus);
+                                // Update text with spaces instead of underscores
+                                statusBadge.textContent = data.newStatus.replace(/_/g, ' ');
+                            }
+                        }
+                        
+                        // Move the story element in DOM AFTER server confirms
+                        // Check if story is not already in target column
+                        const targetColumnStories = document.querySelector(`[data-column-id="${toColumnId}"] .column-stories`);
+                        
+                        if (targetColumnStories) {
+                            // Check if story already exists in target column
+                            const existingStory = targetColumnStories.querySelector(`[data-story-id="${storyId}"]`);
+                            if (!existingStory) {
+                                // Remove from current location first
+                                if (movedStoryElement.parentElement) {
+                                    movedStoryElement.parentElement.removeChild(movedStoryElement);
+                                }
+                                // Then append to target
+                                targetColumnStories.appendChild(movedStoryElement);
+                            }
+                        }
+                        
+                        updateColumnCounts();
+                    } else {
+                        movedStoryElement.style.opacity = '1';
+                        alert(data.error || 'Cannot move story to this column');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    movedStoryElement.style.opacity = '1';
+                    alert('Error moving story');
+                });
+            }
+        }
+
+        function updateColumnCounts() {
+            document.querySelectorAll('.kanban-column').forEach(col => {
+                const columnId = col.dataset.columnId;
+                const storyCount = col.querySelectorAll('.story-card').length;
+                const capacitySpan = col.querySelector('.column-capacity');
+                if (capacitySpan) {
+                    const currentCount = capacitySpan.querySelector('span:first-child');
+                    if (currentCount) {
+                        currentCount.textContent = storyCount;
+                    }
+                }
+            });
+        }
+
+        function dragColumn(ev) {
+            ev.stopPropagation();
+            const column = ev.target.closest('.kanban-column');
+            if (column && column.dataset.columnId) {
+                draggedColumn = column;
+                draggedColumn.classList.add('dragging');
+                ev.dataTransfer.effectAllowed = 'move';
+                ev.dataTransfer.setData('text/plain', draggedColumn.dataset.columnId);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.getElementById('kanban-container');
+            
+            // Track mouse position for auto-scroll
+            container.addEventListener('dragover', function(ev) {
+                window.lastDragEvent = ev;
+                
+                if (draggedColumn && !draggedStory) {
+                    ev.preventDefault();
+                    autoScroll(ev);
+                    
+                    const afterElement = getDragAfterElement(container, ev.clientX);
+                    if (afterElement == null) {
+                        const addColumnDiv = container.querySelector('.kanban-column:last-child');
+                        container.insertBefore(draggedColumn, addColumnDiv);
+                    } else {
+                        container.insertBefore(draggedColumn, afterElement);
+                    }
+                }
+            });
+
+            container.addEventListener('dragend', function(ev) {
+                if (draggedColumn) {
+                    draggedColumn.classList.remove('dragging');
+                    saveColumnOrder();
+                    draggedColumn = null;
+                }
+                if (draggedStory) {
+                    draggedStory.style.opacity = '1';
+                    clearInterval(autoScrollInterval);
+                    draggedStory = null;
+                }
+            });
+        });
+
+        function getDragAfterElement(container, x) {
+            const draggableElements = [...container.querySelectorAll('.kanban-column:not(.dragging)')].filter(el => el.dataset.columnId);
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = x - box.left - box.width / 2;
+
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function saveColumnOrder() {
+            const columns = document.querySelectorAll('.kanban-column[data-column-id]');
+            const columnIds = Array.from(columns).map(col => col.dataset.columnId);
+            
+            if (columnIds.length === 0) return;
+            
+            const formData = new URLSearchParams();
+            formData.append('columnOrder', columnIds.join(','));
+
+            fetch('/board/' + projectId + '/reorder-columns', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    console.error('Failed to reorder columns');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function addStoryToColumn(columnId) {
+            window.location.href = '/story/new?projectId=' + projectId + '&columnId=' + columnId;
+        }
+
+        function editColumnName(button) {
+            const columnId = button.getAttribute('data-column-id');
+            const currentName = button.getAttribute('data-column-name');
+            
+            const newName = prompt('Enter new column name:', currentName);
+            if (newName && newName.trim() !== '' && newName !== currentName) {
+                const formData = new URLSearchParams();
+                formData.append('columnId', columnId);
+                formData.append('newName', newName.trim());
+
+                fetch('/board/' + projectId + '/update-column', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('column-name-' + columnId).textContent = newName.trim();
+                        button.setAttribute('data-column-name', newName.trim());
+                    } else {
+                        alert('Failed to update column name: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while updating column name');
+                });
+            }
+        }
+
+        function showAddColumnForm() {
+            document.getElementById('addColumnForm').style.display = 'block';
+        }
+
+        function hideAddColumnForm() {
+            document.getElementById('addColumnForm').style.display = 'none';
+        }
+    </script>
+
+    <script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

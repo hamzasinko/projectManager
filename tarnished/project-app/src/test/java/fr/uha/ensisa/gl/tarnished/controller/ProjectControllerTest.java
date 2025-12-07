@@ -79,7 +79,7 @@ public class ProjectControllerTest {
         // Appelle la méthode
         String redirect = sut.createProject(testName, testDescription);
         
-        // Vérifie la redirection
+        //Vérifie la redirection
         assertEquals("redirect:/project/list", redirect, 
                      "Should redirect to project list");
         

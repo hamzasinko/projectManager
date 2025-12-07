@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title th:text="'Story: ' + ${story.title}">Story Detail</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <style>
+    * { font-family: 'Space Grotesk', system-ui, sans-serif !important; }
+    .status-badge {
+      font-size: 1rem;
+      padding: 0.5rem 1rem;
+    }
+    .status-TODO { background-color: #6c757d; }
+    .status-IN_PROGRESS { background-color: #0d6efd; }
+    .status-REVIEW { background-color: #ffc107; color: #000; }
+    .status-DONE { background-color: #198754; }
+    .status-BLOCKED { background-color: #dc3545; }
+  </style>
+  <script>
+    function showDeleteConfirm(storyId) {
+      document.getElementById('confirmCard-' + storyId).style.display = 'block';
+    }
+
+    function hideDeleteConfirm(storyId) {
+      document.getElementById('confirmCard-' + storyId).style.display = 'none';
+    }
+  </script>
+</head>
+<body>
+<div class="container mt-4">
+
+  <!-- Story Info Card -->
+  <div class="card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <h3 class="card-title" th:text="${story.title}">Story Title</h3>
+        <span class="badge status-badge"
+              th:classappend="${'status-' + story.status}"
+              th:text="${#strings.replace(story.status.toString(), '_', ' ')}">TODO</span>
+      </div>
+      
+      <p class="card-text" th:text="${story.description != null ? story.description : 'No description'}">Story Description</p>
+      
+      <div class="row">
+        <div class="col-md-6">
+          <p><strong>Created:</strong> <span th:text="${#dates.format(story.dateCreated, 'dd/MM/yyyy HH:mm')}">Creation Date</span></p>
+        </div>
+        <div class="col-md-6" th:if="${story.userAssigned != null}">
+          <p><strong>Assigned to:</strong> <span th:text="${story.userAssigned.name}">Assignee Name</span></p>
+        </div>
+        <div class="col-md-6" th:if="${story.userAssigned == null}">
+          <p><strong>Assigned to:</strong> <span class="text-muted">Unassigned</span></p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="mt-4">
+        <a th:href="@{/}" class="btn btn-secondary btn-sm">Home</a>
+        <a th:href="@{'/story/list'}" class="btn btn-primary btn-sm">Back to Stories</a>
+        <a th:href="@{'/story/' + ${story.id} + '/edit'}" class="btn btn-warning btn-sm">Edit Story</a>
+        
+        <!-- Delete Button -->
+        <button class="btn btn-danger btn-sm" th:onclick="'showDeleteConfirm(' + ${story.id} + ')'">
+          Delete Story
+        </button>
+      </div>
+
+      <!-- Confirmation Card -->
+      <div th:id="'confirmCard-' + ${story.id}" class="card mt-2" style="display:none;">
+        <div class="card-body">
+          <h6>Do you really want to delete this story?</h6>
+          <div class="mt-2">
+            <form th:action="@{'/story/' + ${story.id} + '/delete'}" method="post">
+              <button type="submit" class="btn btn-danger btn-sm">Yes, delete</button>
+            </form>
+            <button class="btn btn-secondary btn-sm" th:onclick="'hideDeleteConfirm(' + ${story.id} + ')'">
+              No
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

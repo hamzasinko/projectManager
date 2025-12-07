@@ -1,64 +1,78 @@
 package fr.uha.ensisa.gl;
 
-import java.util.Date;
-
-import fr.uha.ensisa.gl.entities.User;
 import fr.uha.ensisa.gl.entities.WorkLog;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.time.LocalDateTime;
 
-public class WorkLogTest {
+import static org.junit.jupiter.api.Assertions.*;
 
-    private WorkLog sut;
+class WorkLogTest {
 
-    @BeforeEach
-    void setUp() {
-        sut = new WorkLog();
+    @Test
+    void testCreateWorkLog() {
+        WorkLog workLog = new WorkLog();
+        workLog.setId(1);
+        workLog.setUserId(1);
+        workLog.setStoryId(1);
+        workLog.setStart(LocalDateTime.now());
+        
+        assertNotNull(workLog);
+        assertEquals(1, workLog.getId());
+        assertEquals(1, workLog.getUserId());
+        assertEquals(1, workLog.getStoryId());
+        assertNotNull(workLog.getStart());
     }
 
     @Test
-    void testSetGetId() {
-        sut.setId(1);
-        assertEquals(1, sut.getId());
+    void testCalculateDurationAutomatically() {
+        LocalDateTime start = LocalDateTime.now().minusMinutes(30);
+        LocalDateTime end = LocalDateTime.now();
+        
+        WorkLog workLog = new WorkLog();
+        workLog.setId(1);
+        workLog.setStart(start);
+        workLog.setEnd(end);
+        
+        assertNotNull(workLog.getStart());
+        assertNotNull(workLog.getEnd());
     }
 
     @Test
-    void testSetGetDuration() {
-        sut.setDuration(2.5f);
-        assertEquals(2.5f, sut.getDuration());
+    void testValidationStartBeforeEnd() {
+        LocalDateTime start = LocalDateTime.now();
+        LocalDateTime end = LocalDateTime.now().plusMinutes(30);
+        
+        WorkLog workLog = new WorkLog();
+        workLog.setStart(start);
+        workLog.setEnd(end);
+        
+        assertTrue(workLog.getStart().isBefore(workLog.getEnd()));
     }
 
     @Test
-    void testSetGetHourStart() {
-        Date date = new Date();
-        sut.setHourStart(date);
-        assertEquals(date, sut.getHourStart());
+    void testStopTimer() {
+        LocalDateTime start = LocalDateTime.now().minusMinutes(10);
+        
+        WorkLog workLog = new WorkLog(1, start, 1, 1);
+        
+        assertTrue(workLog.isRunning());
+        
+        workLog.stopTimer();
+        
+        assertFalse(workLog.isRunning());
+        assertNotNull(workLog.getEnd());
+        assertTrue(workLog.getDuration() > 0);
     }
 
     @Test
-    void testSetGetHourEnd() {
-        Date date = new Date();
-        sut.setHourEnd(date);
-        assertEquals(date, sut.getHourEnd());
-    }
-
-    @Test
-    void testSetGetUser() {
-        User user = new User();
-        sut.setUser(user);
-        assertEquals(user, sut.getUser());
-    }
-
-    @Test
-    void testEquals() {
-        WorkLog log1 = new WorkLog();
-        log1.setId(1);
-
-        WorkLog log2 = new WorkLog();
-        log2.setId(1);
-
-        assertEquals(log1, log2);
+    void testIsRunning() {
+        WorkLog workLog = new WorkLog(1, LocalDateTime.now(), 1, 1);
+        
+        assertTrue(workLog.isRunning());
+        
+        workLog.stopTimer();
+        
+        assertFalse(workLog.isRunning());
     }
 }

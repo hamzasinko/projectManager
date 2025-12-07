@@ -21,4 +21,42 @@ public class Story {
     private Date dateCreated;
     private Date dateEnd;
     private List<WorkLog> workLogs = new ArrayList<>();
+    private long totalTimeSpent;
+    private Long projectId;
+    private Long columnId;
+
+    public void addWorkLog(WorkLog workLog) {
+        if (workLogs == null) {
+            workLogs = new ArrayList<>();
+        }
+        workLogs.add(workLog);
+        calculateTotalTime();
+    }
+
+    public void removeWorkLog(long workLogId) {
+        if (workLogs != null) {
+            workLogs.removeIf(wl -> wl.getId() == workLogId);
+            calculateTotalTime();
+        }
+    }
+
+    public void calculateTotalTime() {
+        if (workLogs == null) {
+            totalTimeSpent = 0;
+            return;
+        }
+        totalTimeSpent = workLogs.stream()
+                .mapToLong(WorkLog::getDuration)
+                .sum();
+    }
+
+    public WorkLog getRunningWorkLog() {
+        if (workLogs == null) {
+            return null;
+        }
+        return workLogs.stream()
+                .filter(WorkLog::isRunning)
+                .findFirst()
+                .orElse(null);
+    }
 }

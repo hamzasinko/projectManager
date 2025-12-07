@@ -60,7 +60,7 @@ public class MvcConfiguration implements WebMvcConfigurer {
 			.setCachePeriod(0); // for development
 		registry
 			.addResourceHandler("/libs/**")
-			.addResourceLocations("/libs/bootstrap/")
+			.addResourceLocations("/libs/")
 			.setCachePeriod((int)TimeUnit.DAYS.toSeconds(365))
 			.resourceChain(true)
 			.addResolver(new EncodedResourceResolver())
@@ -70,5 +70,10 @@ public class MvcConfiguration implements WebMvcConfigurer {
 	@Bean
 	public MultipartResolver multipartResolver(){
 		return new StandardServletMultipartResolver();
+	}
+
+	@Bean
+	public fr.uha.ensisa.gl.tarnished.repos.ColumnRepo columnRepo() {
+		return new fr.uha.ensisa.gl.tarnished.mems.ColumnRepoMem();
 	}
 }
