@@ -18,7 +18,7 @@ public class ProjectRepoTest {
 
         // Mock the ColumnRepo and inject it into ProjectRepoMem
         ColumnRepo columnRepo = Mockito.mock(ColumnRepo.class);
-        repo.setColumnRepo(columnRepo); // assuming setter exists in ProjectRepoMem
+        repo.setColumnRepo(columnRepo);
     }
 
     @Test

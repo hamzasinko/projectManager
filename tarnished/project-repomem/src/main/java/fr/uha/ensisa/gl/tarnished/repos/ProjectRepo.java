@@ -11,4 +11,5 @@ public interface ProjectRepo {
     public void remove(long id);
     public Project find(long id);
     public Collection<Project> findAll();
+    public void setColumnRepo(ColumnRepo columnRepo);
 }

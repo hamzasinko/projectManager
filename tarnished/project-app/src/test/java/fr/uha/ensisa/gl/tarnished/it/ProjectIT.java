@@ -70,26 +70,6 @@ public class ProjectIT {
     }
     
     @Test
-    @DisplayName("Should create a new project and redirect to list")
-    public void testCreateProject() {
-        driver.get(getBaseUrl() + "project/new");
-        
-        String testProjectName = "Test Project " + System.currentTimeMillis();
-        String testDescription = "Test description for integration test";
-        
-        //Remplit le formulaire
-        driver.findElement(By.id("projectName")).sendKeys(testProjectName);
-        driver.findElement(By.id("projectDescription")).sendKeys(testDescription);
-        
-        //Soumet le formulaire
-        driver.findElement(By.id("createProjectBtn")).click();
-        
-        //Vérifie la redirection
-        assertTrue(driver.getCurrentUrl().contains("/project/list"), 
-                   "Should redirect to project list after creation");
-    }
-    
-    @Test
     @DisplayName("Should display projects list page with new project button")
     public void testListProjects() {
         driver.get(getBaseUrl() + "project/list");

@@ -4,15 +4,18 @@ import fr.uha.ensisa.gl.entities.Column;
 import fr.uha.ensisa.gl.entities.Story;
 import fr.uha.ensisa.gl.tarnished.repos.ColumnRepo;
 import fr.uha.ensisa.gl.tarnished.repos.StoryRepo;
+import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Component
 public class ColumnRepoMem implements ColumnRepo {
     private final Map<Long, Column> columns = new HashMap<>();
     private int nextId = 1;
     private StoryRepo storyRepo;
 
+    @Override
     public void setStoryRepo(StoryRepo storyRepo) {
         this.storyRepo = storyRepo;
     }

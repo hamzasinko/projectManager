@@ -4,6 +4,8 @@ import fr.uha.ensisa.gl.entities.Column;
 import fr.uha.ensisa.gl.entities.Project;
 import fr.uha.ensisa.gl.tarnished.repos.ColumnRepo;
 import fr.uha.ensisa.gl.tarnished.repos.ProjectRepo;
+import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
+import fr.uha.ensisa.gl.tarnished.repos.StoryRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -14,10 +16,10 @@ public class ProjectRepoMem implements ProjectRepo {
     private final Map<Long, Project> store =
             Collections.synchronizedMap(new TreeMap<Long, Project>());
     private int nextId = 1;
-    
-    @Autowired
+
     private ColumnRepo columnRepo;
-    
+
+    @Override
     public void setColumnRepo(ColumnRepo columnRepo) {
         this.columnRepo = columnRepo;
     }
