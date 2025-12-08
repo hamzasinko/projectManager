@@ -9,6 +9,7 @@ import org.springframework.web.servlet.ModelAndView;
 import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Date;
 
 @Controller
@@ -50,34 +51,75 @@ public class StoryController {
     public String createStory(
         @RequestParam(required=true) String title,
         @RequestParam(required=false) String description,
-        @RequestParam(required=false) Long projectId,
+        @RequestParam(required=true) Long projectId,
         @RequestParam(required=false) Long columnId
     ) throws IOException {
         
+        System.out.println("[DEBUG] createStory called - projectId: " + projectId + ", columnId: " + columnId);
+        
         // Validate title
         if (title == null || title.trim().isEmpty()) {
-            return "redirect:/story/new?error=Title is required";
+            return "redirect:/story/new?error=Title is required&projectId=" + projectId;
+        }
+        
+        // Limiter la longueur du titre à 59 caractères
+        if (title.length() > 59) {
+            return "redirect:/story/new?error=Title must be less than 59 characters&projectId=" + projectId;
+        }
+        
+        // Validation : projectId est obligatoire
+        if (projectId == null) {
+            return "redirect:/story/new?error=Project is required";
         }
         
         Story story = new Story();
-        story.setTitle(title);
+        story.setTitle(title.trim());
         story.setDescription(description);
-        story.setStatus(StoryStatus.TODO);
         story.setDateCreated(new Date());
-        if (projectId != null) {
-            story.setProjectId(projectId);
-        }
+        story.setProjectId(projectId);
+        
+        // Définir le status et columnId en fonction de la colonne
+        StoryStatus initialStatus = StoryStatus.BACKLOG;
         if (columnId != null) {
+            // Assigner la story à la colonne spécifiée
             story.setColumnId(columnId);
+            fr.uha.ensisa.gl.entities.Column column = repoFactory.getColumnRepo().find(columnId);
+            if (column != null) {
+                StoryStatus columnStatus = mapColumnNameToStatus(column.getName());
+                if (columnStatus != null) {
+                    initialStatus = columnStatus;
+                }
+            }
+        } else {
+            // Si pas de colonne spécifiée, trouver la colonne BACKLOG
+            Collection<fr.uha.ensisa.gl.entities.Column> columns = repoFactory.getColumnRepo().findByProject(projectId);
+            for (fr.uha.ensisa.gl.entities.Column col : columns) {
+                if ("BACKLOG".equalsIgnoreCase(col.getName())) {
+                    story.setColumnId((long) col.getId());
+                    break;
+                }
+            }
         }
+        story.setStatus(initialStatus);
+        
+        // Décaler toutes les stories existantes de cette colonne (position + 1)
+        if (story.getColumnId() != null) {
+            Collection<Story> storiesInColumn = repoFactory.getStoryRepo().findByColumn(story.getColumnId());
+            for (Story existingStory : storiesInColumn) {
+                existingStory.setPosition(existingStory.getPosition() + 1);
+            }
+        }
+        
+        // Assigner position 0 pour que la nouvelle story apparaisse EN HAUT
+        story.setPosition(0);
         
         repoFactory.getStoryRepo().persist(story);
         
-        // If projectId is provided, redirect back to board, otherwise to story list
-        if (projectId != null) {
-            return "redirect:/board/" + projectId;
-        }
-        return "redirect:/story/list";
+        System.out.println("[DEBUG] Story created - ID: " + story.getId() + ", ProjectID: " + story.getProjectId() + ", ColumnID: " + story.getColumnId() + ", Position: " + story.getPosition());
+        System.out.println("[DEBUG] Redirecting to: /board/" + story.getProjectId());
+        
+        // Rediriger vers le board du projet où la story a été ajoutée
+        return "redirect:/board/" + story.getProjectId();
     }
     
     /**
@@ -137,8 +179,21 @@ public class StoryController {
     private boolean isDefaultColumn(String columnName) {
         if (columnName == null) return false;
         String normalized = columnName.toUpperCase().replace(" ", "_");
-        return normalized.equals("TODO") || normalized.equals("IN_PROGRESS") || 
+        return normalized.equals("BACKLOG") || normalized.equals("IN_PROGRESS") || 
                normalized.equals("REVIEW") || normalized.equals("DONE") || normalized.equals("BLOCKED");
+    }
+    
+    private StoryStatus mapColumnNameToStatus(String columnName) {
+        if (columnName == null) return null;
+        String normalized = columnName.toUpperCase().replace(" ", "_");
+        switch (normalized) {
+            case "BACKLOG": return StoryStatus.BACKLOG;
+            case "IN_PROGRESS": return StoryStatus.IN_PROGRESS;
+            case "REVIEW": return StoryStatus.REVIEW;
+            case "DONE": return StoryStatus.DONE;
+            case "BLOCKED": return StoryStatus.BLOCKED;
+            default: return null;
+        }
     }
     
     /**
@@ -162,7 +217,12 @@ public class StoryController {
             return "redirect:/story/" + id + "/edit?error=Title is required";
         }
         
-        story.setTitle(title);
+        // Limiter la longueur du titre à 59 caractères
+        if (title.length() > 59) {
+            return "redirect:/story/" + id + "/edit?error=Title must be less than 59 characters";
+        }
+        
+        story.setTitle(title.trim());
         story.setDescription(description);
         
         // Check if story is in a default column
@@ -187,6 +247,10 @@ public class StoryController {
         // Modifying the story object is enough, no need to persist
         // Calling persist() can duplicate the story if getId() == 0
         
+        // Rediriger vers le board si la story a un projectId
+        if (story.getProjectId() != null) {
+            return "redirect:/board/" + story.getProjectId();
+        }
         return "redirect:/story/" + id;
     }
     

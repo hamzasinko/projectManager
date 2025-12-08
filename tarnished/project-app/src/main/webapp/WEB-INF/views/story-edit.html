@@ -23,8 +23,9 @@
         <!-- Title -->
         <div class="mb-3">
             <label class="form-label">Story Title*</label>
-            <input class="form-control" type="text" name="title"
-                   th:value="${story.title}" id="storyTitle" required>
+                 <input class="form-control" type="text" name="title"
+                     th:value="${story.title}" id="storyTitle" required maxlength="59">
+                 <div class="form-text">Max 59 characters</div>
         </div>
 
         <!-- Description -->
@@ -40,7 +41,7 @@
             <label class="form-label">Status</label>
             <select class="form-select" name="status" id="storyStatus" 
                     th:disabled="${isDefaultColumn != null and isDefaultColumn}">
-                <option value="TODO" th:selected="${story.status == T(fr.uha.ensisa.gl.entities.StoryStatus).TODO}">TODO</option>
+                <option value="BACKLOG" th:selected="${story.status == T(fr.uha.ensisa.gl.entities.StoryStatus).BACKLOG}">BACKLOG</option>
                 <option value="IN_PROGRESS" th:selected="${story.status == T(fr.uha.ensisa.gl.entities.StoryStatus).IN_PROGRESS}">IN PROGRESS</option>
                 <option value="REVIEW" th:selected="${story.status == T(fr.uha.ensisa.gl.entities.StoryStatus).REVIEW}">REVIEW</option>
                 <option value="DONE" th:selected="${story.status == T(fr.uha.ensisa.gl.entities.StoryStatus).DONE}">DONE</option>
