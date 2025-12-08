@@ -52,10 +52,12 @@ public class StoryRepoMem implements StoryRepo {
         if (columnId == null) {
             return store.values().stream()
                     .filter(story -> story.getColumnId() == null)
+                    .sorted((s1, s2) -> Integer.compare(s1.getPosition(), s2.getPosition())) // Tri par position
                     .toList();
         }
         return store.values().stream()
                 .filter(story -> columnId.equals(story.getColumnId()))
+                .sorted((s1, s2) -> Integer.compare(s1.getPosition(), s2.getPosition())) // Tri par position
                 .toList();
     }
 
