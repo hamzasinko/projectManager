@@ -173,8 +173,17 @@ public class ProjectControllerTest {
         // Given
         long projectId = 1L;
 
-        // Make repoFactory return the mocked projectRepo
+        // Make repoFactory return the mocked repositories
+        fr.uha.ensisa.gl.tarnished.repos.StoryRepo mockStoryRepo = mock(fr.uha.ensisa.gl.tarnished.repos.StoryRepo.class);
+        fr.uha.ensisa.gl.tarnished.repos.ColumnRepo mockColumnRepo = mock(fr.uha.ensisa.gl.tarnished.repos.ColumnRepo.class);
+        
         when(repoFactory.getProjectRepo()).thenReturn(projectRepo);
+        when(repoFactory.getStoryRepo()).thenReturn(mockStoryRepo);
+        when(repoFactory.getColumnRepo()).thenReturn(mockColumnRepo);
+        
+        // Mock empty lists for cascade delete
+        when(mockStoryRepo.findByProject(projectId)).thenReturn(List.of());
+        when(mockColumnRepo.findByProject(projectId)).thenReturn(List.of());
 
         // When: call the controller method directly
         String result = sut.deleteProject(projectId);

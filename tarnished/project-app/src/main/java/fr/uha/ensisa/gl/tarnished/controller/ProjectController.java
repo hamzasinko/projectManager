@@ -32,6 +32,14 @@ public class ProjectController {
         @RequestParam(required=true) String name,
         @RequestParam(required=false) String description
     ) throws IOException {
+        // Validation du nom
+        if (name == null || name.trim().isEmpty()) {
+            return "redirect:/project/new?error=Project name is required";
+        }
+        if (name.length() > 29) {
+            return "redirect:/project/new?error=Project name must be less than 29 characters";
+        }
+        
         Project project = new Project();
         if(repoFactory.getUserRepo().getAll().isEmpty()) {
             User user = new User();
@@ -104,23 +112,51 @@ public class ProjectController {
             @PathVariable Long id,
             @RequestParam(required = true) String name,
             @RequestParam(required = true) String description,
-            @RequestParam(required = false) List<Long> memberIds
+            @RequestParam(required = false, defaultValue = "") List<Long> memberIds
     ) {
+        // Validation du nom
+        if (name == null || name.trim().isEmpty()) {
+            return "redirect:/project/edit/" + id + "?error=Project name is required";
+        }
+        if (name.length() > 29) {
+            return "redirect:/project/edit/" + id + "?error=Project name must be less than 29 characters";
+        }
+        
         Project project = repoFactory.getProjectRepo().find(id);
+        if (project == null) {
+            return "redirect:/project/list";
+        }
+        
         project.setName(name);
         project.setDescription(description);
-        if(!memberIds.isEmpty())
+        
+        // Mettre à jour les membres : si memberIds est vide, aucun membre
+        if (memberIds != null && !memberIds.isEmpty()) {
             project.setMembers(
-                    repoFactory.getUserRepo().getAll()
-                            .stream().filter(user -> !memberIds.contains(user.getId()))
-                            .toList()
+                repoFactory.getUserRepo().getAll()
+                    .stream()
+                    .filter(user -> memberIds.contains((long)user.getId()))
+                    .toList()
             );
+        } else {
+            project.setMembers(new java.util.ArrayList<>());
+        }
+        
         repoFactory.getProjectRepo().update(project);
-        return "redirect:/project/info/"+project.getId();
+        return "redirect:/project/info/" + project.getId();
     }
 
     @PostMapping("/delete/{id}")
     public String deleteProject(@PathVariable Long id) {
+        // Supprimer d'abord toutes les stories du projet
+        repoFactory.getStoryRepo().findByProject(id).forEach(story -> 
+            repoFactory.getStoryRepo().remove(story.getId())
+        );
+        // Supprimer ensuite toutes les colonnes du projet
+        repoFactory.getColumnRepo().findByProject(id).forEach(column -> 
+            repoFactory.getColumnRepo().remove((long)column.getId())
+        );
+        // Enfin supprimer le projet
         repoFactory.getProjectRepo().remove(id);
         return "redirect:/project/list"; // page with all projects
     }
