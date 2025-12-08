@@ -68,6 +68,12 @@ public class ProjectControllerTest {
         String testName = "Test Project";
         String testDescription = "Test Description";
         
+        // Mock UserRepo
+        User mockUser = new User();
+        mockUser.setId(1);
+        when(repoFactory.getUserRepo()).thenReturn(userRepo);
+        when(userRepo.getAll()).thenReturn(Arrays.asList(mockUser));
+        
         // Appelle la méthode
         String redirect = sut.createProject(testName, testDescription);
         
@@ -89,6 +95,12 @@ public class ProjectControllerTest {
     @DisplayName("createProject should handle null description")
     public void testCreateProjectWithNullDescription() throws IOException {
         String testName = "Test Project";
+        
+        // Mock UserRepo
+        User mockUser = new User();
+        mockUser.setId(1);
+        when(repoFactory.getUserRepo()).thenReturn(userRepo);
+        when(userRepo.getAll()).thenReturn(Arrays.asList(mockUser));
         
         String redirect = sut.createProject(testName, null);
         

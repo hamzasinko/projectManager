@@ -59,7 +59,7 @@
       <!-- Action Buttons -->
       <div class="mt-4">
         <a th:href="@{/}" class="btn btn-secondary btn-sm">Home</a>
-        <a th:href="@{'/story/list'}" class="btn btn-primary btn-sm">Back to Stories</a>
+        <a th:if="${story.projectId != null}" th:href="@{'/board/' + ${story.projectId}}" class="btn btn-primary btn-sm">Back to Board</a>
         <a th:href="@{'/story/' + ${story.id} + '/edit'}" class="btn btn-warning btn-sm">Edit Story</a>
         
         <!-- Delete Button -->

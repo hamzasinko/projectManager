@@ -160,4 +160,18 @@ public class ProjectController {
         repoFactory.getProjectRepo().remove(id);
         return "redirect:/project/list"; // page with all projects
     }
+
+    @GetMapping("/{id}/stories")
+    public ModelAndView showProjectStories(@PathVariable Long id) {
+        Project project = repoFactory.getProjectRepo().find(id);
+        
+        if (project == null) {
+            return new ModelAndView("redirect:/");
+        }
+        
+        ModelAndView mav = new ModelAndView("project-stories");
+        mav.addObject("project", project);
+        mav.addObject("stories", repoFactory.getStoryRepo().findByProject(id));
+        return mav;
+    }
 }

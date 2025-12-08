@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="en">
-<head xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>Edit Story</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,7 +19,7 @@
         <a th:href="@{/}" class="btn btn-outline-secondary">Home</a>
     </div>
 
-    <form th:action="@{'/story/' + ${story.id} + '/edit'}" method="post">
+    <form th:action="@{'/story/' + ${story.id} + '/edit'}" method="post" accept-charset="UTF-8">
 
         <!-- Title -->
         <div class="mb-3">
@@ -40,7 +41,7 @@
         <div class="mb-3">
             <label class="form-label">Status</label>
             <select class="form-select" name="status" id="storyStatus" 
-                    th:disabled="${isDefaultColumn != null and isDefaultColumn}">
+                    th:attr="data-readonly=${isDefaultColumn != null and isDefaultColumn}">
                 <option value="BACKLOG" th:selected="${story.status == T(fr.uha.ensisa.gl.entities.StoryStatus).BACKLOG}">BACKLOG</option>
                 <option value="IN_PROGRESS" th:selected="${story.status == T(fr.uha.ensisa.gl.entities.StoryStatus).IN_PROGRESS}">IN PROGRESS</option>
                 <option value="REVIEW" th:selected="${story.status == T(fr.uha.ensisa.gl.entities.StoryStatus).REVIEW}">REVIEW</option>
@@ -99,6 +100,18 @@
 
 <script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
 <script th:inline="javascript">
+    // Handle readonly status select
+    document.addEventListener('DOMContentLoaded', function() {
+        const statusSelect = document.getElementById('storyStatus');
+        if (statusSelect && statusSelect.dataset.readonly === 'true') {
+            statusSelect.style.backgroundColor = '#e9ecef';
+            statusSelect.style.cursor = 'not-allowed';
+            statusSelect.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+            });
+        }
+    });
+
     function assignUser() {
         const select = document.getElementById('assignUserSelect');
         const userId = select.value;

@@ -123,14 +123,13 @@ public class StoryController {
     }
     
     /**
-     * Liste toutes les stories existantes
+     * Redirige vers la page d'accueil car les stories doivent être vues dans le contexte d'un projet
+     * Les stories sont maintenant uniquement accessibles via le board du projet
      */
     @GetMapping("/list")
-    public ModelAndView listStories() throws IOException {
-        ModelAndView mav = new ModelAndView("story-list");
-        mav.addObject("stories", repoFactory.getStoryRepo().findAll());
-        mav.addObject("columns", repoFactory.getColumnRepo().findAll());
-        return mav;
+    public String listStories() throws IOException {
+        // Redirect to home - stories should be accessed through project boards
+        return "redirect:/";
     }
     
     /**
@@ -142,7 +141,12 @@ public class StoryController {
         Story story = repoFactory.getStoryRepo().find(id);
         
         if (story == null) {
-            return new ModelAndView("redirect:/story/list");
+            return new ModelAndView("redirect:/");
+        }
+        
+        // Vérifier que la story a un projectId
+        if (story.getProjectId() == null) {
+            return new ModelAndView("redirect:/");
         }
         
         mav.addObject("story", story);
@@ -158,7 +162,12 @@ public class StoryController {
         Story story = repoFactory.getStoryRepo().find(id);
         
         if (story == null) {
-            return new ModelAndView("redirect:/story/list");
+            return new ModelAndView("redirect:/");
+        }
+        
+        // Vérifier que la story a un projectId
+        if (story.getProjectId() == null) {
+            return new ModelAndView("redirect:/");
         }
         
         mav.addObject("story", story);
@@ -259,8 +268,16 @@ public class StoryController {
      */
     @PostMapping("/{id}/delete")
     public String deleteStory(@PathVariable("id") Long id) {
+        Story story = repoFactory.getStoryRepo().find(id);
+        Long projectId = story != null ? story.getProjectId() : null;
+        
         repoFactory.getStoryRepo().remove(id);
-        return "redirect:/story/list";
+        
+        // Redirect to project board if story had a project, otherwise to home
+        if (projectId != null) {
+            return "redirect:/board/" + projectId;
+        }
+        return "redirect:/";
     }
     
     /**
@@ -279,9 +296,14 @@ public class StoryController {
             if (user != null) {
                 story.setUserAssigned(user);
             }
+            
+            // Redirect to project board if story has a project
+            if (story.getProjectId() != null) {
+                return "redirect:/board/" + story.getProjectId();
+            }
         }
         
-        return "redirect:/story/list";
+        return "redirect:/";
     }
     
     /**
@@ -293,9 +315,14 @@ public class StoryController {
         
         if (story != null) {
             story.setUserAssigned(null);
+            
+            // Redirect to project board if story has a project
+            if (story.getProjectId() != null) {
+                return "redirect:/board/" + story.getProjectId();
+            }
         }
         
-        return "redirect:/story/list";
+        return "redirect:/";
     }
 
     @PostMapping("/{id}/timer/start")
