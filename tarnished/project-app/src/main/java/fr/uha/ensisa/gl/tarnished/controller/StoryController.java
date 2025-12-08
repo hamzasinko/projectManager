@@ -107,6 +107,7 @@ public class StoryController {
             Collection<Story> storiesInColumn = repoFactory.getStoryRepo().findByColumn(story.getColumnId());
             for (Story existingStory : storiesInColumn) {
                 existingStory.setPosition(existingStory.getPosition() + 1);
+                repoFactory.getStoryRepo().persist(existingStory);
             }
         }
         
@@ -215,23 +216,31 @@ public class StoryController {
         @RequestParam(required=false) String description,
         @RequestParam(required=false) String status
     ) {
+        System.out.println("[DEBUG] updateStory called - storyId: " + id + ", title: " + title + ", status: " + status);
         Story story = repoFactory.getStoryRepo().find(id);
         
         if (story == null) {
+            System.out.println("[DEBUG] Story not found! Redirecting to /story/list");
             return "redirect:/story/list";
         }
         
+        System.out.println("[DEBUG] Found story - ID: " + story.getId() + ", CurrentTitle: " + story.getTitle() + ", UserAssigned: " + (story.getUserAssigned() != null ? story.getUserAssigned().getName() : "NULL"));
+        
         // Validate title
         if (title == null || title.trim().isEmpty()) {
+            System.out.println("[DEBUG] Title validation failed - empty title");
             return "redirect:/story/" + id + "/edit?error=Title is required";
         }
         
         // Limiter la longueur du titre à 59 caractères
         if (title.length() > 59) {
+            System.out.println("[DEBUG] Title validation failed - too long");
             return "redirect:/story/" + id + "/edit?error=Title must be less than 59 characters";
         }
         
+        System.out.println("[DEBUG] Setting new title: " + title.trim());
         story.setTitle(title.trim());
+        System.out.println("[DEBUG] Setting new description: " + description);
         story.setDescription(description);
         
         // Check if story is in a default column
@@ -243,23 +252,31 @@ public class StoryController {
             }
         }
         
+        System.out.println("[DEBUG] Checking if in default column: " + inDefaultColumn);
+        
         // Only allow status change if NOT in default column
         if (!inDefaultColumn && status != null && !status.isEmpty()) {
+            System.out.println("[DEBUG] Updating status to: " + status);
             try {
                 story.setStatus(StoryStatus.valueOf(status));
             } catch (IllegalArgumentException e) {
+                System.out.println("[DEBUG] Invalid status value: " + status);
                 // Invalid status, keep current status
             }
         }
         
-        // DON'T call persist() - in-memory objects are references
-        // Modifying the story object is enough, no need to persist
-        // Calling persist() can duplicate the story if getId() == 0
+        System.out.println("[DEBUG] About to persist story - ID: " + story.getId() + ", UserAssigned: " + (story.getUserAssigned() != null ? story.getUserAssigned().getName() : "NULL"));
+        // MUST call persist() to ensure changes are saved
+        // Even though in-memory objects are references, persist() ensures consistency
+        repoFactory.getStoryRepo().persist(story);
+        System.out.println("[DEBUG] Story persisted successfully");
         
         // Rediriger vers le board si la story a un projectId
         if (story.getProjectId() != null) {
+            System.out.println("[DEBUG] Redirecting to /board/" + story.getProjectId());
             return "redirect:/board/" + story.getProjectId();
         }
+        System.out.println("[DEBUG] Redirecting to /story/" + id);
         return "redirect:/story/" + id;
     }
     
@@ -283,38 +300,47 @@ public class StoryController {
     /**
      * Assigne une story à un utilisateur
      */
-    @PostMapping("/{id}/assign")
+    @GetMapping("/{id}/assign")
     public String assignStory(
         @PathVariable("id") Long id,
         @RequestParam(required=true) int userId
     ) {
+        System.out.println("[DEBUG] assignStory called - storyId: " + id + ", userId: " + userId);
         Story story = repoFactory.getStoryRepo().find(id);
+        System.out.println("[DEBUG] Found story: " + (story != null ? "ID=" + story.getId() : "NULL"));
         
         if (story != null) {
             // Find user by ID
             fr.uha.ensisa.gl.entities.User user = repoFactory.getUserRepo().find(userId);
+            System.out.println("[DEBUG] Found user: " + (user != null ? user.getName() + " (ID=" + user.getId() + ")" : "NULL"));
             if (user != null) {
                 story.setUserAssigned(user);
+                System.out.println("[DEBUG] Before persist - Story ID: " + story.getId() + ", UserAssigned: " + story.getUserAssigned().getName());
+                repoFactory.getStoryRepo().persist(story); // SAVE THE CHANGES!
+                System.out.println("[DEBUG] After persist - Story saved successfully");
             }
             
             // Redirect to project board if story has a project
             if (story.getProjectId() != null) {
+                System.out.println("[DEBUG] Redirecting to /board/" + story.getProjectId());
                 return "redirect:/board/" + story.getProjectId();
             }
         }
         
+        System.out.println("[DEBUG] Redirecting to /");
         return "redirect:/";
     }
     
     /**
      * Désassigne une story d'un utilisateur
      */
-    @PostMapping("/{id}/unassign")
+    @GetMapping("/{id}/unassign")
     public String unassignStory(@PathVariable("id") Long id) {
         Story story = repoFactory.getStoryRepo().find(id);
         
         if (story != null) {
             story.setUserAssigned(null);
+            repoFactory.getStoryRepo().persist(story); // SAVE THE CHANGES!
             
             // Redirect to project board if story has a project
             if (story.getProjectId() != null) {

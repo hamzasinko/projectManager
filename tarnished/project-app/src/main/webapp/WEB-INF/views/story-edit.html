@@ -76,9 +76,7 @@
             <div class="mt-2" th:if="${story.userAssigned != null}">
                 <small class="text-muted">
                     Currently assigned to: <strong th:text="${story.userAssigned.name}">User Name</strong>
-                    <form style="display: inline" th:action="@{'/story/' + ${story.id} + '/unassign'}" method="post">
-                        <button type="submit" class="btn btn-outline-secondary btn-sm ms-2">Unassign</button>
-                    </form>
+                    <button type="button" class="btn btn-outline-secondary btn-sm ms-2" onclick="unassignUser()">Unassign</button>
                 </small>
             </div>
             <div class="mt-2" th:unless="${story.userAssigned != null}">
@@ -118,20 +116,17 @@
         const storyId = [[${story.id}]];
         
         if (userId) {
-            const form = document.createElement('form');
-            form.method = 'post';
-            form.action = `/story/${storyId}/assign`;
-            
-            const userIdInput = document.createElement('input');
-            userIdInput.type = 'hidden';
-            userIdInput.name = 'userId';
-            userIdInput.value = userId;
-            
-            form.appendChild(userIdInput);
-            document.body.appendChild(form);
-            form.submit();
+            // Use window.location instead of creating a form to avoid conflicts
+            window.location.href = `/story/${storyId}/assign?userId=${userId}`;
         } else {
             alert('Please select a user to assign.');
+        }
+    }
+
+    function unassignUser() {
+        const storyId = [[${story.id}]];
+        if (confirm('Unassign user from this story?')) {
+            window.location.href = `/story/${storyId}/unassign`;
         }
     }
 </script>

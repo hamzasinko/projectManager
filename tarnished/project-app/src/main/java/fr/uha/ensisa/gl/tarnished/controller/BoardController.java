@@ -79,9 +79,10 @@ public class BoardController {
                     fr.uha.ensisa.gl.entities.StoryStatus newStatus = mapColumnNameToStatus(targetColumn.getName());
                     if (newStatus != null) {
                         story.setStatus(newStatus);
-                        // No need to persist - in-memory objects are references
                         newStatusStr = newStatus.name();
                     }
+                    // MUST persist to save position and status changes
+                    repoFactory.getStoryRepo().persist(story);
                 }
             }
             
@@ -155,6 +156,7 @@ public class BoardController {
                 Story story = repoFactory.getStoryRepo().find(storyId);
                 if (story != null) {
                     story.setPosition(i);
+                    repoFactory.getStoryRepo().persist(story);
                 }
             }
             return "{\"success\":true}";
