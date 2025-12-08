@@ -69,7 +69,7 @@ public class ColumnController {
     public String editColumn(@PathVariable Long id,
                              @RequestParam String name,
                              @RequestParam int order,
-                             @RequestParam int limit) {
+                             @RequestParam(required = false, defaultValue = "0") int limit) {
         ColumnRepo columnRepo = repoFactory.getColumnRepo();
         Column column = columnRepo.find(id);
         

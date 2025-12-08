@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.util.Collection;
-import java.util.List;
 
 @Controller
 @RequestMapping("/board")
@@ -37,7 +36,7 @@ public class BoardController {
         // For each column, get its stories
         for (Column column : columns) {
             Collection<Story> stories = repoFactory.getStoryRepo().findByColumn((long) column.getId());
-            column.setStories((List<Story>) stories);
+            column.setStories(new java.util.ArrayList<>(stories));
         }
 
         mav.addObject("project", project);
@@ -74,6 +73,9 @@ public class BoardController {
             if (targetColumn != null) {
                 Story story = repoFactory.getStoryRepo().find(storyId);
                 if (story != null) {
+                    // Assigner position 0 pour mettre en haut
+                    story.setPosition(0);
+                    
                     fr.uha.ensisa.gl.entities.StoryStatus newStatus = mapColumnNameToStatus(targetColumn.getName());
                     if (newStatus != null) {
                         story.setStatus(newStatus);
@@ -99,7 +101,7 @@ public class BoardController {
         if (columnName == null) return null;
         String normalized = columnName.toUpperCase().replace(" ", "_");
         switch (normalized) {
-            case "TODO": return fr.uha.ensisa.gl.entities.StoryStatus.TODO;
+            case "BACKLOG": return fr.uha.ensisa.gl.entities.StoryStatus.BACKLOG;
             case "IN_PROGRESS": return fr.uha.ensisa.gl.entities.StoryStatus.IN_PROGRESS;
             case "REVIEW": return fr.uha.ensisa.gl.entities.StoryStatus.REVIEW;
             case "DONE": return fr.uha.ensisa.gl.entities.StoryStatus.DONE;
@@ -137,12 +139,54 @@ public class BoardController {
     }
     
     /**
+     * Réordonne les stories dans une colonne (AJAX)
+     */
+    @PostMapping("/{projectId}/reorder-stories")
+    @ResponseBody
+    public String reorderStories(
+            @PathVariable Long projectId,
+            @RequestParam Long columnId,
+            @RequestParam String storyOrder) {
+        
+        try {
+            String[] storyIds = storyOrder.split(",");
+            for (int i = 0; i < storyIds.length; i++) {
+                long storyId = Long.parseLong(storyIds[i]);
+                Story story = repoFactory.getStoryRepo().find(storyId);
+                if (story != null) {
+                    story.setPosition(i);
+                }
+            }
+            return "{\"success\":true}";
+        } catch (Exception e) {
+            return "{\"success\":false,\"error\":\"" + e.getMessage() + "\"}";
+        }
+    }
+    
+    /**
      * Supprime une colonne
      */
     @PostMapping("/{projectId}/delete-column/{columnId}")
     public String deleteColumn(
             @PathVariable Long projectId,
             @PathVariable Long columnId) {
+        
+        Column column = repoFactory.getColumnRepo().find(columnId);
+        if (column == null) {
+            return "redirect:/board/" + projectId + "?error=Column not found";
+        }
+        
+        // Interdire la suppression de BACKLOG et DONE
+        String columnName = column.getName().toUpperCase().replace(" ", "_");
+        if ("BACKLOG".equals(columnName) || "DONE".equals(columnName)) {
+            return "redirect:/board/" + projectId + "?error=Cannot delete " + column.getName() + " column";
+        }
+        
+        // Vérifier si la colonne contient des stories
+        Collection<Story> storiesInColumn = repoFactory.getStoryRepo().findByColumn(columnId);
+        if (!storiesInColumn.isEmpty()) {
+            return "redirect:/board/" + projectId + "?error=Cannot delete column with stories. Please move stories first";
+        }
         
         repoFactory.getColumnRepo().remove(columnId);
         return "redirect:/board/" + projectId;
@@ -158,11 +202,29 @@ public class BoardController {
             @RequestParam String columnOrder) {
         
         String[] columnIds = columnOrder.split(",");
+
+        // Ensure BACKLOG column is always position 1
+        Long backlogId = null;
+        for (fr.uha.ensisa.gl.entities.Column c : repoFactory.getColumnRepo().findByProject(projectId)) {
+            if (c != null && c.getName() != null && "BACKLOG".equalsIgnoreCase(c.getName().trim())) {
+                backlogId = (long) c.getId();
+                break;
+            }
+        }
+
+        int pos = 1;
+        // If backlog exists, put it first
+        if (backlogId != null) {
+            repoFactory.getColumnRepo().reorder(backlogId, pos++);
+        }
+
+        // Then apply order for remaining columns in the payload, skipping backlog if present
         for (int i = 0; i < columnIds.length; i++) {
             Long columnId = Long.parseLong(columnIds[i]);
-            repoFactory.getColumnRepo().reorder(columnId, i + 1);
+            if (backlogId != null && columnId.equals(backlogId)) continue;
+            repoFactory.getColumnRepo().reorder(columnId, pos++);
         }
-        
+
         return "{\"success\":true}";
     }
     
@@ -182,11 +244,44 @@ public class BoardController {
                 return "{\"success\":false,\"error\":\"Column not found\"}";
             }
             
+            // Validation du nom
             if (newName == null || newName.trim().isEmpty()) {
                 return "{\"success\":false,\"error\":\"Column name cannot be empty\"}";
             }
             
             column.setName(newName.trim());
+            repoFactory.getColumnRepo().persist(column);
+            
+            return "{\"success\":true}";
+        } catch (Exception e) {
+            return "{\"success\":false,\"error\":\"" + e.getMessage() + "\"}";
+        }
+    }
+    
+    /**
+     * Met à jour une colonne (nom + capacité) (AJAX)
+     */
+    @PostMapping("/{projectId}/update-column-full")
+    @ResponseBody
+    public String updateColumn(
+            @PathVariable Long projectId,
+            @RequestParam Long columnId,
+            @RequestParam(required = false) String newName,
+            @RequestParam(required = false, defaultValue = "0") int maxCapacity) {
+        
+        try {
+            Column column = repoFactory.getColumnRepo().find(columnId);
+            if (column == null) {
+                return "{\"success\":false,\"error\":\"Column not found\"}";
+            }
+            
+            // Mettre à jour le nom si fourni
+            if (newName != null && !newName.trim().isEmpty()) {
+                column.setName(newName.trim());
+            }
+            
+            // Mettre à jour la capacité
+            column.setMaxCapacity(maxCapacity);
             repoFactory.getColumnRepo().persist(column);
             
             return "{\"success\":true}";
