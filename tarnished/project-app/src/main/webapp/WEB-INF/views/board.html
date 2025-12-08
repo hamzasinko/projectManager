@@ -84,7 +84,7 @@
             font-size: 0.75rem;
             padding: 0.25rem 0.5rem;
         }
-        .status-TODO { background-color: #6c757d; color: white; }
+        .status-BACKLOG { background-color: #6c757d; color: white; }
         .status-IN_PROGRESS { background-color: #0d6efd; color: white; }
         .status-REVIEW { background-color: #ffc107; color: #000; }
         .status-DONE { background-color: #198754; color: white; }
@@ -115,6 +115,9 @@
                     <a th:href="@{'/project/info/' + ${project.id}}" class="btn btn-outline-light btn-sm">
                         Back to Project
                     </a>
+                    <a th:href="@{'/project/edit/' + ${project.id}}" class="btn btn-warning btn-sm">
+                        Edit Project
+                    </a>
                     <a th:href="@{'/story/new?projectId=' + ${project.id}}" class="btn btn-success btn-sm">
                         + New Story
                     </a>
@@ -137,22 +140,25 @@
                 <div class="column-header">
                     <span th:text="${#strings.replace(column.name, '_', ' ')}" 
                           th:id="'column-name-' + ${column.id}"
-                          draggable="true" 
+                          th:attr="draggable=${column.name != 'BACKLOG'}"
                           ondragstart="dragColumn(event)" 
-                          style="cursor: move; flex-grow: 1;">Column Name</span>
+                          th:style="${column.name == 'BACKLOG'} ? 'flex-grow: 1; cursor: default;' : 'cursor: move; flex-grow: 1;'">Column Name</span>
                     <div style="display: flex; align-items: center; gap: 5px;">
                         <span class="column-capacity" th:if="${column.maxCapacity > 0}">
                             <span th:text="${column.stories != null ? column.stories.size() : 0}">0</span>/<span th:text="${column.maxCapacity}">5</span>
                         </span>
-                        <button onclick="editColumnName(this)" 
-                                th:attr="data-column-id=${column.id},data-column-name=${column.name}"
+                        <!-- Bouton Edit pour TOUTES les colonnes -->
+                        <button onclick="editColumn(this)" 
+                                th:attr="data-column-id=${column.id},data-column-name=${column.name},data-column-capacity=${column.maxCapacity}"
                                 class="btn btn-sm btn-outline-secondary" 
                                 style="padding: 2px 8px; font-size: 0.8em;" 
                                 draggable="false"
-                                title="Edit column name">
+                                title="Edit column">
                             Edit
                         </button>
-                        <form th:action="@{'/board/' + ${project.id} + '/delete-column/' + ${column.id}}" 
+                        <!-- Bouton Delete uniquement pour les colonnes non-BACKLOG/DONE -->
+                        <form th:if="${column.name != 'BACKLOG' and column.name != 'DONE'}"
+                              th:action="@{'/board/' + ${project.id} + '/delete-column/' + ${column.id}}" 
                               method="post" 
                               style="display:inline;"
                               onsubmit="return confirm('Delete this column? Stories will not be deleted.');">
@@ -167,6 +173,14 @@
                     </div>
                 </div>
 
+                <!-- Pour BACKLOG et DONE : bouton EN HAUT -->
+                <button th:if="${column.name == 'BACKLOG' or column.name == 'DONE'}" 
+                        class="btn btn-outline-secondary btn-sm add-story-btn"
+                        th:onclick="'addStoryToColumn(' + ${project.id} + ', ' + ${column.id} + ')'"
+                        style="margin-bottom: 10px;">
+                    + Add Story
+                </button>
+
                 <!-- Stories in this column -->
                 <div class="column-stories">
                     <div th:each="story : ${column.stories}" 
@@ -174,7 +188,9 @@
                          th:id="'story-' + ${story.id}"
                          th:data-story-id="${story.id}"
                          draggable="true"
-                         ondragstart="drag(event)">
+                         ondragstart="drag(event)"
+                         ondragover="storyDragOver(event)"
+                         ondrop="storyDrop(event)">
                         
                         <div class="story-title" th:text="${story.title}">Story Title</div>
                         
@@ -202,8 +218,10 @@
                     </div>
                 </div>
 
-                <button class="btn btn-outline-secondary btn-sm add-story-btn"
-                        th:onclick="'addStoryToColumn(' + ${column.id} + ')'">
+                <!-- Pour les autres colonnes : bouton EN BAS -->
+                <button th:if="${column.name != 'BACKLOG' and column.name != 'DONE'}" 
+                        class="btn btn-outline-secondary btn-sm add-story-btn"
+                        th:onclick="'addStoryToColumn(' + ${project.id} + ', ' + ${column.id} + ')'">
                     + Add Story
                 </button>
             </div>
@@ -305,8 +323,10 @@
         }
 
         function drop(ev) {
+            console.log('[DROP] Called - draggedStory:', draggedStory);
             if (draggedStory) {
                 ev.preventDefault();
+                ev.stopPropagation(); // Empêcher la propagation pour éviter double appel
                 
                 // Get the column element (might drop on child elements)
                 const columnElement = ev.currentTarget.closest('.kanban-column') || ev.currentTarget;
@@ -317,83 +337,189 @@
                 const toColumnId = columnElement.dataset.columnId;
 
                 const movedStoryElement = draggedStory;
+                console.log('[DROP] movedStoryElement captured:', movedStoryElement);
                 clearInterval(autoScrollInterval);
                 draggedStory = null;
 
                 if (!storyId || !fromColumnId || !toColumnId) {
                     console.error('Missing data in drop', {storyId, fromColumnId, toColumnId});
-                    movedStoryElement.style.opacity = '1';
+                    if (movedStoryElement) movedStoryElement.style.opacity = '1';
                     alert('Error: Missing story or column ID. Please refresh the page.');
                     return;
                 }
 
-                if (fromColumnId === toColumnId) {
-                    movedStoryElement.style.opacity = '1';
-                    return;
-                }
-
-                // Move story via AJAX
-                const formData = new URLSearchParams();
-                formData.append('storyId', storyId);
-                formData.append('fromColumnId', fromColumnId);
-                formData.append('toColumnId', toColumnId);
-
-                fetch('/board/' + projectId + '/move-story', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        movedStoryElement.style.opacity = '1';
-                        
-                        // Update status badge if server returned new status
-                        if (data.newStatus) {
-                            const statusBadge = movedStoryElement.querySelector('.status-badge');
-                            if (statusBadge) {
-                                // Remove old status classes
-                                statusBadge.className = 'badge status-badge';
-                                // Add new status class
-                                statusBadge.classList.add('status-' + data.newStatus);
-                                // Update text with spaces instead of underscores
-                                statusBadge.textContent = data.newStatus.replace(/_/g, ' ');
-                            }
-                        }
-                        
-                        // Move the story element in DOM AFTER server confirms
-                        // Check if story is not already in target column
-                        const targetColumnStories = document.querySelector(`[data-column-id="${toColumnId}"] .column-stories`);
-                        
-                        if (targetColumnStories) {
-                            // Check if story already exists in target column
-                            const existingStory = targetColumnStories.querySelector(`[data-story-id="${storyId}"]`);
-                            if (!existingStory) {
-                                // Remove from current location first
-                                if (movedStoryElement.parentElement) {
-                                    movedStoryElement.parentElement.removeChild(movedStoryElement);
-                                }
-                                // Then append to target
-                                targetColumnStories.appendChild(movedStoryElement);
-                            }
-                        }
-                        
-                        updateColumnCounts();
-                    } else {
-                        movedStoryElement.style.opacity = '1';
-                        alert(data.error || 'Cannot move story to this column');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    movedStoryElement.style.opacity = '1';
-                    alert('Error moving story');
-                });
+                // Toujours appeler moveStoryToColumn, même si même colonne
+                // car il faut repositionner en haut
+                moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement);
             }
         }
+        
+        function storyDragOver(ev) {
+            if (draggedStory) {
+                ev.preventDefault();
+                ev.stopPropagation();
+            }
+        }
+        
+        function storyDrop(ev) {
+            if (!draggedStory) return;
+            
+            ev.preventDefault();
+            ev.stopPropagation();
+            
+            const targetStory = ev.currentTarget;
+            if (targetStory === draggedStory) return; // Même story
+            
+            const columnStories = targetStory.parentElement;
+            const columnElement = columnStories.closest('.kanban-column');
+            if (!columnElement) return;
+            
+            const toColumnId = columnElement.dataset.columnId;
+            const fromColumnElement = draggedStory.closest('.kanban-column');
+            const fromColumnId = fromColumnElement ? fromColumnElement.dataset.columnId : null;
+            
+            // Même colonne = réorganisation manuelle AVEC sauvegarde
+            if (fromColumnId === toColumnId) {
+                const rect = targetStory.getBoundingClientRect();
+                const midpoint = rect.top + rect.height / 2;
+                
+                // Insérer avant ou après selon la position de la souris
+                if (ev.clientY < midpoint) {
+                    columnStories.insertBefore(draggedStory, targetStory);
+                } else {
+                    columnStories.insertBefore(draggedStory, targetStory.nextSibling);
+                }
+                
+                draggedStory.style.opacity = '1';
+                clearInterval(autoScrollInterval);
+                draggedStory = null;
+                
+                // Sauvegarder le nouvel ordre
+                saveStoryOrder(fromColumnId);
+                return;
+            }
+            
+            // Différente colonne = déplacement avec appel serveur
+            const storyId = draggedStory.dataset.storyId;
+            const movedStoryElement = draggedStory;
+            clearInterval(autoScrollInterval);
+            draggedStory = null;
+            
+            moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement);
+        }
+        
+        function moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement) {
+            // Vérifier que l'élément existe
+            if (!movedStoryElement) {
+                console.error('movedStoryElement is null');
+                return;
+            }
+            
+            clearInterval(autoScrollInterval);
+            draggedStory = null;
 
+            // Si même colonne, repositionner en haut et sauvegarder
+            if (fromColumnId === toColumnId) {
+                const targetColumnStories = document.querySelector(`[data-column-id="${toColumnId}"] .column-stories`);
+                if (targetColumnStories && movedStoryElement) {
+                    movedStoryElement.style.opacity = '1';
+                    // Toujours mettre en haut
+                    targetColumnStories.insertBefore(movedStoryElement, targetColumnStories.firstChild);
+                    // Sauvegarder le nouvel ordre
+                    saveStoryOrder(toColumnId);
+                }
+                return;
+            }
+
+            // Move story via AJAX (colonne différente)
+            const formData = new URLSearchParams();
+            formData.append('storyId', storyId);
+            formData.append('fromColumnId', fromColumnId);
+            formData.append('toColumnId', toColumnId);
+
+            fetch('/board/' + projectId + '/move-story', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (movedStoryElement) movedStoryElement.style.opacity = '1';
+                    
+                    // Update status badge if server returned new status
+                    if (data.newStatus) {
+                        const statusBadge = movedStoryElement.querySelector('.status-badge');
+                        if (statusBadge) {
+                            // Remove old status classes
+                            statusBadge.className = 'badge status-badge';
+                            // Add new status class
+                            statusBadge.classList.add('status-' + data.newStatus);
+                            // Update text with spaces instead of underscores
+                            statusBadge.textContent = data.newStatus.replace(/_/g, ' ');
+                        }
+                    }
+                    
+                    // Move the story element in DOM AFTER server confirms
+                    const targetColumnStories = document.querySelector(`[data-column-id="${toColumnId}"] .column-stories`);
+                    
+                    if (targetColumnStories && movedStoryElement) {
+                        // Remove from current location first
+                        if (movedStoryElement.parentElement) {
+                            movedStoryElement.parentElement.removeChild(movedStoryElement);
+                        }
+                        // Always insert at top (prepend)
+                        targetColumnStories.insertBefore(movedStoryElement, targetColumnStories.firstChild);
+                        // Sauvegarder le nouvel ordre de la colonne de destination
+                        saveStoryOrder(toColumnId);
+                    }
+                    
+                    updateColumnCounts();
+                } else {
+                    if (movedStoryElement) movedStoryElement.style.opacity = '1';
+                    alert(data.error || 'Cannot move story to this column');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                if (movedStoryElement) movedStoryElement.style.opacity = '1';
+                alert('Error moving story');
+            });
+        }
+
+        function saveStoryOrder(columnId) {
+            const columnElement = document.querySelector(`[data-column-id="${columnId}"]`);
+            if (!columnElement) return;
+            
+            const storyCards = columnElement.querySelectorAll('.story-card');
+            const storyIds = Array.from(storyCards).map(card => card.dataset.storyId);
+            
+            if (storyIds.length === 0) return;
+            
+            const formData = new URLSearchParams();
+            formData.append('columnId', columnId);
+            formData.append('storyOrder', storyIds.join(','));
+            
+            fetch('/board/' + projectId + '/reorder-stories', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    console.error('Failed to save story order');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving story order:', error);
+            });
+        }
+        
         function updateColumnCounts() {
             document.querySelectorAll('.kanban-column').forEach(col => {
                 const columnId = col.dataset.columnId;
@@ -412,6 +538,12 @@
             ev.stopPropagation();
             const column = ev.target.closest('.kanban-column');
             if (column && column.dataset.columnId) {
+                // Empêcher le déplacement de BACKLOG
+                const columnName = column.querySelector('.column-header span').textContent.trim().toUpperCase();
+                if (columnName === 'BACKLOG') {
+                    ev.preventDefault();
+                    return false;
+                }
                 draggedColumn = column;
                 draggedColumn.classList.add('dragging');
                 ev.dataTransfer.effectAllowed = 'move';
@@ -430,7 +562,19 @@
                     ev.preventDefault();
                     autoScroll(ev);
                     
+                    // Empêcher tout placement avant ou à la place de BACKLOG
+                    const backlogColumn = Array.from(container.querySelectorAll('.kanban-column[data-column-id]')).find(col => {
+                        const nameEl = col.querySelector('.column-header span');
+                        return nameEl && nameEl.textContent.trim().toUpperCase() === 'BACKLOG';
+                    });
+                    
                     const afterElement = getDragAfterElement(container, ev.clientX);
+                    
+                    // Si afterElement est BACKLOG, ne pas bouger
+                    if (afterElement === backlogColumn) {
+                        return;
+                    }
+                    
                     if (afterElement == null) {
                         const addColumnDiv = container.querySelector('.kanban-column:last-child');
                         container.insertBefore(draggedColumn, addColumnDiv);
@@ -455,7 +599,13 @@
         });
 
         function getDragAfterElement(container, x) {
-            const draggableElements = [...container.querySelectorAll('.kanban-column:not(.dragging)')].filter(el => el.dataset.columnId);
+            // Filtrer BACKLOG des éléments draggables pour qu'on ne puisse jamais se positionner avant
+            const draggableElements = [...container.querySelectorAll('.kanban-column:not(.dragging)')].filter(el => {
+                if (!el.dataset.columnId) return false;
+                const nameEl = el.querySelector('.column-header span');
+                const name = nameEl ? nameEl.textContent.trim().toUpperCase() : '';
+                return name !== 'BACKLOG';
+            });
 
             return draggableElements.reduce((closest, child) => {
                 const box = child.getBoundingClientRect();
@@ -474,6 +624,26 @@
             const columnIds = Array.from(columns).map(col => col.dataset.columnId);
             
             if (columnIds.length === 0) return;
+
+            // Ensure BACKLOG column stays first (leftmost)
+            try {
+                let backlogId = null;
+                columns.forEach(col => {
+                    const nameEl = col.querySelector('.column-header span');
+                    if (nameEl && nameEl.textContent.trim().toUpperCase() === 'BACKLOG') {
+                        backlogId = col.dataset.columnId;
+                    }
+                });
+                if (backlogId) {
+                    const idx = columnIds.indexOf(backlogId);
+                    if (idx > -1) {
+                        columnIds.splice(idx, 1);
+                        columnIds.unshift(backlogId);
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not enforce BACKLOG first:', e);
+            }
             
             const formData = new URLSearchParams();
             formData.append('columnOrder', columnIds.join(','));
@@ -496,41 +666,79 @@
             });
         }
 
-        function addStoryToColumn(columnId) {
-            window.location.href = '/story/new?projectId=' + projectId + '&columnId=' + columnId;
+        function addStoryToColumn(projectIdParam, columnId) {
+            console.log('[DEBUG] addStoryToColumn called - projectId:', projectIdParam, 'columnId:', columnId);
+            window.location.href = '/story/new?projectId=' + projectIdParam + '&columnId=' + columnId;
         }
 
-        function editColumnName(button) {
+        function editColumn(button) {
             const columnId = button.getAttribute('data-column-id');
             const currentName = button.getAttribute('data-column-name');
+            const currentCapacity = button.getAttribute('data-column-capacity') || '0';
             
+            console.log('[DEBUG] Edit column - ID:', columnId, 'Name:', currentName, 'Capacity:', currentCapacity);
+            
+            // Vérifier si c'est BACKLOG ou DONE
+            const isBacklogOrDone = currentName.toUpperCase() === 'BACKLOG' || currentName.toUpperCase() === 'DONE';
+            
+            // Demander le nouveau nom
             const newName = prompt('Enter new column name:', currentName);
-            if (newName && newName.trim() !== '' && newName !== currentName) {
-                const formData = new URLSearchParams();
-                formData.append('columnId', columnId);
-                formData.append('newName', newName.trim());
-
-                fetch('/board/' + projectId + '/update-column', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        document.getElementById('column-name-' + columnId).textContent = newName.trim();
-                        button.setAttribute('data-column-name', newName.trim());
-                    } else {
-                        alert('Failed to update column name: ' + (data.error || 'Unknown error'));
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while updating column name');
-                });
+            if (newName === null) {
+                console.log('[DEBUG] User cancelled name prompt');
+                return; // Cancel
             }
+            
+            let newCapacity = currentCapacity;
+            
+            // Pour les colonnes autres que BACKLOG et DONE, demander la capacité
+            if (!isBacklogOrDone) {
+                const capacityInput = prompt('Enter max capacity (0 = unlimited):', currentCapacity);
+                if (capacityInput === null) {
+                    console.log('[DEBUG] User cancelled capacity prompt');
+                    return; // Cancel
+                }
+                newCapacity = capacityInput;
+            } else {
+                // Pour BACKLOG et DONE, garder capacité à 0 (infini)
+                newCapacity = '0';
+                console.log('[DEBUG] BACKLOG/DONE column - capacity stays unlimited');
+            }
+            
+            console.log('[DEBUG] New values - Name:', newName, 'Capacity:', newCapacity);
+            console.log('[DEBUG] Posting to: /board/' + projectId + '/update-column-full');
+            
+            const formData = new URLSearchParams();
+            formData.append('columnId', columnId);
+            formData.append('newName', newName.trim());
+            formData.append('maxCapacity', newCapacity);
+
+            fetch('/board/' + projectId + '/update-column-full', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData
+            })
+            .then(response => {
+                console.log('[DEBUG] Response status:', response.status);
+                return response.text();
+            })
+            .then(text => {
+                console.log('[DEBUG] Response text:', text);
+                const data = JSON.parse(text);
+                if (data.success) {
+                    console.log('[DEBUG] Update successful, reloading page');
+                    // Recharger la page pour voir les changements
+                    window.location.reload();
+                } else {
+                    console.error('[DEBUG] Update failed:', data.error);
+                    alert('Failed to update column: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('[DEBUG] Fetch error:', error);
+                alert('An error occurred while updating column: ' + error.message);
+            });
         }
 
         function showAddColumnForm() {

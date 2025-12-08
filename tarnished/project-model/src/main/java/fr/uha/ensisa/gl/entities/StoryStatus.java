@@ -2,7 +2,7 @@ package fr.uha.ensisa.gl.entities;
 
 
 public enum StoryStatus {
-    TODO,
+    BACKLOG,
     IN_PROGRESS,
     REVIEW,
     DONE,

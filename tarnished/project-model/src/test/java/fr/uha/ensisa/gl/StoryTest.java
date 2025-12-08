@@ -75,8 +75,8 @@ public class StoryTest {
     @Test
     @DisplayName("Should handle all status values")
     void testAllStatusValues() {
-        sut.setStatus(StoryStatus.TODO);
-        assertEquals(StoryStatus.TODO, sut.getStatus());
+        sut.setStatus(StoryStatus.BACKLOG);
+        assertEquals(StoryStatus.BACKLOG, sut.getStatus());
         
         sut.setStatus(StoryStatus.IN_PROGRESS);
         assertEquals(StoryStatus.IN_PROGRESS, sut.getStatus());
@@ -208,7 +208,19 @@ public class StoryTest {
         Long projectId = null;
         Long columnId = null;
         
-        Story story = new Story(id, title, description, status, user, dateStart, dateCreated, dateEnd, workLogs, totalTimeSpent, projectId, columnId);
+        Story story = new Story();
+        story.setId(id);
+        story.setTitle(title);
+        story.setDescription(description);
+        story.setStatus(status);
+        story.setUserAssigned(user);
+        story.setDateStart(dateStart);
+        story.setDateCreated(dateCreated);
+        story.setDateEnd(dateEnd);
+        story.setWorkLogs(workLogs);
+        story.setTotalTimeSpent(totalTimeSpent);
+        story.setProjectId(projectId);
+        story.setColumnId(columnId);
         
         assertEquals(id, story.getId());
         assertEquals(title, story.getTitle());

@@ -24,7 +24,7 @@ public class StoryRepoMemTest {
         testStory = new Story();
         testStory.setTitle("Test Story");
         testStory.setDescription("Test Description");
-        testStory.setStatus(StoryStatus.TODO);
+        testStory.setStatus(StoryStatus.BACKLOG);
         testStory.setDateCreated(new Date());
     }
 
@@ -144,10 +144,10 @@ public class StoryRepoMemTest {
     @Test
     @DisplayName("Should persist story with all status values")
     void testPersistStoryWithDifferentStatuses() {
-        Story todoStory = new Story();
-        todoStory.setTitle("TODO Story");
-        todoStory.setStatus(StoryStatus.TODO);
-        storyRepo.persist(todoStory);
+        Story backlogStory = new Story();
+        backlogStory.setTitle("BACKLOG Story");
+        backlogStory.setStatus(StoryStatus.BACKLOG);
+        storyRepo.persist(backlogStory);
         
         Story inProgressStory = new Story();
         inProgressStory.setTitle("In Progress Story");
@@ -160,7 +160,7 @@ public class StoryRepoMemTest {
         storyRepo.persist(doneStory);
         
         assertEquals(3, storyRepo.count(), "Should have 3 stories with different statuses");
-        assertEquals(StoryStatus.TODO, storyRepo.find(todoStory.getId()).getStatus());
+        assertEquals(StoryStatus.BACKLOG, storyRepo.find(backlogStory.getId()).getStatus());
         assertEquals(StoryStatus.IN_PROGRESS, storyRepo.find(inProgressStory.getId()).getStatus());
         assertEquals(StoryStatus.DONE, storyRepo.find(doneStory.getId()).getStatus());
     }
