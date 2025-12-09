@@ -24,6 +24,7 @@
             padding: 15px;
             display: flex;
             flex-direction: column;
+            min-height: 500px;
         }
         .column-header {
             font-weight: bold;
@@ -172,57 +173,147 @@
                     </div>
                 </div>
 
-                <!-- Pour BACKLOG et DONE : bouton EN HAUT -->
-                <button th:if="${column.name == 'BACKLOG' or column.name == 'DONE'}" 
-                        class="btn btn-outline-secondary btn-sm add-story-btn"
-                        th:onclick="'addStoryToColumn(' + ${project.id} + ', ' + ${column.id} + ')'"
-                        style="margin-bottom: 10px;">
-                    + Add Story
-                </button>
+                <!-- Pour BACKLOG et DONE de base : structure simple -->
+                <div th:if="${column.name == 'BACKLOG' or column.name == 'DONE'}" style="flex-grow: 1; display: flex; flex-direction: column;">
+                    <button class="btn btn-outline-secondary btn-sm add-story-btn"
+                            th:onclick="'addStoryToColumn(' + ${project.id} + ', ' + ${column.id} + ')'"
+                            style="margin-bottom: 10px;">
+                        + Add Story
+                    </button>
 
-                <!-- Stories in this column -->
-                <div class="column-stories">
-                    <div th:each="story : ${column.stories}" 
-                         class="story-card"
-                         th:id="'story-' + ${story.id}"
-                         th:data-story-id="${story.id}"
-                         draggable="true"
-                         ondragstart="drag(event)"
-                         ondragover="storyDragOver(event)"
-                         ondrop="storyDrop(event)">
-                        
-                        <div class="story-title" th:text="${story.title}">Story Title</div>
-                        
-                        <div class="story-meta">
-                            <span class="badge status-badge"
-                                  th:classappend="${'status-' + story.status}"
-                                  th:text="${#strings.replace(story.status.toString(), '_', ' ')}">TODO</span>
+                    <!-- Stories in this column -->
+                    <div class="column-stories" style="flex-grow: 1;">
+                        <div th:each="story : ${column.stories}" 
+                             class="story-card"
+                             th:id="'story-' + ${story.id}"
+                             th:data-story-id="${story.id}"
+                             draggable="true"
+                             ondragstart="drag(event)"
+                             ondragover="storyDragOver(event)"
+                             ondrop="storyDrop(event)">
                             
-                            <div class="mt-2" th:if="${story.totalTimeSpent > 0}">
-                                <i class="bi bi-clock"></i> 
-                                <span th:text="${story.totalTimeSpent}">0</span> min
+                            <div class="story-title" th:text="${story.title}">Story Title</div>
+                            
+                            <div class="story-meta">
+                                <span class="badge status-badge"
+                                      th:classappend="${'status-' + story.status}"
+                                      th:text="${#strings.replace(story.status.toString(), '_', ' ')}">BACKLOG</span>
+                                
+                                <div class="mt-2" th:if="${story.totalTimeSpent > 0}">
+                                    <i class="bi bi-clock"></i> 
+                                    <span th:text="${story.totalTimeSpent}">0</span> min
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="story-actions">
-                            <a th:href="@{'/story/' + ${story.id}}" 
-                               class="btn btn-sm btn-outline-primary">
-                                Details
-                            </a>
-                            <a th:href="@{'/story/' + ${story.id} + '/edit'}" 
-                               class="btn btn-sm btn-outline-warning">
-                                Edit
-                            </a>
+                            <div class="story-actions">
+                                <a th:href="@{'/story/' + ${story.id}}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    Details
+                                </a>
+                                <a th:href="@{'/story/' + ${story.id} + '/edit'}" 
+                                   class="btn btn-sm btn-outline-warning">
+                                    Edit
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Pour les autres colonnes : bouton EN BAS -->
-                <button th:if="${column.name != 'BACKLOG' and column.name != 'DONE'}" 
-                        class="btn btn-outline-secondary btn-sm add-story-btn"
-                        th:onclick="'addStoryToColumn(' + ${project.id} + ', ' + ${column.id} + ')'">
-                    + Add Story
-                </button>
+                <!-- Pour les autres colonnes : sous-colonnes Backlog/Done -->
+                <div th:if="${column.name != 'BACKLOG' and column.name != 'DONE'}" 
+                     style="display: flex; flex-direction: row; gap: 10px; flex-grow: 1;">
+                    
+                    <!-- Sous-colonne BACKLOG -->
+                    <div class="subcolumn-backlog" style="background: #e9ecef; border-radius: 6px; padding: 10px; flex: 1; display: flex; flex-direction: column;">
+                        <div style="font-weight: 600; font-size: 0.9em; margin-bottom: 8px; color: #495057;">Backlog</div>
+                        <div class="column-stories" 
+                             style="flex-grow: 1; min-height: 150px;">
+                            <div th:each="story : ${column.stories}" 
+                                 th:if="${story.subColumn == null or story.subColumn != 'DONE'}"
+                                 class="story-card"
+                                 th:id="'story-' + ${story.id}"
+                                 th:data-story-id="${story.id}"
+                                 draggable="true"
+                                 ondragstart="drag(event)"
+                                 ondragover="storyDragOver(event)"
+                                 ondrop="storyDrop(event)">
+                                
+                                <div class="story-title" th:text="${story.title}">Story Title</div>
+                                
+                                <div class="story-meta">
+                                    <span class="badge status-badge"
+                                          th:classappend="${'status-' + story.status}"
+                                          th:text="${#strings.replace(story.status.toString(), '_', ' ')}">STATUS</span>
+                                    
+                                    <div class="mt-2" th:if="${story.totalTimeSpent > 0}">
+                                        <i class="bi bi-clock"></i> 
+                                        <span th:text="${story.totalTimeSpent}">0</span> min
+                                    </div>
+                                </div>
+
+                                <div class="story-actions">
+                                    <a th:href="@{'/story/' + ${story.id}}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        Details
+                                    </a>
+                                    <a th:href="@{'/story/' + ${story.id} + '/edit'}" 
+                                       class="btn btn-sm btn-outline-warning">
+                                        Edit
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-outline-secondary btn-sm"
+                                th:onclick="'addStoryToColumn(' + ${project.id} + ', ' + ${column.id} + ')'"
+                                style="margin-top: 8px; width: 100%; font-size: 0.85em;">
+                            + Add Story
+                        </button>
+                    </div>
+
+                    <!-- Sous-colonne DONE -->
+                    <div class="subcolumn-done" style="background: #d1e7dd; border-radius: 6px; padding: 10px; flex: 1; display: flex; flex-direction: column;">
+                        <div style="font-weight: 600; font-size: 0.9em; margin-bottom: 8px; color: #0f5132;">Done</div>
+                        <div class="column-stories" 
+                             style="flex-grow: 1; min-height: 150px;"
+                             ondrop="storyDrop(event)" 
+                             ondragover="allowDrop(event)">
+                            <div th:each="story : ${column.stories}" 
+                                 th:if="${story.subColumn == 'DONE'}"
+                                 class="story-card"
+                                 th:id="'story-' + ${story.id}"
+                                 th:data-story-id="${story.id}"
+                                 draggable="true"
+                                 ondragstart="drag(event)"
+                                 ondragover="storyDragOver(event)"
+                                 ondrop="storyDrop(event)">
+                                
+                                <div class="story-title" th:text="${story.title}">Story Title</div>
+
+                                <div class="story-meta">
+                                    <span class="badge status-badge"
+                                          th:classappend="${'status-' + story.status}"
+                                          th:text="${#strings.replace(story.status.toString(), '_', ' ')}">STATUS</span>
+                                    
+                                    <div class="mt-2" th:if="${story.totalTimeSpent > 0}">
+                                        <i class="bi bi-clock"></i> 
+                                        <span th:text="${story.totalTimeSpent}">0</span> min
+                                    </div>
+                                </div>
+
+                                <div class="story-actions">
+                                    <a th:href="@{'/story/' + ${story.id}}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        Details
+                                    </a>
+                                    <a th:href="@{'/story/' + ${story.id} + '/edit'}" 
+                                       class="btn btn-sm btn-outline-warning">
+                                        Edit
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Add new column button -->
@@ -393,8 +484,59 @@
             ev.preventDefault();
             ev.stopPropagation();
             
-            const targetStory = ev.currentTarget;
-            if (targetStory === draggedStory) return; // Même story
+            const target = ev.currentTarget;
+            
+            // Check if we dropped on an empty area (column-stories div) or on a story card
+            const isEmptyArea = target.classList.contains('column-stories');
+            
+            // If dropped in empty area, handle subcolumn change
+            if (isEmptyArea) {
+                const targetSubColumn = target.closest('.subcolumn-done') ? 'DONE' : 
+                                       target.closest('.subcolumn-backlog') ? 'BACKLOG' : null;
+                const fromSubColumn = draggedStory.closest('.subcolumn-done') ? 'DONE' :
+                                     draggedStory.closest('.subcolumn-backlog') ? 'BACKLOG' : null;
+                
+                const columnElement = target.closest('.kanban-column');
+                if (!columnElement) return;
+                
+                const toColumnId = columnElement.dataset.columnId;
+                const fromColumnElement = draggedStory.closest('.kanban-column');
+                const fromColumnId = fromColumnElement ? fromColumnElement.dataset.columnId : null;
+                
+                // If same column but different subcolumn
+                if (fromColumnId === toColumnId && targetSubColumn && fromSubColumn !== targetSubColumn) {
+                    const storyId = draggedStory.dataset.storyId;
+                    clearInterval(autoScrollInterval);
+                    const movedStoryElement = draggedStory;
+                    draggedStory = null;
+                    
+                    console.log('[DEBUG] Subcolumn change detected (empty area) - from:', fromSubColumn, 'to:', targetSubColumn);
+                    moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn);
+                    return;
+                }
+                
+                // Different column
+                if (fromColumnId !== toColumnId) {
+                    const storyId = draggedStory.dataset.storyId;
+                    clearInterval(autoScrollInterval);
+                    const movedStoryElement = draggedStory;
+                    draggedStory = null;
+                    moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn);
+                    return;
+                }
+                
+                // Same column, same subcolumn - just append to end
+                target.appendChild(draggedStory);
+                draggedStory.style.opacity = '1';
+                clearInterval(autoScrollInterval);
+                draggedStory = null;
+                saveStoryOrder(fromColumnId);
+                return;
+            }
+            
+            // Dropped on a story card
+            const targetStory = target;
+            if (targetStory === draggedStory) return; // Same story
             
             const columnStories = targetStory.parentElement;
             const columnElement = columnStories.closest('.kanban-column');
@@ -404,12 +546,30 @@
             const fromColumnElement = draggedStory.closest('.kanban-column');
             const fromColumnId = fromColumnElement ? fromColumnElement.dataset.columnId : null;
             
-            // Même colonne = réorganisation manuelle AVEC sauvegarde
+            // Detect if dropped in a subcolumn
+            const targetSubColumn = targetStory.closest('.subcolumn-done') ? 'DONE' : 
+                                   targetStory.closest('.subcolumn-backlog') ? 'BACKLOG' : null;
+            const fromSubColumn = draggedStory.closest('.subcolumn-done') ? 'DONE' :
+                                 draggedStory.closest('.subcolumn-backlog') ? 'BACKLOG' : null;
+            
+            // If same column but different subcolumn
+            if (fromColumnId === toColumnId && targetSubColumn && fromSubColumn !== targetSubColumn) {
+                const storyId = draggedStory.dataset.storyId;
+                clearInterval(autoScrollInterval);
+                const movedStoryElement = draggedStory;
+                draggedStory = null;
+                
+                console.log('[DEBUG] Subcolumn change detected (on story) - from:', fromSubColumn, 'to:', targetSubColumn);
+                moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn);
+                return;
+            }
+            
+            // Same column and same subcolumn = manual reordering
             if (fromColumnId === toColumnId) {
                 const rect = targetStory.getBoundingClientRect();
                 const midpoint = rect.top + rect.height / 2;
                 
-                // Insérer avant ou après selon la position de la souris
+                // Insert before or after based on mouse position
                 if (ev.clientY < midpoint) {
                     columnStories.insertBefore(draggedStory, targetStory);
                 } else {
@@ -420,21 +580,22 @@
                 clearInterval(autoScrollInterval);
                 draggedStory = null;
                 
-                // Sauvegarder le nouvel ordre
+                // Save the new order
                 saveStoryOrder(fromColumnId);
                 return;
             }
             
-            // Différente colonne = déplacement avec appel serveur
+            // Different column = move with server call
             const storyId = draggedStory.dataset.storyId;
             const movedStoryElement = draggedStory;
+            
             clearInterval(autoScrollInterval);
             draggedStory = null;
             
-            moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement);
+            moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn);
         }
         
-        function moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement) {
+        function moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn) {
             // Vérifier que l'élément existe
             if (!movedStoryElement) {
                 console.error('movedStoryElement is null');
@@ -444,16 +605,25 @@
             clearInterval(autoScrollInterval);
             draggedStory = null;
 
-            // Si même colonne, repositionner en haut et sauvegarder
-            if (fromColumnId === toColumnId) {
-                const targetColumnStories = document.querySelector(`[data-column-id="${toColumnId}"] .column-stories`);
-                if (targetColumnStories && movedStoryElement) {
-                    movedStoryElement.style.opacity = '1';
-                    // Toujours mettre en haut
-                    targetColumnStories.insertBefore(movedStoryElement, targetColumnStories.firstChild);
-                    // Sauvegarder le nouvel ordre
-                    saveStoryOrder(toColumnId);
-                }
+            // Si même colonne, gérer la sous-colonne et sauvegarder
+            if (fromColumnId === toColumnId && targetSubColumn) {
+                // Save subcolumn change
+                const formData = new URLSearchParams();
+                formData.append('storyId', storyId);
+                formData.append('subColumn', targetSubColumn);
+                
+                fetch('/board/' + projectId + '/update-subcolumn', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Refresh to show in correct subcolumn
+                        window.location.reload();
+                    }
+                });
                 return;
             }
 
@@ -462,6 +632,9 @@
             formData.append('storyId', storyId);
             formData.append('fromColumnId', fromColumnId);
             formData.append('toColumnId', toColumnId);
+            if (targetSubColumn) {
+                formData.append('subColumn', targetSubColumn);
+            }
 
             fetch('/board/' + projectId + '/move-story', {
                 method: 'POST',

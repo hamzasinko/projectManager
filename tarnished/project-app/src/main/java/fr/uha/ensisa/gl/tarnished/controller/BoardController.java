@@ -54,7 +54,9 @@ public class BoardController {
             @PathVariable Long projectId,
             @RequestParam Long storyId,
             @RequestParam Long toColumnId,
-            @RequestParam(required = false) Long fromColumnId) {
+            @RequestParam(required = false) Long fromColumnId,
+            @RequestParam(required = false) String newStatus,
+            @RequestParam(required = false) String subColumn) {
         
         try {
             // Check if target column is full before moving
@@ -68,22 +70,46 @@ public class BoardController {
             
             repoFactory.getColumnRepo().moveStoryBetweenColumns(storyId, fromColumnId, toColumnId);
             
-            // Auto-update status if column is a default column
+            // Update position, subcolumn, and status based on target column
             String newStatusStr = null;
-            if (targetColumn != null) {
-                Story story = repoFactory.getStoryRepo().find(storyId);
-                if (story != null) {
-                    // Assigner position 0 pour mettre en haut
-                    story.setPosition(0);
-                    
-                    fr.uha.ensisa.gl.entities.StoryStatus newStatus = mapColumnNameToStatus(targetColumn.getName());
-                    if (newStatus != null) {
-                        story.setStatus(newStatus);
-                        newStatusStr = newStatus.name();
+            Story story = repoFactory.getStoryRepo().find(storyId);
+            if (story != null) {
+                System.out.println("[DEBUG] moveStory - storyId: " + storyId + ", toColumnId: " + toColumnId + ", subColumn param: " + subColumn);
+                System.out.println("[DEBUG] Before move - Story ID: " + story.getId() + ", SubColumn: " + story.getSubColumn() + ", Status: " + story.getStatus());
+                
+                // Assigner position 0 pour mettre en haut
+                story.setPosition(0);
+                
+                // Save subcolumn if provided
+                if (subColumn != null && !subColumn.isEmpty()) {
+                    story.setSubColumn(subColumn);
+                    System.out.println("[DEBUG] SubColumn set from parameter: " + subColumn);
+                } else {
+                    // Default to BACKLOG for custom columns
+                    if (targetColumn != null && !"BACKLOG".equals(targetColumn.getName()) && !"DONE".equals(targetColumn.getName())) {
+                        story.setSubColumn("BACKLOG");
+                        System.out.println("[DEBUG] SubColumn defaulted to BACKLOG for custom column");
+                    } else {
+                        story.setSubColumn(null);
+                        System.out.println("[DEBUG] SubColumn set to null for base column");
                     }
-                    // MUST persist to save position and status changes
-                    repoFactory.getStoryRepo().persist(story);
                 }
+                
+                // ALWAYS update status based on target column name
+                if (targetColumn != null) {
+                    String columnName = targetColumn.getName();
+                    fr.uha.ensisa.gl.entities.StoryStatus mappedStatus = mapColumnNameToStatus(columnName);
+                    if (mappedStatus != null) {
+                        story.setStatus(mappedStatus);
+                        newStatusStr = mappedStatus.name();
+                        System.out.println("[DEBUG] Status updated to: " + newStatusStr + " based on column: " + columnName);
+                    } else {
+                        System.out.println("[DEBUG] No status mapping found for column: " + columnName);
+                    }
+                }
+                
+                // MUST persist to save position and status changes
+                repoFactory.getStoryRepo().persist(story);
             }
             
             if (newStatusStr != null) {
@@ -95,19 +121,29 @@ public class BoardController {
         }
     }
     
-    /**
-     * Maps default column names to story statuses
-     */
-    private fr.uha.ensisa.gl.entities.StoryStatus mapColumnNameToStatus(String columnName) {
-        if (columnName == null) return null;
-        String normalized = columnName.toUpperCase().replace(" ", "_");
-        switch (normalized) {
-            case "BACKLOG": return fr.uha.ensisa.gl.entities.StoryStatus.BACKLOG;
-            case "IN_PROGRESS": return fr.uha.ensisa.gl.entities.StoryStatus.IN_PROGRESS;
-            case "REVIEW": return fr.uha.ensisa.gl.entities.StoryStatus.REVIEW;
-            case "DONE": return fr.uha.ensisa.gl.entities.StoryStatus.DONE;
-            case "BLOCKED": return fr.uha.ensisa.gl.entities.StoryStatus.BLOCKED;
-            default: return null;
+    @PostMapping("/{projectId}/update-subcolumn")
+    @ResponseBody
+    public String updateSubColumn(
+            @PathVariable Long projectId,
+            @RequestParam Long storyId,
+            @RequestParam String subColumn) {
+        try {
+            System.out.println("[DEBUG] updateSubColumn called - storyId: " + storyId + ", subColumn: " + subColumn);
+            Story story = repoFactory.getStoryRepo().find(storyId);
+            if (story == null) {
+                System.out.println("[DEBUG] Story not found: " + storyId);
+                return "{\"success\":false,\"error\":\"Story not found\"}";
+            }
+            
+            System.out.println("[DEBUG] Before update - Story ID: " + story.getId() + ", SubColumn: " + story.getSubColumn());
+            story.setSubColumn(subColumn);
+            repoFactory.getStoryRepo().persist(story);
+            System.out.println("[DEBUG] After update - Story ID: " + story.getId() + ", SubColumn: " + story.getSubColumn());
+            
+            return "{\"success\":true}";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"success\":false,\"error\":\"" + e.getMessage() + "\"}";
         }
     }
 
@@ -345,6 +381,22 @@ public class BoardController {
             return "{\"success\":true}";
         } catch (Exception e) {
             return "{\"success\":false,\"error\":\"" + e.getMessage() + "\"}";
+        }
+    }
+    
+    /**
+     * Map column name to StoryStatus enum
+     */
+    private fr.uha.ensisa.gl.entities.StoryStatus mapColumnNameToStatus(String columnName) {
+        if (columnName == null) return null;
+        String normalized = columnName.toUpperCase().replace(" ", "_");
+        switch (normalized) {
+            case "BACKLOG": return fr.uha.ensisa.gl.entities.StoryStatus.BACKLOG;
+            case "IN_PROGRESS": return fr.uha.ensisa.gl.entities.StoryStatus.IN_PROGRESS;
+            case "REVIEW": return fr.uha.ensisa.gl.entities.StoryStatus.REVIEW;
+            case "DONE": return fr.uha.ensisa.gl.entities.StoryStatus.DONE;
+            case "BLOCKED": return fr.uha.ensisa.gl.entities.StoryStatus.BLOCKED;
+            default: return null;
         }
     }
 }

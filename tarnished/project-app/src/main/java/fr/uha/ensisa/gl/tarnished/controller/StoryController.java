@@ -114,9 +114,18 @@ public class StoryController {
         // Assigner position 0 pour que la nouvelle story apparaisse EN HAUT
         story.setPosition(0);
         
+        // Initialiser subColumn pour les colonnes personnalisées (ni BACKLOG ni DONE)
+        if (story.getColumnId() != null) {
+            fr.uha.ensisa.gl.entities.Column column = repoFactory.getColumnRepo().find(story.getColumnId());
+            if (column != null && !"BACKLOG".equals(column.getName()) && !"DONE".equals(column.getName())) {
+                story.setSubColumn("BACKLOG");
+                System.out.println("[DEBUG] Story subColumn initialized to BACKLOG for custom column: " + column.getName());
+            }
+        }
+        
         repoFactory.getStoryRepo().persist(story);
         
-        System.out.println("[DEBUG] Story created - ID: " + story.getId() + ", ProjectID: " + story.getProjectId() + ", ColumnID: " + story.getColumnId() + ", Position: " + story.getPosition());
+        System.out.println("[DEBUG] Story created - ID: " + story.getId() + ", ProjectID: " + story.getProjectId() + ", ColumnID: " + story.getColumnId() + ", Position: " + story.getPosition() + ", SubColumn: " + story.getSubColumn());
         System.out.println("[DEBUG] Redirecting to: /board/" + story.getProjectId());
         
         // Rediriger vers le board du projet où la story a été ajoutée
