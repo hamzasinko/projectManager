@@ -41,6 +41,11 @@ public class ColumnController {
                                @RequestParam(required = false) Long projectId) {
         ColumnRepo columnRepo = repoFactory.getColumnRepo();
         
+        // Validation: limit name to 25 characters
+        if (name != null && name.length() > 25) {
+            name = name.substring(0, 25);
+        }
+        
         Column column = new Column();
         column.setName(name);
         column.setPosition(order);
@@ -72,6 +77,11 @@ public class ColumnController {
                              @RequestParam(required = false, defaultValue = "0") int limit) {
         ColumnRepo columnRepo = repoFactory.getColumnRepo();
         Column column = columnRepo.find(id);
+        
+        // Validation: limit name to 25 characters
+        if (name != null && name.length() > 25) {
+            name = name.substring(0, 25);
+        }
         
         if (column != null) {
             column.setName(name);

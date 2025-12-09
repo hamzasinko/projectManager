@@ -10,7 +10,7 @@
     <style>
         * { font-family: 'Space Grotesk', system-ui, sans-serif !important; }
         .project-header {
-            background: #343a40;
+            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
             color: white;
             padding: 20px;
             margin-bottom: 30px;
@@ -48,7 +48,7 @@
         .status-IN_PROGRESS { background-color: #007bff; color: white; }
         .status-REVIEW { background-color: #ffc107; color: black; }
         .status-DONE { background-color: #28a745; color: white; }
-        .status-BLOCKED { background-color: red; color: black; }
+        .status-BLOCKED { background-color: red; color: white; }
 
         .empty-state {
             text-align: center;
@@ -102,10 +102,6 @@
 
             <div th:each="story : ${stories}" class="story-card">
                 <div class="story-title" th:text="${story.title}">Story Title</div>
-                
-                <div th:if="${story.description}" class="text-muted mb-2" th:text="${story.description}">
-                    Story description
-                </div>
                 
                 <div class="story-meta">
                     <span class="badge status-badge"

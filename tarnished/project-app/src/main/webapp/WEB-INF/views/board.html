@@ -71,7 +71,7 @@
             margin-top: 10px;
         }
         .project-header {
-            background: #343a40;
+            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
             color: white;
             padding: 20px;
             margin-bottom: 0;
@@ -160,19 +160,16 @@
                             Edit
                         </button>
                         <!-- Bouton Delete uniquement pour les colonnes non-BACKLOG/DONE -->
-                        <form th:if="${column.name != 'BACKLOG' and column.name != 'DONE'}"
-                              th:action="@{'/board/' + ${project.id} + '/delete-column/' + ${column.id}}" 
-                              method="post" 
-                              style="display:inline;"
-                              onsubmit="return confirm('Delete this column? Stories will not be deleted.');">
-                            <button type="submit" 
-                                    class="btn btn-sm btn-outline-danger" 
-                                    style="padding: 2px 8px; font-size: 0.8em;" 
-                                    draggable="false"
-                                    title="Delete column">
-                                X
-                            </button>
-                        </form>
+                        <button th:if="${column.name != 'BACKLOG' and column.name != 'DONE'}"
+                                type="button"
+                                th:attr="data-column-id=${column.id},data-story-count=${column.stories.size()}"
+                                onclick="deleteColumn(this)" 
+                                class="btn btn-sm btn-outline-danger" 
+                                style="padding: 2px 8px; font-size: 0.8em;" 
+                                draggable="false"
+                                title="Delete column">
+                            X
+                        </button>
                     </div>
                 </div>
 
@@ -238,13 +235,16 @@
                 <form th:action="@{'/board/' + ${project.id} + '/add-column'}" 
                       method="post" 
                       id="addColumnForm" 
+                      accept-charset="UTF-8"
                       style="display:none; margin-top: 15px;">
                     <div class="mb-2">
                         <input type="text" 
                                name="name" 
                                class="form-control form-control-sm" 
                                placeholder="Column Name" 
+                               maxlength="25"
                                required>
+                        <small class="form-text text-muted">Max 25 characters</small>
                     </div>
                     <div class="mb-2">
                         <input type="number" 
@@ -261,11 +261,35 @@
         </div>
     </div>
 
+    <!-- Modal for column deletion with stories -->
+    <div id="deleteColumnModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999;">
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:30px; border-radius:8px; max-width:500px; width:90%;">
+            <h4>Delete Column</h4>
+            <p id="deleteColumnMessage"></p>
+            <div style="margin:20px 0;">
+                <label style="display:block; margin-bottom:10px;">
+                    <input type="radio" name="deleteAction" value="deleteStories" checked> Delete all stories in this column
+                </label>
+                <label style="display:block; margin-bottom:10px;">
+                    <input type="radio" name="deleteAction" value="moveStories"> Move all stories to another column:
+                </label>
+                <select id="targetColumnSelect" style="width:100%; padding:8px; margin-left:24px; display:none;">
+                    <option value="">-- Select a column --</option>
+                </select>
+            </div>
+            <div style="text-align:right; margin-top:20px;">
+                <button onclick="cancelDeleteColumn()" class="btn btn-secondary">Cancel</button>
+                <button onclick="confirmDeleteColumn()" class="btn btn-danger" style="margin-left:10px;">Delete Column</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let draggedColumn = null;
         let draggedStory = null;
         let autoScrollInterval = null;
         const projectId = /*[[${project.id}]]*/ '1';
+        let columnToDelete = null;
         
         // Auto-scroll functionality
         function autoScroll(ev) {
@@ -685,10 +709,16 @@
             const isBacklogOrDone = currentName.toUpperCase() === 'BACKLOG' || currentName.toUpperCase() === 'DONE';
             
             // Demander le nouveau nom
-            const newName = prompt('Enter new column name:', currentName);
+            let newName = prompt('Enter new column name (max 25 characters):', currentName);
             if (newName === null) {
                 console.log('[DEBUG] User cancelled name prompt');
                 return; // Cancel
+            }
+            
+            // Validation: limit to 25 characters
+            if (newName.length > 25) {
+                alert('Column name must not exceed 25 characters! It will be truncated.');
+                newName = newName.substring(0, 25);
             }
             
             let newCapacity = currentCapacity;
@@ -750,6 +780,127 @@
 
         function hideAddColumnForm() {
             document.getElementById('addColumnForm').style.display = 'none';
+        }
+
+        // Validation for add column form
+        document.getElementById('addColumnForm').addEventListener('submit', function(e) {
+            const nameInput = this.querySelector('input[name="name"]');
+            if (nameInput.value.length > 25) {
+                e.preventDefault();
+                alert('Column name must not exceed 25 characters!');
+                nameInput.value = nameInput.value.substring(0, 25);
+                nameInput.focus();
+                return false;
+            }
+        });
+        
+        // Show/hide target column select based on radio selection
+        document.querySelectorAll('input[name="deleteAction"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const select = document.getElementById('targetColumnSelect');
+                select.style.display = this.value === 'moveStories' ? 'block' : 'none';
+            });
+        });
+        
+        function deleteColumn(button) {
+            const columnId = button.getAttribute('data-column-id');
+            const storyCount = parseInt(button.getAttribute('data-story-count'));
+            
+            if (storyCount === 0) {
+                // Empty column - direct deletion
+                if (confirm('Are you sure you want to delete this column?')) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '/board/' + projectId + '/delete-column/' + columnId;
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+                return;
+            }
+            
+            // Column has stories - show modal
+            columnToDelete = {
+                id: columnId,
+                storyCount: storyCount
+            };
+            
+            document.getElementById('deleteColumnMessage').textContent = 
+                'This column contains ' + storyCount + ' story/stories. What would you like to do?';
+            
+            // Populate target column select
+            const select = document.getElementById('targetColumnSelect');
+            select.innerHTML = '<option value="">-- Select a column --</option>';
+            
+            // Get all columns except the one being deleted
+            document.querySelectorAll('.kanban-column').forEach(col => {
+                const colHeader = col.querySelector('.column-header');
+                if (colHeader) {
+                    const colName = colHeader.textContent.trim().split('\n')[0].trim();
+                    const colId = col.getAttribute('data-column-id');
+                    if (colId && colId !== columnId) {
+                        const option = document.createElement('option');
+                        option.value = colId;
+                        option.textContent = colName;
+                        select.appendChild(option);
+                    }
+                }
+            });
+            
+            document.getElementById('deleteColumnModal').style.display = 'block';
+        }
+        
+        function cancelDeleteColumn() {
+            document.getElementById('deleteColumnModal').style.display = 'none';
+            columnToDelete = null;
+        }
+        
+        function confirmDeleteColumn() {
+            const action = document.querySelector('input[name="deleteAction"]:checked').value;
+            
+            if (action === 'moveStories') {
+                const targetColumnId = document.getElementById('targetColumnSelect').value;
+                if (!targetColumnId) {
+                    alert('Please select a target column');
+                    return;
+                }
+                
+                // Move stories then delete column
+                fetch('/board/' + projectId + '/move-all-stories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'fromColumnId=' + columnToDelete.id + '&toColumnId=' + targetColumnId
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Now delete the column
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = '/board/' + projectId + '/delete-column/' + columnToDelete.id;
+                        document.body.appendChild(form);
+                        form.submit();
+                    } else {
+                        alert('Error moving stories');
+                    }
+                })
+                .catch(error => {
+                    alert('Error: ' + error.message);
+                });
+            } else {
+                // Delete stories then delete column
+                fetch('/board/' + projectId + '/delete-column-with-stories/' + columnToDelete.id, {
+                    method: 'POST'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.reload();
+                    } else {
+                        alert('Error deleting column with stories');
+                    }
+                })
+                .catch(error => {
+                    alert('Error: ' + error.message);
+                });
+            }
         }
     </script>
 

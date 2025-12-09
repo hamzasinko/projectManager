@@ -52,10 +52,6 @@
                                       th:text="${#strings.replace(story.status.toString(), '_', ' ')}">TODO</span>
                             </div>
                             
-                            <p class="card-text text-muted small" 
-                               th:text="${story.description != null ? story.description : 'No description'}"
-                               style="max-height: 3em; overflow: hidden;">Description</p>
-                            
                             <div class="mt-2">
                                 <small class="text-muted">
                                     Created: <span th:text="${#dates.format(story.dateCreated, 'dd/MM/yyyy')}">01/01/2025</span>

@@ -125,6 +125,11 @@ public class BoardController {
             return "redirect:/project/list";
         }
 
+        // Validation: limit name to 25 characters
+        if (name != null && name.length() > 25) {
+            name = name.substring(0, 25);
+        }
+
         Column column = new Column();
         column.setName(name);
         column.setProject(project);
@@ -192,6 +197,57 @@ public class BoardController {
         
         repoFactory.getColumnRepo().remove(columnId);
         return "redirect:/board/" + projectId;
+    }
+    
+    /**
+     * Supprimer une colonne avec toutes ses stories
+     */
+    @PostMapping("/{projectId}/delete-column-with-stories/{columnId}")
+    @ResponseBody
+    public String deleteColumnWithStories(
+            @PathVariable Long projectId,
+            @PathVariable Long columnId) {
+        
+        Column column = repoFactory.getColumnRepo().find(columnId);
+        if (column == null) {
+            return "error";
+        }
+        
+        // Delete all stories in the column first
+        Collection<Story> storiesInColumn = repoFactory.getStoryRepo().findByColumn(columnId);
+        for (Story story : storiesInColumn) {
+            repoFactory.getStoryRepo().remove(story.getId());
+        }
+        
+        // Then delete the column
+        repoFactory.getColumnRepo().remove(columnId);
+        return "success";
+    }
+    
+    /**
+     * Déplacer toutes les stories d'une colonne vers une autre
+     */
+    @PostMapping("/{projectId}/move-all-stories")
+    @ResponseBody
+    public String moveAllStories(
+            @PathVariable Long projectId,
+            @RequestParam Long fromColumnId,
+            @RequestParam Long toColumnId) {
+        
+        Column fromColumn = repoFactory.getColumnRepo().find(fromColumnId);
+        Column toColumn = repoFactory.getColumnRepo().find(toColumnId);
+        
+        if (fromColumn == null || toColumn == null) {
+            return "error";
+        }
+        
+        Collection<Story> stories = repoFactory.getStoryRepo().findByColumn(fromColumnId);
+        for (Story story : stories) {
+            story.setColumnId(toColumnId);
+            repoFactory.getStoryRepo().persist(story);
+        }
+        
+        return "success";
     }
     
     /**

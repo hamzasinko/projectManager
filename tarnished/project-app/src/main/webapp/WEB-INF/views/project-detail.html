@@ -29,7 +29,6 @@
       <h3 class="card-title" th:text="${project.name}">Project Name</h3>
       <p class="card-text" th:text="${project.description}">Project Description</p>
       <p>Date Started: <span th:text="${#dates.format(project.dateStarted, 'yyyy-MM-dd')}">Start Date</span></p>
-      <p>Date Ended: <span th:text="${#dates.format(project.dateEnded, 'yyyy-MM-dd')}">End Date</span></p>
       <p>Owner: <span th:text="${project.owner.name}">Owner Name</span></p>
       <p>Members:
         <span th:each="member : ${project.members}" th:text="${member.name} + ' '">Member Names</span>

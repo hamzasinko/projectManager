@@ -92,7 +92,15 @@
         <a th:href="@{'/story/' + ${story.id}}" class="btn btn-secondary mt-3">
             Cancel
         </a>
+        
+        <button type="button" class="btn btn-danger mt-3" onclick="confirmDelete()">
+            Delete Story
+        </button>
 
+    </form>
+    
+    <!-- Hidden delete form -->
+    <form th:id="'deleteForm-' + ${story.id}" th:action="@{'/story/' + ${story.id} + '/delete'}" method="post" style="display:none;">
     </form>
 </div>
 
@@ -127,6 +135,13 @@
         const storyId = [[${story.id}]];
         if (confirm('Unassign user from this story?')) {
             window.location.href = `/story/${storyId}/unassign`;
+        }
+    }
+    
+    function confirmDelete() {
+        const storyId = [[${story.id}]];
+        if (confirm('Are you sure you want to delete this story? This action cannot be undone.')) {
+            document.getElementById('deleteForm-' + storyId).submit();
         }
     }
 </script>
