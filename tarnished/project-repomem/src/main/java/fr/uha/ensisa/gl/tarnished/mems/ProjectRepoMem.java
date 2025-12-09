@@ -35,7 +35,7 @@ public class ProjectRepoMem implements ProjectRepo {
     }
     
     private void createDefaultColumns(Project project) {
-        String[] defaultColumns = {"TODO", "IN PROGRESS", "REVIEW", "DONE", "BLOCKED"};
+        String[] defaultColumns = {"BACKLOG", "IN PROGRESS", "REVIEW", "DONE", "BLOCKED"};
         
         for (int i = 0; i < defaultColumns.length; i++) {
             Column column = new Column();

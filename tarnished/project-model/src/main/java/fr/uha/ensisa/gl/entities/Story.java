@@ -24,6 +24,7 @@ public class Story {
     private long totalTimeSpent;
     private Long projectId;
     private Long columnId;
+    private int position; // Position dans la colonne pour le tri manuel
 
     public void addWorkLog(WorkLog workLog) {
         if (workLogs == null) {

@@ -146,6 +146,7 @@
                 <configuration>
                     <httpConnector>
                         <port>${servlet.port}</port>
+                        <idleTimeout>60000</idleTimeout>
                     </httpConnector>
                     <stopKey>quit</stopKey>
                     <stopPort>${jetty.stop.port}</stopPort>
@@ -153,6 +154,20 @@
                         <contextPath>/</contextPath>
                     </webApp>
                     <scanIntervalSeconds>5</scanIntervalSeconds>
+                    <systemProperties>
+                        <systemProperty>
+                            <name>org.eclipse.jetty.util.UrlEncoded.charset</name>
+                            <value>UTF-8</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <name>org.eclipse.jetty.server.Request.maxFormContentSize</name>
+                            <value>200000</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <name>org.eclipse.jetty.server.Request.maxFormKeys</name>
+                            <value>2000</value>
+                        </systemProperty>
+                    </systemProperties>
                 </configuration>
                 <executions>
                     <execution>

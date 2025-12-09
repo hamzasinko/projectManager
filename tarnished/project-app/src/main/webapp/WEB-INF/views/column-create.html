@@ -18,13 +18,14 @@
         <a th:href="@{/}" class="btn btn-outline-secondary">Home</a>
     </div>
 
-    <form id="column_create_form" th:action="@{/columns/create}" method="post">
+    <form id="column_create_form" th:action="@{/columns/create}" method="post" accept-charset="UTF-8">
 
         <input type="hidden" name="projectId" th:value="${projectId}">
 
         <div class="mb-3">
             <label class="form-label">Column Name*</label>
-            <input id="column_name" class="form-control" type="text" name="name" required>
+            <input id="column_name" class="form-control" type="text" name="name" maxlength="25" required>
+            <div class="form-text">Max 25 characters</div>
         </div>
 
         <div class="mb-3">
@@ -43,5 +44,16 @@
     </form>
 </div>
 <script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
+<script>
+    document.getElementById('column_create_form').addEventListener('submit', function(e) {
+        const nameInput = document.getElementById('column_name');
+        if (nameInput.value.length > 25) {
+            e.preventDefault();
+            alert('Column name must not exceed 25 characters!');
+            nameInput.focus();
+            return false;
+        }
+    });
+</script>
 </body>
 </html>

@@ -18,21 +18,23 @@
         <a th:href="@{/}" class="btn btn-outline-secondary">Home</a>
     </div>
 
-    <form th:action="@{'/project/edit/' + ${project.id}}" method="post">
+    <form th:action="@{'/project/edit/' + ${project.id}}" method="post" accept-charset="UTF-8">
 
         <!-- Name -->
         <div class="mb-3">
             <label class="form-label">Project Name*</label>
             <input class="form-control" type="text" name="name"
-                   th:value="${project.name}">
+                   th:value="${project.name}" maxlength="29" required>
+            <div class="form-text">Max 29 characters</div>
         </div>
 
         <!-- Description -->
         <div class="mb-3">
             <label class="form-label">Description*</label>
             <textarea class="form-control" name="description"
-                      rows="3"
+                      rows="3" maxlength="120"
                       th:text="${project.description}"></textarea>
+            <div class="form-text">Max 120 characters</div>
         </div>
 
         <!-- Button to show the member form -->

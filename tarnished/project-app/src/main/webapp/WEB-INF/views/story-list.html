@@ -13,7 +13,7 @@
             font-size: 0.875rem;
             padding: 0.25rem 0.5rem;
         }
-        .status-TODO { background-color: #6c757d; }
+        .status-BACKLOG { background-color: #6c757d; }
         .status-IN_PROGRESS { background-color: #0d6efd; }
         .status-REVIEW { background-color: #ffc107; color: #000; }
         .status-DONE { background-color: #198754; }
@@ -51,10 +51,6 @@
                                       th:classappend="${'status-' + story.status}"
                                       th:text="${#strings.replace(story.status.toString(), '_', ' ')}">TODO</span>
                             </div>
-                            
-                            <p class="card-text text-muted small" 
-                               th:text="${story.description != null ? story.description : 'No description'}"
-                               style="max-height: 3em; overflow: hidden;">Description</p>
                             
                             <div class="mt-2">
                                 <small class="text-muted">

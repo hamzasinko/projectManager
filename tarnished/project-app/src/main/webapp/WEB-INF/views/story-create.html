@@ -30,12 +30,13 @@
             
             <div class="mb-3">
                 <label for="storyTitle" class="form-label">Story Title *</label>
-                <input type="text" 
-                       class="form-control" 
-                       id="storyTitle"
-                       name="title" 
-                       required 
-                       placeholder="As a user, I want to...">
+                  <input type="text" 
+                      class="form-control" 
+                      id="storyTitle"
+                      name="title" 
+                      required 
+                      maxlength="59"
+                      placeholder="As a user, I want to...">
                 <div class="form-text">A clear and concise user story title</div>
             </div>
             
@@ -51,13 +52,14 @@
             
             <!-- Show project selector only if projectId is not provided from board -->
             <div class="mb-3" th:if="${projectId == null}">
-                <label for="projectId" class="form-label">Project</label>
-                <select class="form-select" id="projectId" name="projectId">
-                    <option value="">No project (backlog)</option>
+                <label for="projectId" class="form-label">Project *</label>
+                <select class="form-select" id="projectId" name="projectId" required>
+                    <option value="">Select a project...</option>
                     <option th:each="project : ${projects}" 
                             th:value="${project.id}" 
                             th:text="${project.name}">Project Name</option>
                 </select>
+                <div class="form-text">A story must be attached to a project</div>
             </div>
             
             <!-- Show project info if coming from board -->

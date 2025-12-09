@@ -17,12 +17,21 @@ public class StoryRepoMem implements StoryRepo {
 
     @Override
     public void persist(Story story) {
+        System.out.println("[REPO DEBUG] persist() called - Story ID: " + story.getId() + ", Title: " + story.getTitle() + ", UserAssigned: " + (story.getUserAssigned() != null ? story.getUserAssigned().getName() : "NULL"));
         if (story.getId() == 0) {
             // New story
             story.setId(nextId++);
+            System.out.println("[REPO DEBUG] New story created with ID: " + story.getId());
+        } else {
+            System.out.println("[REPO DEBUG] Updating existing story with ID: " + story.getId());
         }
         // Update or insert
         store.put((long)story.getId(), story);
+        System.out.println("[REPO DEBUG] Story saved in store. Total stories in store: " + store.size());
+        
+        // Verify the story was saved correctly
+        Story savedStory = store.get((long)story.getId());
+        System.out.println("[REPO DEBUG] Verification - Saved story UserAssigned: " + (savedStory != null && savedStory.getUserAssigned() != null ? savedStory.getUserAssigned().getName() : "NULL"));
     }
 
     @Override
@@ -32,7 +41,9 @@ public class StoryRepoMem implements StoryRepo {
 
     @Override
     public Story find(long id) {
-        return store.get(id);
+        Story story = store.get(id);
+        System.out.println("[REPO DEBUG] find(" + id + ") called - Found: " + (story != null ? "ID=" + story.getId() + ", Title=" + story.getTitle() + ", UserAssigned=" + (story.getUserAssigned() != null ? story.getUserAssigned().getName() : "NULL") : "NULL"));
+        return story;
     }
 
     @Override
@@ -52,10 +63,12 @@ public class StoryRepoMem implements StoryRepo {
         if (columnId == null) {
             return store.values().stream()
                     .filter(story -> story.getColumnId() == null)
+                    .sorted((s1, s2) -> Integer.compare(s1.getPosition(), s2.getPosition())) // Tri par position
                     .toList();
         }
         return store.values().stream()
                 .filter(story -> columnId.equals(story.getColumnId()))
+                .sorted((s1, s2) -> Integer.compare(s1.getPosition(), s2.getPosition())) // Tri par position
                 .toList();
     }
 

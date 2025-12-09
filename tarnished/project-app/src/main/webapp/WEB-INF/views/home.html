@@ -239,64 +239,7 @@
             color: #1F2937;
         }
 
-        /* Recent Stories */
-        .stories-list {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        
-        .story-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            border-left: 4px solid var(--primary);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            transition: all 0.2s;
-        }
-        
-        .story-card:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            transform: translateX(8px);
-        }
-        
-        .story-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: start;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-        
-        .story-info {
-            flex: 1;
-            min-width: 200px;
-        }
-        
-        .story-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #1F2937;
-            margin-bottom: 0.5rem;
-        }
-        
-        .story-desc {
-            color: #6B7280;
-            font-size: 0.9rem;
-        }
-        
-        .story-meta {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        .badge {
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
+
 
         /* Empty State */
         .empty-state {
@@ -422,32 +365,7 @@
         </div>
     </section>
 
-    <!-- Recent Stories Section -->
-    <section class="main-content" th:if="${!recentStories.isEmpty()}">
-        <div class="container">
-            <div class="section-header">
-                <h2 class="section-title">Recent Stories</h2>
-                <p class="section-subtitle">Track the progress of your latest stories</p>
-            </div>
 
-            <div class="stories-list">
-                <div th:each="story, iterStat : ${recentStories}" th:if="${iterStat.index < 5}" class="story-card">
-                    <div class="story-header">
-                        <div class="story-info">
-                            <div class="story-title" th:text="${story.title}">Story Title</div>
-                            <div class="story-desc" th:text="${story.description}">Description</div>
-                        </div>
-                        <div class="story-meta">
-                            <span class="badge bg-primary" th:text="${#strings.replace(story.status.toString(), '_', ' ')}">Status</span>
-                            <a th:href="@{'/story/' + ${story.id}}" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-arrow-right"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
 
     <script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
 </body>

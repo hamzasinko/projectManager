@@ -13,7 +13,7 @@
       font-size: 1rem;
       padding: 0.5rem 1rem;
     }
-    .status-TODO { background-color: #6c757d; }
+    .status-BACKLOG { background-color: #6c757d; }
     .status-IN_PROGRESS { background-color: #0d6efd; }
     .status-REVIEW { background-color: #ffc107; color: #000; }
     .status-DONE { background-color: #198754; }
@@ -55,11 +55,11 @@
           <p><strong>Assigned to:</strong> <span class="text-muted">Unassigned</span></p>
         </div>
       </div>
-
+      
       <!-- Action Buttons -->
       <div class="mt-4">
         <a th:href="@{/}" class="btn btn-secondary btn-sm">Home</a>
-        <a th:href="@{'/story/list'}" class="btn btn-primary btn-sm">Back to Stories</a>
+        <a th:if="${story.projectId != null}" th:href="@{'/board/' + ${story.projectId}}" class="btn btn-primary btn-sm">Back to Board</a>
         <a th:href="@{'/story/' + ${story.id} + '/edit'}" class="btn btn-warning btn-sm">Edit Story</a>
         
         <!-- Delete Button -->

@@ -40,7 +40,7 @@ public class StoryControllerTest {
 
     @Mock
     private UserRepo userRepo;
-    
+
     private StoryController sut; // System Under Test
     
     @BeforeEach
@@ -73,47 +73,36 @@ public class StoryControllerTest {
                    "Model should contain projects");
         verify(projectRepo).findAll();
     }
-
+    
     @Test
-    @DisplayName("createStory should call persist and redirect correctly")
+    @DisplayName("createStory should call persist with valid title and redirect to board")
     public void testCreateStorySuccess() throws IOException {
         String testTitle = "Test Story";
         String testDescription = "Test Description";
-
         Long projectId = 1L;
+        
+        // Mock column repository
+        fr.uha.ensisa.gl.tarnished.repos.ColumnRepo columnRepo = mock(fr.uha.ensisa.gl.tarnished.repos.ColumnRepo.class);
+        when(repoFactory.getColumnRepo()).thenReturn(columnRepo);
+        when(columnRepo.findByProject(projectId)).thenReturn(Arrays.asList());
 
-        String redirectWithProject = sut.createStory(testTitle, testDescription, projectId, null);
+        // Appelle la méthode
+        String redirect = sut.createStory(testTitle, testDescription, projectId, null);
 
-        assertEquals("redirect:/board/" + projectId, redirectWithProject,
-                "Should redirect to board when projectId is provided");
+        // Vérifie la redirection vers le board du projet
+        assertEquals("redirect:/board/" + projectId, redirect,
+                     "Should redirect to project board");
 
-        ArgumentCaptor<Story> storyCaptor1 = ArgumentCaptor.forClass(Story.class);
-        verify(storyRepo).persist(storyCaptor1.capture());
+        // Vérifie que persist a été appelé avec les bons paramètres
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        verify(storyRepo).persist(storyCaptor.capture());
 
-        Story capturedStory1 = storyCaptor1.getValue();
-        assertEquals(testTitle, capturedStory1.getTitle());
-        assertEquals(testDescription, capturedStory1.getDescription());
-        assertEquals(StoryStatus.TODO, capturedStory1.getStatus());
-        assertNotNull(capturedStory1.getDateCreated());
-        assertEquals(projectId, capturedStory1.getProjectId());
-
-        reset(storyRepo);
-        Long projectIdNull = null;
-
-        String redirectWithoutProject = sut.createStory(testTitle, testDescription, projectIdNull, null);
-
-        assertEquals("redirect:/story/list", redirectWithoutProject,
-                "Should redirect to story list when projectId is null");
-
-        ArgumentCaptor<Story> storyCaptor2 = ArgumentCaptor.forClass(Story.class);
-        verify(storyRepo).persist(storyCaptor2.capture());
-
-        Story capturedStory2 = storyCaptor2.getValue();
-        assertEquals(testTitle, capturedStory2.getTitle());
-        assertEquals(testDescription, capturedStory2.getDescription());
-        assertEquals(StoryStatus.TODO, capturedStory2.getStatus());
-        assertNotNull(capturedStory2.getDateCreated());
-        assertNull(capturedStory2.getProjectId());
+        Story capturedStory = storyCaptor.getValue();
+        assertEquals(testTitle, capturedStory.getTitle());
+        assertEquals(testDescription, capturedStory.getDescription());
+        assertEquals(StoryStatus.BACKLOG, capturedStory.getStatus());
+        assertNotNull(capturedStory.getDateCreated());
+        assertEquals(projectId, capturedStory.getProjectId());
     }
     
     @Test
@@ -141,62 +130,38 @@ public class StoryControllerTest {
         
         String redirect = sut.createStory(testTitle, null, null, null);
         
-        assertEquals("redirect:/story/list", redirect);
-        verify(storyRepo).persist(any(Story.class));
+        assertEquals("redirect:/story/new?error=Project is required", redirect);
+        verify(storyRepo, never()).persist(any(Story.class));
     }
     
     @Test
-    @DisplayName("listStories should return view with empty list")
+    @DisplayName("listStories should redirect to home")
     public void testListStoriesEmpty() throws IOException {
-        // Configure le mock pour retourner une liste vide
-        when(storyRepo.findAll()).thenReturn(Arrays.asList());
-        
-        ModelAndView result = sut.listStories();
+        // listStories now redirects to home as stories should be accessed via project boards
+        String result = sut.listStories();
         
         assertNotNull(result);
-        assertEquals("story-list", result.getViewName());
-        
-        // Vérifie que stories est dans le modèle
-        assertTrue(result.getModelMap().containsKey("stories"), 
-                   "Model should contain 'stories' attribute");
-        
-        Collection<?> stories = (Collection<?>) result.getModelMap().get("stories");
-        assertNotNull(stories);
-        verify(storyRepo).findAll();
+        assertEquals("redirect:/", result, "Should redirect to home page");
     }
     
     @Test
-    @DisplayName("listStories should return view with stories when they exist")
+    @DisplayName("listStories should redirect to home regardless of data")
     public void testListStoriesWithData() throws IOException {
-        // Crée des stories mock
-        Story s1 = new Story();
-        s1.setId(1);
-        s1.setTitle("Story 1");
-        s1.setStatus(StoryStatus.TODO);
-        
-        Story s2 = new Story();
-        s2.setId(2);
-        s2.setTitle("Story 2");
-        s2.setStatus(StoryStatus.IN_PROGRESS);
-        
-        // Configure le mock pour retourner ces stories
-        when(storyRepo.findAll()).thenReturn(Arrays.asList(s1, s2));
-        
-        ModelAndView result = sut.listStories();
+        // listStories now always redirects to home
+        String result = sut.listStories();
         
         assertNotNull(result);
-        Collection<Story> stories = (Collection<Story>) result.getModelMap().get("stories");
-        assertEquals(2, stories.size(), "Should have 2 stories");
-        verify(storyRepo).findAll();
+        assertEquals("redirect:/", result, "Should redirect to home page");
     }
     
     @Test
-    @DisplayName("showStory should return story detail view when story exists")
+    @DisplayName("showStory should return story detail view when story exists with projectId")
     public void testShowStoryExists() throws IOException {
         Story story = new Story();
         story.setId(1);
         story.setTitle("Test Story");
-        
+        story.setProjectId(1L);
+
         when(storyRepo.find(1L)).thenReturn(story);
         
         ModelAndView result = sut.showStory(1L);
@@ -211,38 +176,50 @@ public class StoryControllerTest {
     }
     
     @Test
-    @DisplayName("showStory should redirect to list when story does not exist")
+    @DisplayName("showStory should redirect to home when story does not exist")
     public void testShowStoryNotFound() throws IOException {
         when(storyRepo.find(999L)).thenReturn(null);
         
         ModelAndView result = sut.showStory(999L);
         
         assertNotNull(result);
-        assertEquals("redirect:/story/list", result.getViewName());
+        assertEquals("redirect:/", result.getViewName());
         verify(storyRepo).find(999L);
     }
     
     @Test
-    @DisplayName("createStory should set default status to TODO")
+    @DisplayName("createStory should set default status to BACKLOG")
     public void testCreateStoryDefaultStatus() throws IOException {
         String testTitle = "New Story";
-        
-        sut.createStory(testTitle, "Description", null, null);
+        Long projectId = 1L;
+
+        // Mock column repository
+        fr.uha.ensisa.gl.tarnished.repos.ColumnRepo columnRepo = mock(fr.uha.ensisa.gl.tarnished.repos.ColumnRepo.class);
+        when(repoFactory.getColumnRepo()).thenReturn(columnRepo);
+        when(columnRepo.findByProject(projectId)).thenReturn(Arrays.asList());
+
+        sut.createStory(testTitle, "Description", projectId, null);
         
         ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
         verify(storyRepo).persist(storyCaptor.capture());
         
         Story capturedStory = storyCaptor.getValue();
-        assertEquals(StoryStatus.TODO, capturedStory.getStatus(),
-                     "New story should have TODO status by default");
+        assertEquals(StoryStatus.BACKLOG, capturedStory.getStatus(),
+                     "New story should have BACKLOG status by default");
     }
     
     @Test
     @DisplayName("createStory should set creation date")
     public void testCreateStoryCreationDate() throws IOException {
         String testTitle = "New Story";
-        
-        sut.createStory(testTitle, "Description", null, null);
+        Long projectId = 1L;
+
+        // Mock column repository
+        fr.uha.ensisa.gl.tarnished.repos.ColumnRepo columnRepo = mock(fr.uha.ensisa.gl.tarnished.repos.ColumnRepo.class);
+        when(repoFactory.getColumnRepo()).thenReturn(columnRepo);
+        when(columnRepo.findByProject(projectId)).thenReturn(Arrays.asList());
+
+        sut.createStory(testTitle, "Description", projectId, null);
         
         ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
         verify(storyRepo).persist(storyCaptor.capture());
@@ -259,10 +236,13 @@ public class StoryControllerTest {
         long storyId = 1L;
         Story mockStory = mock(Story.class);
         when(mockStory.getId()).thenReturn((int) storyId);
-        
+        when(mockStory.getProjectId()).thenReturn(1L);
+        when(mockStory.getColumnId()).thenReturn(null);
+
         when(storyRepo.find(storyId)).thenReturn(mockStory);
         when(repoFactory.getUserRepo()).thenReturn(mock(fr.uha.ensisa.gl.tarnished.repos.UserRepo.class));
-        
+        when(repoFactory.getColumnRepo()).thenReturn(mock(fr.uha.ensisa.gl.tarnished.repos.ColumnRepo.class));
+
         // When
         ModelAndView result = sut.editStory(storyId);
         
@@ -276,7 +256,7 @@ public class StoryControllerTest {
     }
 
     @Test
-    @DisplayName("updateStory should update story and redirect")
+    @DisplayName("updateStory should update story and redirect to board")
     public void testUpdateStory() throws IOException {
         // Given
         long storyId = 1L;
@@ -285,13 +265,16 @@ public class StoryControllerTest {
         String newStatus = "IN_PROGRESS";
         
         Story mockStory = mock(Story.class);
+        when(mockStory.getProjectId()).thenReturn(1L);
+        when(mockStory.getColumnId()).thenReturn(null);
         when(storyRepo.find(storyId)).thenReturn(mockStory);
-        
+        when(repoFactory.getColumnRepo()).thenReturn(mock(fr.uha.ensisa.gl.tarnished.repos.ColumnRepo.class));
+
         // When
         String result = sut.updateStory(storyId, newTitle, newDescription, newStatus);
         
         // Then
-        assertEquals("redirect:/story/" + storyId, result);
+        assertEquals("redirect:/board/1", result);
         
         verify(mockStory).setTitle(newTitle);
         verify(mockStory).setDescription(newDescription);
@@ -299,54 +282,63 @@ public class StoryControllerTest {
     }
 
     @Test
-    @DisplayName("deleteStory should call remove on repository and redirect")
+    @DisplayName("deleteStory should call remove on repository and redirect to board")
     public void testDeleteStory() {
         // Given
         long storyId = 1L;
-        
+        Story mockStory = new Story();
+        mockStory.setProjectId(1L);
+        when(storyRepo.find(storyId)).thenReturn(mockStory);
+
         // When
         String result = sut.deleteStory(storyId);
         
         // Then
-        assertEquals("redirect:/story/list", result);
+        assertEquals("redirect:/board/1", result);
         verify(storyRepo).remove(storyId);
     }
 
     @Test
-    @DisplayName("assignStory should assign user to story and redirect")
+    @DisplayName("assignStory should assign user to story and redirect to board")
     public void testAssignStory() throws IOException {
+        // Given
         long storyId = 1L;
         int userId = 10;
-
+        
         Story mockStory = mock(Story.class);
+        when(mockStory.getProjectId()).thenReturn(1L);
         fr.uha.ensisa.gl.entities.User mockUser = mock(fr.uha.ensisa.gl.entities.User.class);
-
-        UserRepo mockUserRepo = mock(UserRepo.class);
-        when(repoFactory.getUserRepo()).thenReturn(mockUserRepo);
-        when(mockUserRepo.find(userId)).thenReturn(mockUser);
-
+        
         when(storyRepo.find(storyId)).thenReturn(mockStory);
-
+        fr.uha.ensisa.gl.tarnished.repos.UserRepo userRepo = mock(fr.uha.ensisa.gl.tarnished.repos.UserRepo.class);
+        when(repoFactory.getUserRepo()).thenReturn(userRepo);
+        when(userRepo.find(userId)).thenReturn(mockUser);
+        
+        // When
         String result = sut.assignStory(storyId, userId);
-
-        assertEquals("redirect:/story/list", result);
+        
+        // Then
+        assertEquals("redirect:/board/1", result);
         verify(mockStory).setUserAssigned(mockUser);
+        verify(storyRepo).persist(mockStory);
     }
 
     @Test
-    @DisplayName("unassignStory should remove user assignment and redirect")
+    @DisplayName("unassignStory should remove user assignment and redirect to board")
     public void testUnassignStory() throws IOException {
         // Given
         long storyId = 1L;
-
+        
         Story mockStory = mock(Story.class);
+        when(mockStory.getProjectId()).thenReturn(1L);
         when(storyRepo.find(storyId)).thenReturn(mockStory);
-
+        
         // When
         String result = sut.unassignStory(storyId);
-
+        
         // Then
-        assertEquals("redirect:/story/list", result);
+        assertEquals("redirect:/board/1", result);
         verify(mockStory).setUserAssigned(null);
+        verify(storyRepo).persist(mockStory);
     }
 }

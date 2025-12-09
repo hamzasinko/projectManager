@@ -76,6 +76,12 @@ public class ProjectControllerTest {
         String testName = "Test Project";
         String testDescription = "Test Description";
         
+        // Mock UserRepo
+        User mockUser = new User();
+        mockUser.setId(1);
+        when(repoFactory.getUserRepo()).thenReturn(userRepo);
+        when(userRepo.getAll()).thenReturn(Arrays.asList(mockUser));
+        
         // Appelle la méthode
         String redirect = sut.createProject(testName, testDescription);
         
@@ -97,6 +103,12 @@ public class ProjectControllerTest {
     @DisplayName("createProject should handle null description")
     public void testCreateProjectWithNullDescription() throws IOException {
         String testName = "Test Project";
+        
+        // Mock UserRepo
+        User mockUser = new User();
+        mockUser.setId(1);
+        when(repoFactory.getUserRepo()).thenReturn(userRepo);
+        when(userRepo.getAll()).thenReturn(Arrays.asList(mockUser));
         
         String redirect = sut.createProject(testName, null);
         
@@ -181,8 +193,17 @@ public class ProjectControllerTest {
         // Given
         long projectId = 1L;
 
-        // Make repoFactory return the mocked projectRepo
+        // Make repoFactory return the mocked repositories
+        fr.uha.ensisa.gl.tarnished.repos.StoryRepo mockStoryRepo = mock(fr.uha.ensisa.gl.tarnished.repos.StoryRepo.class);
+        fr.uha.ensisa.gl.tarnished.repos.ColumnRepo mockColumnRepo = mock(fr.uha.ensisa.gl.tarnished.repos.ColumnRepo.class);
+        
         when(repoFactory.getProjectRepo()).thenReturn(projectRepo);
+        when(repoFactory.getStoryRepo()).thenReturn(mockStoryRepo);
+        when(repoFactory.getColumnRepo()).thenReturn(mockColumnRepo);
+        
+        // Mock empty lists for cascade delete
+        when(mockStoryRepo.findByProject(projectId)).thenReturn(List.of());
+        when(mockColumnRepo.findByProject(projectId)).thenReturn(List.of());
 
         // When: call the controller method directly
         String result = sut.deleteProject(projectId);
