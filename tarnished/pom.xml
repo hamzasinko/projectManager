@@ -150,11 +150,20 @@
           </dependencies>
           <configuration>
             <targetClasses>
-              <param>fr.uha.ensisa.gl.tarnished.*</param>
+              <param>fr.uha.ensisa.gl.*</param>
             </targetClasses>
             <targetTests>
               <param>fr.uha.ensisa.gl.*</param>
             </targetTests>
+            <excludedClasses>
+              <param>fr.uha.ensisa.gl.tarnished.config.*</param>
+              <param>fr.uha.ensisa.gl.tarnished.repos.*</param>
+            </excludedClasses>
+            <excludedTestClasses>
+              <param>*IT</param>
+              <param>*RepoMemTest</param>
+              <param>*RepoTest</param>
+            </excludedTestClasses>
             <outputFormats>
               <outputFormat>XML</outputFormat>
               <outputFormat>HTML</outputFormat>
@@ -164,6 +173,18 @@
             </mutators>
             <threads>4</threads>
             <timeoutConstant>5000</timeoutConstant>
+            <verbose>false</verbose>
+            <avoidCallsTo>
+              <avoidCallsTo>java.util.logging</avoidCallsTo>
+              <avoidCallsTo>org.apache.log4j</avoidCallsTo>
+              <avoidCallsTo>org.slf4j</avoidCallsTo>
+              <avoidCallsTo>java.lang.System</avoidCallsTo>
+            </avoidCallsTo>
+            <jvmArgs>
+              <jvmArg>-XX:+EnableDynamicAgentLoading</jvmArg>
+              <jvmArg>-Djdk.attach.allowAttachSelf=true</jvmArg>
+            </jvmArgs>
+            <failWhenNoMutations>false</failWhenNoMutations>
           </configuration>
         </plugin>
       </plugins>
@@ -180,6 +201,12 @@
       <plugin>
         <groupId>com.github.spotbugs</groupId>
         <artifactId>spotbugs-maven-plugin</artifactId>
+      </plugin>
+
+      <!-- Activer PITest pour tous les modules -->
+      <plugin>
+        <groupId>org.pitest</groupId>
+        <artifactId>pitest-maven</artifactId>
       </plugin>
     </plugins>
   </build>
