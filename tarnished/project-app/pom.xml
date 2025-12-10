@@ -83,7 +83,13 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
-            <version>5.13.1</version>
+            <version>5.13.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-launcher</artifactId>
+            <version>1.13.4</version>
             <scope>test</scope>
         </dependency>
 
@@ -224,12 +230,36 @@
                 </executions>
             </plugin>
             
-            <!-- PITest désactivé - problème de compatibilité Mockito minion process -->
+            <!-- PITest avec exportLineCoverage pour éviter coverage minion -->
             <plugin>
                 <groupId>org.pitest</groupId>
                 <artifactId>pitest-maven</artifactId>
                 <configuration>
-                    <skip>true</skip>
+                    <excludedTestClasses>
+                        <param>*IT</param>
+                    </excludedTestClasses>
+                    <targetClasses>
+                        <param>fr.uha.ensisa.gl.tarnished.controller.*</param>
+                        <param>fr.uha.ensisa.gl.tarnished.services.*</param>
+                    </targetClasses>
+                    <targetTests>
+                        <param>fr.uha.ensisa.gl.tarnished.controller.*Test</param>
+                        <param>fr.uha.ensisa.gl.tarnished.services.*Test</param>
+                    </targetTests>
+                    <features>
+                        <feature>+CLASSLIMIT(limit[100])</feature>
+                    </features>
+                    <timeoutConstant>10000</timeoutConstant>
+                    <exportLineCoverage>true</exportLineCoverage>
+                    <outputFormats>
+                        <format>HTML</format>
+                        <format>XML</format>
+                    </outputFormats>
+                    <verbose>true</verbose>
+                    <jvmArgs>
+                        <jvmArg>-XX:+EnableDynamicAgentLoading</jvmArg>
+                        <jvmArg>-Djdk.attach.allowAttachSelf=true</jvmArg>
+                    </jvmArgs>
                 </configuration>
             </plugin>
         </plugins>

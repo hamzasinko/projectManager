@@ -28,6 +28,12 @@
       <version>${junit.jupiter.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-launcher</artifactId>
+      <version>1.13.4</version>
+      <scope>test</scope>
+    </dependency>
       <dependency>
           <groupId>org.mockito</groupId>
           <artifactId>mockito-core</artifactId>
@@ -38,12 +44,24 @@
 
   <build>
     <plugins>
-      <!-- PITest désactivé - problème de compatibilité Mockito minion process -->
+      <!-- PITest avec exportLineCoverage pour éviter coverage minion -->
       <plugin>
         <groupId>org.pitest</groupId>
         <artifactId>pitest-maven</artifactId>
         <configuration>
-          <skip>true</skip>
+          <features>
+            <feature>+CLASSLIMIT(limit[50])</feature>
+          </features>
+          <timeoutConstant>10000</timeoutConstant>
+          <exportLineCoverage>true</exportLineCoverage>
+          <outputFormats>
+            <format>HTML</format>
+            <format>XML</format>
+          </outputFormats>
+          <jvmArgs>
+            <jvmArg>-XX:+EnableDynamicAgentLoading</jvmArg>
+            <jvmArg>-Djdk.attach.allowAttachSelf=true</jvmArg>
+          </jvmArgs>
         </configuration>
       </plugin>
     </plugins>
