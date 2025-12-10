@@ -9,10 +9,10 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class RepoFactoryMem implements RepoFactory {
-    public final StoryRepo storyRepo = new StoryRepoMem();
-    public final ColumnRepo columnRepo = new ColumnRepoMem();
-    public final ProjectRepo projectRepo = new ProjectRepoMem();
-    public final UserRepo userRepo = new UserRepoMem();
+    private final StoryRepo storyRepo = new StoryRepoMem();
+    private final ColumnRepo columnRepo = new ColumnRepoMem();
+    private final ProjectRepo projectRepo = new ProjectRepoMem();
+    private final UserRepo userRepo = new UserRepoMem();
 
     @Override
     public ColumnRepo getColumnRepo() {

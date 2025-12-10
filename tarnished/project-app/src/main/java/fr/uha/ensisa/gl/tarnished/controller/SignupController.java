@@ -3,6 +3,8 @@ package fr.uha.ensisa.gl.tarnished.controller;
 import fr.uha.ensisa.gl.entities.User;
 import fr.uha.ensisa.gl.tarnished.services.UserService;
 
+import java.util.Objects;
+
 public class SignupController {
 
     private UserService userService;
@@ -14,7 +16,7 @@ public class SignupController {
     public String signup(String name, String email, String password, String confirmPassword) {
 
 
-        if (!password.equals(confirmPassword)) {
+        if (!Objects.equals(password, confirmPassword)) {
             return "Error: passwords do not match";
         }
 

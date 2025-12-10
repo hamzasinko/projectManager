@@ -14,5 +14,5 @@ public class User {
     private String name;
     private String email;
     private String password;
-    private List<Story> Stories;
+    private List<Story> stories;
 }

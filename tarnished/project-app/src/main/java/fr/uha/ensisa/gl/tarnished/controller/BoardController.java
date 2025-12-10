@@ -18,6 +18,11 @@ public class BoardController {
     @Autowired
     private RepoFactory repoFactory;
 
+    // Package-private setter for testing
+    void setRepoFactory(RepoFactory repoFactory) {
+        this.repoFactory = repoFactory;
+    }
+
     /**
      * Affiche le Kanban board d'un projet
      */

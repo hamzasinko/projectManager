@@ -16,6 +16,11 @@ public class HomeController {
 	@Autowired
 	private RepoFactory repoFactory;
 
+	// Package-private setter for testing
+	void setRepoFactory(RepoFactory repoFactory) {
+		this.repoFactory = repoFactory;
+	}
+
 	@RequestMapping(value="/")
 	public ModelAndView home(){
 		ModelAndView mav = new ModelAndView("home");
