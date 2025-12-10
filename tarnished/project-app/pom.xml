@@ -224,7 +224,7 @@
                 </executions>
             </plugin>
             
-            <!-- Désactiver PITest pour ce module à cause de problèmes avec Mockito -->
+            <!-- PITest désactivé - problème de compatibilité Mockito minion process -->
             <plugin>
                 <groupId>org.pitest</groupId>
                 <artifactId>pitest-maven</artifactId>
