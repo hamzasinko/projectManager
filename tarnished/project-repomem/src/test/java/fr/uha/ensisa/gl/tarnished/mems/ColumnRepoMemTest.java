@@ -191,4 +191,122 @@ class ColumnRepoMemTest {
 
         assertThrows(IllegalStateException.class, () -> repo.moveStoryBetweenColumns(1L, 1L, 2L));
     }
+
+    @Test
+    void testCanAcceptStory() {
+        Column column = new Column();
+        column.setName("Done");
+        column.setPosition(3);
+        column.setMaxCapacity(2);
+        column.setStories(new ArrayList<>());
+        repo.persist(column);
+
+        long id = column.getId();
+
+        assertTrue(repo.canAcceptStory(id));
+
+        Story s1 = new Story();
+        s1.setId(1);
+        column.getStories().add(s1);
+        assertTrue(repo.canAcceptStory(id));
+
+        Story s2 = new Story();
+        s2.setId(2);
+        column.getStories().add(s2);
+        assertFalse(repo.canAcceptStory(id));
+    }
+
+    @Test
+    void testCanAcceptStoryUnlimitedCapacity() {
+        Column column = new Column();
+        column.setName("Done");
+        column.setPosition(3);
+        column.setMaxCapacity(0); // Unlimited
+        column.setStories(new ArrayList<>());
+        repo.persist(column);
+
+        long id = column.getId();
+        assertTrue(repo.canAcceptStory(id));
+    }
+
+    @Test
+    void testAddStoryToColumn() {
+        Column column = new Column();
+        column.setId(1);
+        column.setMaxCapacity(5);
+        column.setStories(new ArrayList<>());
+        repo.persist(column);
+
+        Story story = new Story();
+        story.setId(10);
+        Mockito.when(storyRepo.find(10L)).thenReturn(story);
+
+        repo.addStoryToColumn(10L, 1L);
+
+        Mockito.verify(storyRepo).moveToColumn(10L, 1L);
+    }
+
+    @Test
+    void testAddStoryToColumnFull() {
+        Column column = new Column();
+        column.setId(1);
+        column.setMaxCapacity(1);
+        column.setStories(new ArrayList<>());
+        Story existingStory = new Story();
+        existingStory.setId(5);
+        column.getStories().add(existingStory);
+        repo.persist(column);
+
+        assertThrows(IllegalStateException.class, () -> repo.addStoryToColumn(10L, 1L));
+    }
+
+    @Test
+    void testAddStoryToColumnNullColumn() {
+        repo.addStoryToColumn(10L, 999L); // Non-existent column
+        // Should not throw, just do nothing
+    }
+
+    @Test
+    void testRemoveStoryFromColumn() {
+        repo.removeStoryFromColumn(10L, 1L);
+        Mockito.verify(storyRepo).moveToColumn(10L, null);
+    }
+
+    @Test
+    void testMoveStoryBetweenColumnsNullTarget() {
+        repo.moveStoryBetweenColumns(10L, 1L, null);
+        Mockito.verify(storyRepo).moveToColumn(10L, null);
+    }
+
+    @Test
+    void testMoveStoryBetweenColumnsNullStoryRepo() {
+        repo.setStoryRepo(null);
+        Column col1 = new Column();
+        col1.setId(1);
+        repo.persist(col1);
+
+        Column col2 = new Column();
+        col2.setId(2);
+        repo.persist(col2);
+
+        // Should not throw when storyRepo is null
+        repo.moveStoryBetweenColumns(10L, 1L, 2L);
+    }
+
+    @Test
+    void testIsColumnFullNullColumn() {
+        assertFalse(repo.isColumnFull(999L));
+    }
+
+    @Test
+    void testIsColumnFullNullStories() {
+        Column column = new Column();
+        column.setName("Done");
+        column.setPosition(3);
+        column.setMaxCapacity(2);
+        column.setStories(null);
+        repo.persist(column);
+
+        assertFalse(repo.isColumnFull((long) column.getId()));
+    }
 }

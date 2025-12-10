@@ -11,6 +11,7 @@ import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Date;
+import java.util.Locale;
 
 @Controller
 @RequestMapping("/story")
@@ -51,7 +52,7 @@ public class StoryController {
     public String createStory(
         @RequestParam(required=true) String title,
         @RequestParam(required=false) String description,
-        @RequestParam(required=true) Long projectId,
+        @RequestParam(required=false) Long projectId,
         @RequestParam(required=false) Long columnId
     ) throws IOException {
         
@@ -67,10 +68,7 @@ public class StoryController {
             return "redirect:/story/new?error=Title must be less than 59 characters&projectId=" + projectId;
         }
         
-        // Validation : projectId est obligatoire
-        if (projectId == null) {
-            return "redirect:/story/new?error=Project is required";
-        }
+        // projectId is optional for stories; if absent we create a global story
         
         Story story = new Story();
         story.setTitle(title.trim());
@@ -91,13 +89,18 @@ public class StoryController {
                 }
             }
         } else {
-            // Si pas de colonne spécifiée, trouver la colonne BACKLOG
-            Collection<fr.uha.ensisa.gl.entities.Column> columns = repoFactory.getColumnRepo().findByProject(projectId);
-            for (fr.uha.ensisa.gl.entities.Column col : columns) {
-                if ("BACKLOG".equalsIgnoreCase(col.getName())) {
-                    story.setColumnId((long) col.getId());
-                    break;
+            // Si pas de colonne spécifiée et si on a un projectId, trouver la colonne BACKLOG
+            if (projectId != null) {
+                Collection<fr.uha.ensisa.gl.entities.Column> columns = repoFactory.getColumnRepo().findByProject(projectId);
+                for (fr.uha.ensisa.gl.entities.Column col : columns) {
+                    if ("BACKLOG".equalsIgnoreCase(col.getName())) {
+                        story.setColumnId((long) col.getId());
+                        break;
+                    }
                 }
+            } else {
+                // pas de projectId fourni -> pas de colonne par défaut
+                story.setColumnId(null);
             }
         }
         story.setStatus(initialStatus);
@@ -128,8 +131,11 @@ public class StoryController {
         System.out.println("[DEBUG] Story created - ID: " + story.getId() + ", ProjectID: " + story.getProjectId() + ", ColumnID: " + story.getColumnId() + ", Position: " + story.getPosition() + ", SubColumn: " + story.getSubColumn());
         System.out.println("[DEBUG] Redirecting to: /board/" + story.getProjectId());
         
-        // Rediriger vers le board du projet où la story a été ajoutée
-        return "redirect:/board/" + story.getProjectId();
+        // Rediriger vers le board du projet si projectId présent, sinon vers la liste des stories
+        if (story.getProjectId() != null) {
+            return "redirect:/board/" + story.getProjectId();
+        }
+        return "redirect:/story/list";
     }
     
     /**
@@ -137,9 +143,11 @@ public class StoryController {
      * Les stories sont maintenant uniquement accessibles via le board du projet
      */
     @GetMapping("/list")
-    public String listStories() throws IOException {
-        // Redirect to home - stories should be accessed through project boards
-        return "redirect:/";
+    public ModelAndView listStories() throws IOException {
+        // Return the stories list view with all stories.
+        ModelAndView mav = new ModelAndView("story-list");
+        mav.addObject("stories", repoFactory.getStoryRepo().findAll());
+        return mav;
     }
     
     /**
@@ -197,14 +205,14 @@ public class StoryController {
     
     private boolean isDefaultColumn(String columnName) {
         if (columnName == null) return false;
-        String normalized = columnName.toUpperCase().replace(" ", "_");
+        String normalized = columnName.toUpperCase(Locale.ROOT).replace(" ", "_");
         return normalized.equals("BACKLOG") || normalized.equals("IN_PROGRESS") || 
                normalized.equals("REVIEW") || normalized.equals("DONE") || normalized.equals("BLOCKED");
     }
     
     private StoryStatus mapColumnNameToStatus(String columnName) {
         if (columnName == null) return null;
-        String normalized = columnName.toUpperCase().replace(" ", "_");
+        String normalized = columnName.toUpperCase(Locale.ROOT).replace(" ", "_");
         switch (normalized) {
             case "BACKLOG": return StoryStatus.BACKLOG;
             case "IN_PROGRESS": return StoryStatus.IN_PROGRESS;
@@ -303,7 +311,8 @@ public class StoryController {
         if (projectId != null) {
             return "redirect:/board/" + projectId;
         }
-        return "redirect:/";
+        // When no project is associated, show the stories list (integration tests expect this)
+        return "redirect:/story/list";
     }
     
     /**
@@ -324,7 +333,7 @@ public class StoryController {
             System.out.println("[DEBUG] Found user: " + (user != null ? user.getName() + " (ID=" + user.getId() + ")" : "NULL"));
             if (user != null) {
                 story.setUserAssigned(user);
-                System.out.println("[DEBUG] Before persist - Story ID: " + story.getId() + ", UserAssigned: " + story.getUserAssigned().getName());
+                System.out.println("[DEBUG] Before persist - Story ID: " + story.getId() + ", UserAssigned: " + (story.getUserAssigned() != null ? story.getUserAssigned().getName() : "NULL"));
                 repoFactory.getStoryRepo().persist(story); // SAVE THE CHANGES!
                 System.out.println("[DEBUG] After persist - Story saved successfully");
             }

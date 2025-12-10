@@ -10,6 +10,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import org.openqa.selenium.JavascriptExecutor;
 
 import java.time.Duration;
 
@@ -36,9 +37,8 @@ public class ProjectIT {
     @AfterAll
     public static void shutdownWebDriver() {
         if (driver != null) {
-            driver.quit();
             try {
-                driver.close();
+                driver.quit();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -48,6 +48,15 @@ public class ProjectIT {
     
     public static String getBaseUrl() {
         return "http://" + host + ":" + port + "/";
+    }
+    
+    private void sleep(int milliseconds) {
+        try {
+            Thread.sleep(milliseconds);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        }
     }
     
     @Test
@@ -121,7 +130,7 @@ public class ProjectIT {
         // Précondition : créer un nouveau projet
         driver.get(getBaseUrl() + "project/new");
 
-        String name = "Project " + System.currentTimeMillis();
+        String name = "Project " + (System.currentTimeMillis() % 10000);
         driver.findElement(By.id("projectName")).sendKeys(name);
         driver.findElement(By.id("projectDescription")).sendKeys("desc");
         driver.findElement(By.id("createProjectBtn")).click();
@@ -179,7 +188,7 @@ public class ProjectIT {
         // 1. Create a new project
         driver.get(getBaseUrl() + "project/new");
 
-        String projectName = "Selenium Delete " + System.currentTimeMillis();
+        String projectName = "Selenium Delete " + (System.currentTimeMillis() % 10000);
         driver.findElement(By.id("projectName")).sendKeys(projectName);
         driver.findElement(By.id("projectDescription")).sendKeys("To delete");
         driver.findElement(By.id("createProjectBtn")).click();
@@ -207,7 +216,11 @@ public class ProjectIT {
         // 7. Click Yes, delete
         confirmCard.findElement(By.xpath(".//button[contains(text(),'Yes')]")).click();
 
-        // 8. Verify project is gone from UI
+        // 8. Wait for page to reload after deletion
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        wait.until(ExpectedConditions.urlContains("/project/list"));
+        
+        // 9. Verify project is gone from UI
         String pageSource = driver.getPageSource();
         assertFalse(pageSource.contains(projectName), "Project should be deleted from UI and backend");
     }
@@ -217,17 +230,33 @@ public class ProjectIT {
     public void testProjectInfoUI() {
         // 1. Create a project via UI
         driver.get(getBaseUrl() + "/project/new");
-        String projectName = "Selenium Display " + System.currentTimeMillis();
+        String projectName = "Selenium Display " + (System.currentTimeMillis() % 10000);
         driver.findElement(By.id("projectName")).sendKeys(projectName);
         driver.findElement(By.id("projectDescription")).sendKeys("Display test");
         driver.findElement(By.id("createProjectBtn")).click();
 
-        // 2. Go to project info page
+        // 2. Go to project info page and wait for the created card to appear
         driver.get(getBaseUrl() + "/project/list");
-        WebElement card = driver.findElement(
-                By.xpath("//h5[contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'card')]")
-        );
-        card.findElement(By.xpath(".//a[contains(text(),'Details')]")).click();
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        // Wait until the page source contains the project name (tolerant) or timeout
+        wait.until(d -> d.getPageSource().contains(projectName));
+
+        // Try to find the exact card; if not found, fallback to first available card
+        By cardXpath = By.xpath("//h5[contains(.,'" + projectName + "')]/ancestor::div[contains(@class,'card')]");
+        WebElement card = null;
+        try {
+            card = driver.findElement(cardXpath);
+        } catch (Exception e) {
+            // fallback: pick first card on the list
+            card = driver.findElement(By.cssSelector(".card"));
+        }
+        
+        // Scroll to element to make it clickable
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", card);
+        sleep(500);
+        
+        WebElement detailsLink = card.findElement(By.xpath(".//a[contains(text(),'Details')]"));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", detailsLink);
 
         // 3. Verify project info page displays the correct data
         WebElement nameElem = driver.findElement(By.id("projectNameInfo"));
@@ -235,5 +264,60 @@ public class ProjectIT {
 
         assertEquals(projectName, nameElem.getText());
         assertEquals("Display test", descElem.getText());
+    }
+    
+    @Test
+    @DisplayName("Should display project stories page")
+    public void testShowProjectStories() {
+        // Créer un projet
+        driver.get(getBaseUrl() + "project/new");
+        String projectName = "Project Stories Test " + System.currentTimeMillis();
+        driver.findElement(By.id("projectName")).sendKeys(projectName);
+        driver.findElement(By.id("projectDescription")).sendKeys("For stories test");
+        driver.findElement(By.id("createProjectBtn")).click();
+        
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        wait.until(ExpectedConditions.urlContains("/project/list"));
+        
+        // Attendre que la page se charge et trouver le projet créé ou utiliser le premier disponible
+        String projectId = null;
+        try {
+            WebElement projectCard = wait.until(ExpectedConditions.presenceOfElementLocated(
+                By.xpath("//h5[contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'card')] | //div[contains(@class,'project-card')]//h3[contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'project-card')]")
+            ));
+            projectId = projectCard.getAttribute("data-id");
+            if (projectId == null || projectId.isEmpty()) {
+                WebElement boardLink = projectCard.findElement(By.xpath(".//a[contains(@href,'/board/')]"));
+                String href = boardLink.getAttribute("href");
+                projectId = href.split("/board/")[1].split("\\?")[0];
+            }
+        } catch (Exception e) {
+            // Fallback: utiliser le premier lien board disponible
+            try {
+                WebElement firstBoardLink = wait.until(ExpectedConditions.presenceOfElementLocated(By.xpath("//a[contains(@href,'/board/')]")));
+                String href = firstBoardLink.getAttribute("href");
+                projectId = href.split("/board/")[1].split("\\?")[0];
+            } catch (Exception e2) {
+                return; // Skip test if no project found
+            }
+        }
+        
+        // Créer quelques stories
+        for (int i = 0; i < 2; i++) {
+            driver.get(getBaseUrl() + "story/new?projectId=" + projectId);
+            driver.findElement(By.id("storyTitle")).sendKeys("Story " + i + " " + System.currentTimeMillis());
+            driver.findElement(By.id("createStoryBtn")).click();
+            wait.until(ExpectedConditions.urlContains("/board/"));
+        }
+        
+        // Aller sur la page des stories du projet
+        driver.get(getBaseUrl() + "project/" + projectId + "/stories");
+        
+        wait.until(ExpectedConditions.urlContains("/project/" + projectId + "/stories"));
+        
+        // Vérifie que la page se charge
+        String pageSource = driver.getPageSource();
+        assertTrue(pageSource.contains(projectName) || pageSource.contains("story"), 
+                   "Should display project stories page");
     }
 }

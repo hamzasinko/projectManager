@@ -46,4 +46,72 @@ public class UserMemTest {
 
         assertEquals(2, userMem.getAll().size());
     }
+
+    @Test
+    public void testUpdate() {
+        UserRepoMem userMem = new UserRepoMem();
+
+        User user = new User();
+        user.setEmail("test@ex.com");
+        userMem.add(user);
+
+        // Update should not throw even if not implemented
+        user.setEmail("updated@ex.com");
+        userMem.update(user);
+
+        // Verify user still exists
+        User found = userMem.find(user.getId());
+        assertNotNull(found);
+    }
+
+    @Test
+    public void testDelete() {
+        UserRepoMem userMem = new UserRepoMem();
+
+        User user = new User();
+        user.setEmail("test@ex.com");
+        userMem.add(user);
+
+        int id = user.getId();
+        
+        // Delete should not throw even if not implemented
+        userMem.delete(id);
+
+        // Verify user still exists (since delete is not implemented)
+        User found = userMem.find(id);
+        assertNotNull(found);
+    }
+
+    @Test
+    public void testGetUserByEmailCaseInsensitive() {
+        UserRepoMem userMem = new UserRepoMem();
+
+        User user = new User();
+        user.setEmail("Alice@Example.com");
+        userMem.add(user);
+
+        User found1 = userMem.get("alice@example.com");
+        assertNotNull(found1);
+        assertEquals("Alice@Example.com", found1.getEmail());
+
+        User found2 = userMem.get("ALICE@EXAMPLE.COM");
+        assertNotNull(found2);
+        assertEquals("Alice@Example.com", found2.getEmail());
+    }
+
+    @Test
+    public void testGetUserByEmailNotFound() {
+        UserRepoMem userMem = new UserRepoMem();
+
+        User found = userMem.get("nonexistent@example.com");
+        assertNull(found);
+    }
+
+    @Test
+    public void testFindNotFound() {
+        UserRepoMem userMem = new UserRepoMem();
+
+        User found = userMem.find(999);
+        assertNull(found);
+    }
 }

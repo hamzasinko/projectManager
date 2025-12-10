@@ -129,29 +129,36 @@ public class StoryControllerTest {
         String testTitle = "Test Story";
         
         String redirect = sut.createStory(testTitle, null, null, null);
-        
-        assertEquals("redirect:/story/new?error=Project is required", redirect);
-        verify(storyRepo, never()).persist(any(Story.class));
+
+        // Controller now allows creating a story without a project and redirects to the story list
+        assertEquals("redirect:/story/list", redirect);
+        // Story should have been persisted
+        verify(storyRepo).persist(any(Story.class));
     }
     
     @Test
-    @DisplayName("listStories should redirect to home")
+    @DisplayName("listStories should return story-list view")
     public void testListStoriesEmpty() throws IOException {
-        // listStories now redirects to home as stories should be accessed via project boards
-        String result = sut.listStories();
+        // listStories should return the story-list view with stories model
+        org.springframework.web.servlet.ModelAndView result = sut.listStories();
         
         assertNotNull(result);
-        assertEquals("redirect:/", result, "Should redirect to home page");
+        assertEquals("story-list", result.getViewName(), "Should return story-list view");
+        assertTrue(result.getModelMap().containsKey("stories"), "Model should contain stories");
     }
     
     @Test
-    @DisplayName("listStories should redirect to home regardless of data")
+    @DisplayName("listStories should return story-list view regardless of data")
     public void testListStoriesWithData() throws IOException {
-        // listStories now always redirects to home
-        String result = sut.listStories();
-        
+        // listStories should return the story-list view even when data exists
+        when(repoFactory.getStoryRepo()).thenReturn(storyRepo);
+        when(storyRepo.findAll()).thenReturn(Arrays.asList(new Story()));
+
+        org.springframework.web.servlet.ModelAndView result = sut.listStories();
+
         assertNotNull(result);
-        assertEquals("redirect:/", result, "Should redirect to home page");
+        assertEquals("story-list", result.getViewName(), "Should return story-list view");
+        assertTrue(result.getModelMap().containsKey("stories"), "Model should contain stories");
     }
     
     @Test
