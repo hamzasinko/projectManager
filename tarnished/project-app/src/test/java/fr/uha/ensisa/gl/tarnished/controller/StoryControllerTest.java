@@ -17,7 +17,6 @@ import fr.uha.ensisa.gl.entities.StoryStatus;
 import fr.uha.ensisa.gl.entities.Project;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Arrays;
 import java.util.ArrayList;
 
@@ -1149,5 +1148,182 @@ public class StoryControllerTest {
         
         assertEquals("redirect:/", result);
         verify(storyRepo).persist(story);
+    }
+
+    // ===== TESTS POUR AMÉLIORER MUTATION COVERAGE =====
+
+    @Test
+    @DisplayName("showStory should call find successfully")
+    public void testShowStoryDebugPrint() throws IOException {
+        Story story = new Story();
+        story.setId(1);
+        story.setProjectId(5L);
+        story.setColumnId(2L);
+        
+        fr.uha.ensisa.gl.entities.Column column = new fr.uha.ensisa.gl.entities.Column();
+        column.setId(2);
+        column.setName("IN_PROGRESS");
+        
+        when(storyRepo.find(1L)).thenReturn(story);
+        when(columnRepo.find(2L)).thenReturn(column);
+        when(userRepo.getAll()).thenReturn(Arrays.asList());
+        
+        ModelAndView result = sut.showStory(1L);
+        
+        assertNotNull(result);
+        assertEquals("story-detail", result.getViewName());
+        verify(storyRepo).find(1L);
+    }
+
+    @Test
+    @DisplayName("updateStory should verify all debug statements")
+    public void testUpdateStoryDebugStatements() throws IOException {
+        Story story = new Story();
+        story.setId(1);
+        story.setTitle("Old Title");
+        story.setProjectId(5L);
+        
+        when(storyRepo.find(1L)).thenReturn(story);
+        
+        String result = sut.updateStory(1L, "New Title", "New Desc", null);
+        
+        assertEquals("redirect:/board/5", result);  // Redirects to board when projectId exists
+        verify(storyRepo).find(1L);
+        verify(storyRepo).persist(story);
+        assertEquals("New Title", story.getTitle());
+        assertEquals("New Desc", story.getDescription());
+    }
+
+    @Test
+    @DisplayName("createStory should call persist with BACKLOG column")
+    public void testCreateStoryBacklogColumn() throws IOException {
+        fr.uha.ensisa.gl.entities.Column backlogColumn = new fr.uha.ensisa.gl.entities.Column();
+        backlogColumn.setId(1);
+        backlogColumn.setName("BACKLOG");
+        
+        when(columnRepo.findByProject(1L)).thenReturn(Arrays.asList(backlogColumn));
+        
+        sut.createStory("Title", "Desc", 1L, null);
+        
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        verify(storyRepo).persist(storyCaptor.capture());
+        
+        Story captured = storyCaptor.getValue();
+        assertEquals(StoryStatus.BACKLOG, captured.getStatus());
+        assertNull(captured.getSubColumn());  // SubColumn not set for BACKLOG
+        assertEquals(1L, captured.getColumnId());
+    }
+
+    @Test
+    @DisplayName("createStory with DONE column should set status DONE")
+    public void testCreateStoryDoneColumn() throws IOException {
+        fr.uha.ensisa.gl.entities.Column doneColumn = new fr.uha.ensisa.gl.entities.Column();
+        doneColumn.setId(3);
+        doneColumn.setName("DONE");
+        
+        when(columnRepo.findByProject(1L)).thenReturn(Arrays.asList(doneColumn));
+        when(columnRepo.find(3L)).thenReturn(doneColumn);
+        
+        sut.createStory("Title", "Desc", 1L, 3L);
+        
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        verify(storyRepo).persist(storyCaptor.capture());
+        
+        Story captured = storyCaptor.getValue();
+        assertEquals(StoryStatus.DONE, captured.getStatus());
+        assertEquals(3L, captured.getColumnId());
+    }
+
+    @Test
+    @DisplayName("createStory with REVIEW column should set status REVIEW")
+    public void testCreateStoryReviewColumn() throws IOException {
+        fr.uha.ensisa.gl.entities.Column reviewColumn = new fr.uha.ensisa.gl.entities.Column();
+        reviewColumn.setId(4);
+        reviewColumn.setName("REVIEW");
+        
+        when(columnRepo.findByProject(1L)).thenReturn(Arrays.asList(reviewColumn));
+        when(columnRepo.find(4L)).thenReturn(reviewColumn);
+        
+        sut.createStory("Title", "Desc", 1L, 4L);
+        
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        verify(storyRepo).persist(storyCaptor.capture());
+        
+        Story captured = storyCaptor.getValue();
+        assertEquals(StoryStatus.REVIEW, captured.getStatus());
+    }
+
+    @Test
+    @DisplayName("createStory with BLOCKED column should set status BLOCKED")
+    public void testCreateStoryBlockedColumn() throws IOException {
+        fr.uha.ensisa.gl.entities.Column blockedColumn = new fr.uha.ensisa.gl.entities.Column();
+        blockedColumn.setId(5);
+        blockedColumn.setName("BLOCKED");
+        
+        when(columnRepo.findByProject(1L)).thenReturn(Arrays.asList(blockedColumn));
+        when(columnRepo.find(5L)).thenReturn(blockedColumn);
+        
+        sut.createStory("Title", "Desc", 1L, 5L);
+        
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        verify(storyRepo).persist(storyCaptor.capture());
+        
+        Story captured = storyCaptor.getValue();
+        assertEquals(StoryStatus.BLOCKED, captured.getStatus());
+    }
+
+    @Test
+    @DisplayName("createStory with custom column should default to BACKLOG status")
+    public void testCreateStoryCustomColumn() throws IOException {
+        fr.uha.ensisa.gl.entities.Column customColumn = new fr.uha.ensisa.gl.entities.Column();
+        customColumn.setId(6);
+        customColumn.setName("Custom Column");
+        
+        when(columnRepo.findByProject(1L)).thenReturn(Arrays.asList(customColumn));
+        when(columnRepo.find(6L)).thenReturn(customColumn);
+        
+        sut.createStory("Title", "Desc", 1L, 6L);
+        
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        verify(storyRepo).persist(storyCaptor.capture());
+        
+        Story captured = storyCaptor.getValue();
+        // Custom columns set subColumn to BACKLOG but status stays BACKLOG (default)
+        assertEquals(StoryStatus.BACKLOG, captured.getStatus());
+        assertEquals("BACKLOG", captured.getSubColumn());
+    }
+
+    @Test
+    @DisplayName("updateStory boundary test: exactly 59 chars should be accepted")
+    public void testUpdateStoryExactly59Chars() throws IOException {
+        Story story = new Story();
+        story.setId(1);
+        story.setProjectId(5L);
+        
+        when(storyRepo.find(1L)).thenReturn(story);
+        
+        String title59 = "A".repeat(59);
+        String result = sut.updateStory(1L, title59, "Desc", null);
+        
+        assertEquals("redirect:/board/5", result);  // Redirects to board when projectId exists
+        assertEquals(title59, story.getTitle());
+        verify(storyRepo).persist(story);
+    }
+
+    @Test
+    @DisplayName("updateStory boundary test: 60 chars should fail")
+    public void testUpdateStory60Chars() throws IOException {
+        Story story = new Story();
+        story.setId(1);
+        story.setProjectId(5L);
+        
+        when(storyRepo.find(1L)).thenReturn(story);
+        
+        String title60 = "A".repeat(60);
+        String result = sut.updateStory(1L, title60, "Desc", null);
+        
+        assertTrue(result.contains("error"));
+        assertTrue(result.contains("Title must be less than 59 characters"));
+        verify(storyRepo, never()).persist(any());
     }
 }

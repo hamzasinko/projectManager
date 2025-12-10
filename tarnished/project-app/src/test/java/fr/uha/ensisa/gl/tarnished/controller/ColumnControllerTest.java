@@ -81,19 +81,17 @@ class ColumnControllerTest {
     @Test
     void testCreateColumnSuccess() {
         when(projectRepo.find(1L)).thenReturn(project);
-
+        ArgumentCaptor<Column> captor = ArgumentCaptor.forClass(Column.class);
+        
         String result = controller.createColumn("To Do", 1, 5, 1L);
 
         assertEquals("redirect:/columns", result);
-        verify(columnRepo).persist(any(Column.class));
-    }
-
-    @Test
-    void testCreateColumnWithoutProject() {
-        String result = controller.createColumn("To Do", 1, 5, null);
-
-        assertEquals("redirect:/columns", result);
-        verify(columnRepo).persist(any(Column.class));
+        verify(columnRepo).persist(captor.capture());
+        Column captured = captor.getValue();
+        assertEquals("To Do", captured.getName());
+        assertEquals(1, captured.getPosition());
+        assertEquals(5, captured.getMaxCapacity());
+        assertNotNull(captured.getStories());
     }
 
     @Test
@@ -118,6 +116,7 @@ class ColumnControllerTest {
         assertEquals(2, column.getPosition());
         assertEquals(10, column.getMaxCapacity());
         verify(columnRepo).persist(column);
+        verify(columnRepo).find(1L);
     }
 
     @Test
@@ -219,7 +218,7 @@ class ColumnControllerTest {
         fr.uha.ensisa.gl.entities.Column column = new fr.uha.ensisa.gl.entities.Column();
         when(columnRepo.find(1L)).thenReturn(column);
         
-        String result = controller.editColumn(1L, "A".repeat(30), 2, 5);
+        controller.editColumn(1L, "A".repeat(30), 2, 5);
         
         assertEquals("A".repeat(25), column.getName());
         assertEquals(2, column.getPosition());
@@ -258,7 +257,7 @@ class ColumnControllerTest {
     public void testCreateColumnShortName() {
         String shortName = "TestColumn";
         
-        String result = controller.createColumn(shortName, 1, 10, null);
+        controller.createColumn(shortName, 1, 10, null);
         
         ArgumentCaptor<fr.uha.ensisa.gl.entities.Column> captor = 
             ArgumentCaptor.forClass(fr.uha.ensisa.gl.entities.Column.class);
@@ -266,5 +265,65 @@ class ColumnControllerTest {
         
         fr.uha.ensisa.gl.entities.Column saved = captor.getValue();
         assertEquals(shortName, saved.getName());
+    }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName("createColumn with exactly 25 chars should NOT truncate")
+    public void testCreateColumnExactly25Chars() {
+        String exactName = "A".repeat(25); // exactly 25 characters
+        
+        controller.createColumn(exactName, 1, 10, null);
+        
+        ArgumentCaptor<fr.uha.ensisa.gl.entities.Column> captor = 
+            ArgumentCaptor.forClass(fr.uha.ensisa.gl.entities.Column.class);
+        verify(columnRepo).persist(captor.capture());
+        
+        fr.uha.ensisa.gl.entities.Column saved = captor.getValue();
+        assertEquals(exactName, saved.getName());
+        assertEquals(25, saved.getName().length());
+    }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName("createColumn with 26 chars MUST truncate")
+    public void testCreateColumn26Chars() {
+        String name26 = "A".repeat(26); // 26 characters
+        
+        controller.createColumn(name26, 1, 10, null);
+        
+        ArgumentCaptor<fr.uha.ensisa.gl.entities.Column> captor = 
+            ArgumentCaptor.forClass(fr.uha.ensisa.gl.entities.Column.class);
+        verify(columnRepo).persist(captor.capture());
+        
+        fr.uha.ensisa.gl.entities.Column saved = captor.getValue();
+        assertEquals("A".repeat(25), saved.getName());
+        assertEquals(25, saved.getName().length());
+    }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName("editColumn with exactly 25 chars should NOT truncate")
+    public void testEditColumnExactly25Chars() {
+        fr.uha.ensisa.gl.entities.Column column = new fr.uha.ensisa.gl.entities.Column();
+        when(columnRepo.find(1L)).thenReturn(column);
+        String exactName = "B".repeat(25); // exactly 25 characters
+        
+        controller.editColumn(1L, exactName, 2, 5);
+        
+        assertEquals(exactName, column.getName());
+        assertEquals(25, column.getName().length());
+        verify(columnRepo).persist(column);
+    }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName("editColumn with 26 chars MUST truncate")
+    public void testEditColumn26Chars() {
+        fr.uha.ensisa.gl.entities.Column column = new fr.uha.ensisa.gl.entities.Column();
+        when(columnRepo.find(1L)).thenReturn(column);
+        String name26 = "B".repeat(26); // 26 characters
+        
+        controller.editColumn(1L, name26, 2, 5);
+        
+        assertEquals("B".repeat(25), column.getName());
+        assertEquals(25, column.getName().length());
+        verify(columnRepo).persist(column);
     }
 }
