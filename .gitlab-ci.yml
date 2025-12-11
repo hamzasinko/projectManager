@@ -54,20 +54,16 @@ integration-test:
   script:
     - cd tarnished
     - mvn $MAVEN_CLI_OPTS clean install -DskipTests
-    - mvn $MAVEN_CLI_OPTS verify \
-      -pl project-app \
-      -am \
-      -Dselenium.remote.browser=true \
-      -Dsurefire.skip=true
-
+    - mvn $MAVEN_CLI_OPTS verify -Dselenium.remote.browser=true -Dsurefire.skip=true
   artifacts:
     reports:
       junit:
-        - "**/target/failsafe-reports/TEST-*.xml"
+        - "tarnished/**/target/failsafe-reports/*.xml"
     paths:
-      - "**/target/*.jar"
-      - "**/target/*.war"
+      - "tarnished/**/target/*.jar"
+      - "tarnished/**/target/*.war"
     expire_in: 1 hour
+
 
 
 # ============================
