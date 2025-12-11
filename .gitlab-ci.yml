@@ -49,12 +49,17 @@ integration-test:
   stage: integration-test
   image: maven:3-eclipse-temurin-21-alpine
   services:
-    - name: selenium/standalone-chrome:114.0
+    - name: selenium/standalone-chrome
       alias: selenium
   script:
-    - cd tarnished/project-app
+    - cd tarnished
     - mvn $MAVEN_CLI_OPTS clean install -DskipTests
-    - mvn $MAVEN_CLI_OPTS verify -Dselenium.remote.browser=true -Dsurefire.skip=true
+    - mvn $MAVEN_CLI_OPTS verify \
+      -pl project-app \
+      -am \
+      -Dselenium.remote.browser=true \
+      -Dsurefire.skip=true
+
   artifacts:
     reports:
       junit:
