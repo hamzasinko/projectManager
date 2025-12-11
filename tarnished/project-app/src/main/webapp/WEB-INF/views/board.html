@@ -201,7 +201,7 @@
                                 
                                 <div class="mt-2" th:if="${story.totalTimeSpent > 0}">
                                     <i class="bi bi-clock"></i> 
-                                    <span th:text="${story.totalTimeSpent}">0</span> min
+                                    <span class="duration-display" th:attr="data-minutes=${story.totalTimeSpent}" th:text="${story.totalTimeSpent + ' min'}">0 min</span>
                                 </div>
                             </div>
 
@@ -214,6 +214,19 @@
                                    class="btn btn-sm btn-outline-warning">
                                     Edit
                                 </a>
+                                <form th:if="${story.getRunningWorkLog() == null}" 
+                                      th:action="@{'/story/' + ${story.id} + '/timer/start'}" 
+                                      method="post" 
+                                      style="display: inline; margin: 0;">
+                                    <button type="submit" class="btn btn-sm btn-success" title="Start Timer">Start</button>
+                                </form>
+                                <form th:if="${story.getRunningWorkLog() != null}" 
+                                      th:action="@{'/story/' + ${story.id} + '/timer/stop'}" 
+                                      method="post" 
+                                      style="display: inline; margin: 0;">
+                                    <input type="hidden" name="workLogId" th:value="${story.getRunningWorkLog().id}"/>
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Stop Timer">Stop</button>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -247,7 +260,7 @@
                                     
                                     <div class="mt-2" th:if="${story.totalTimeSpent > 0}">
                                         <i class="bi bi-clock"></i> 
-                                        <span th:text="${story.totalTimeSpent}">0</span> min
+                                        <span class="duration-display" th:attr="data-minutes=${story.totalTimeSpent}" th:text="${story.totalTimeSpent + ' min'}">0 min</span>
                                     </div>
                                 </div>
 
@@ -260,6 +273,19 @@
                                        class="btn btn-sm btn-outline-warning">
                                         Edit
                                     </a>
+                                    <form th:if="${story.getRunningWorkLog() == null}" 
+                                          th:action="@{'/story/' + ${story.id} + '/timer/start'}" 
+                                          method="post" 
+                                          style="display: inline; margin: 0;">
+                                        <button type="submit" class="btn btn-sm btn-success" title="Start Timer">Start</button>
+                                    </form>
+                                    <form th:if="${story.getRunningWorkLog() != null}" 
+                                          th:action="@{'/story/' + ${story.id} + '/timer/stop'}" 
+                                          method="post" 
+                                          style="display: inline; margin: 0;">
+                                        <input type="hidden" name="workLogId" th:value="${story.getRunningWorkLog().id}"/>
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Stop Timer">Stop</button>
+                                    </form>
                                 </div>
                             </div>
                         </div>
@@ -296,7 +322,7 @@
                                     
                                     <div class="mt-2" th:if="${story.totalTimeSpent > 0}">
                                         <i class="bi bi-clock"></i> 
-                                        <span th:text="${story.totalTimeSpent}">0</span> min
+                                        <span class="duration-display" th:attr="data-minutes=${story.totalTimeSpent}" th:text="${story.totalTimeSpent + ' min'}">0 min</span>
                                     </div>
                                 </div>
 
@@ -309,6 +335,19 @@
                                        class="btn btn-sm btn-outline-warning">
                                         Edit
                                     </a>
+                                    <form th:if="${story.getRunningWorkLog() == null}" 
+                                          th:action="@{'/story/' + ${story.id} + '/timer/start'}" 
+                                          method="post" 
+                                          style="display: inline; margin: 0;">
+                                        <button type="submit" class="btn btn-sm btn-success" title="Start Timer">Start</button>
+                                    </form>
+                                    <form th:if="${story.getRunningWorkLog() != null}" 
+                                          th:action="@{'/story/' + ${story.id} + '/timer/stop'}" 
+                                          method="post" 
+                                          style="display: inline; margin: 0;">
+                                        <input type="hidden" name="workLogId" th:value="${story.getRunningWorkLog().id}"/>
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Stop Timer">Stop</button>
+                                    </form>
                                 </div>
                             </div>
                         </div>
@@ -386,6 +425,28 @@
     </div>
 
     <script>
+        function formatDuration(minutes) {
+            if (minutes < 60) {
+                return minutes + ' min';
+            }
+            const days = Math.floor(minutes / 1440);
+            const hours = Math.floor((minutes % 1440) / 60);
+            const mins = minutes % 60;
+            
+            let result = '';
+            if (days > 0) result += days + 'd ';
+            if (hours > 0) result += hours + 'h ';
+            if (mins > 0) result += mins + 'min';
+            return result.trim();
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.duration-display').forEach(function(el) {
+                const minutes = parseInt(el.getAttribute('data-minutes'));
+                el.textContent = formatDuration(minutes);
+            });
+        });
+        
         let draggedColumn = null;
         let draggedStory = null;
         let autoScrollInterval = null;

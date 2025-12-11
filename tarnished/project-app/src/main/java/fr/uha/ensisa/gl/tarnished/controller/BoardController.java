@@ -37,7 +37,7 @@ public class BoardController {
         // For each column, get its stories
         for (Column column : columns) {
             // Initialiser hasSubColumns=true pour les colonnes par défaut (sauf BACKLOG et DONE)
-            String columnName = column.getName().toUpperCase();
+            String columnName = column.getName().toUpperCase(Locale.ROOT);
             if (!column.isHasSubColumns() && 
                 (columnName.equals("IN PROGRESS") || 
                  columnName.equals("REVIEW") || 

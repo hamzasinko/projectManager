@@ -2,6 +2,7 @@ package fr.uha.ensisa.gl.tarnished.controller;
 
 import fr.uha.ensisa.gl.entities.Story;
 import fr.uha.ensisa.gl.entities.StoryStatus;
+import fr.uha.ensisa.gl.entities.WorkLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -9,6 +10,8 @@ import org.springframework.web.servlet.ModelAndView;
 import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Locale;
@@ -372,12 +375,50 @@ public class StoryController {
     @PostMapping("/{id}/timer/start")
     public String startTimer(@PathVariable("id") Long id, @RequestParam(required = false, defaultValue = "1") Long userId) {
         repoFactory.getStoryRepo().startTimer(id, userId);
-        return "redirect:/story/list";
+        return "redirect:/story/" + id;
     }
 
     @PostMapping("/{id}/timer/stop")
     public String stopTimer(@PathVariable("id") Long id, @RequestParam Long workLogId) {
         repoFactory.getStoryRepo().stopTimer(id, workLogId);
-        return "redirect:/story/list";
+        return "redirect:/story/" + id;
+    }
+    
+    @PostMapping("/{id}/worklog/add")
+    public String addWorkLog(@PathVariable("id") Long id, 
+                            @RequestParam(required = false, defaultValue = "0") int days,
+                            @RequestParam(required = false, defaultValue = "0") int hours,
+                            @RequestParam(required = false, defaultValue = "0") int minutes,
+                            @RequestParam(required = false) String comment,
+                            @RequestParam(required = false, defaultValue = "1") Long userId) {
+        // Calculate total duration in minutes
+        long totalMinutes = (days * 24 * 60) + (hours * 60) + minutes;
+        
+        if (totalMinutes <= 0) {
+            return "redirect:/story/" + id + "?error=Duration must be greater than 0";
+        }
+        
+        // Limit comment to 120 characters
+        if (comment != null && comment.length() > 45) {
+            comment = comment.substring(0, 45);
+        }
+        
+        WorkLog workLog = new WorkLog();
+        workLog.setId(System.currentTimeMillis()); // Simple ID generation
+        workLog.setStart(LocalDateTime.now().minus(totalMinutes, ChronoUnit.MINUTES));
+        workLog.setEnd(LocalDateTime.now());
+        workLog.setDuration(totalMinutes);
+        workLog.setUserId(userId);
+        workLog.setStoryId(id);
+        workLog.setComment(comment);
+        
+        repoFactory.getStoryRepo().addWorkLog(id, workLog);
+        return "redirect:/story/" + id;
+    }
+    
+    @PostMapping("/{storyId}/worklog/{workLogId}/delete")
+    public String deleteWorkLog(@PathVariable Long storyId, @PathVariable Long workLogId) {
+        repoFactory.getStoryRepo().removeWorkLog(storyId, workLogId);
+        return "redirect:/story/" + storyId;
     }
 }

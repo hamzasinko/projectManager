@@ -348,4 +348,145 @@ public class StoryControllerTest {
         verify(mockStory).setUserAssigned(null);
         verify(storyRepo).persist(mockStory);
     }
+    
+    @Test
+    @DisplayName("startTimer should start timer and redirect to story detail")
+    public void testStartTimer() {
+        // Given
+        long storyId = 1L;
+        long userId = 1L;
+        
+        // When
+        String result = sut.startTimer(storyId, userId);
+        
+        // Then
+        assertEquals("redirect:/story/1", result);
+        verify(storyRepo).startTimer(storyId, userId);
+    }
+    
+    @Test
+    @DisplayName("stopTimer should stop timer and redirect to story detail")
+    public void testStopTimer() {
+        // Given
+        long storyId = 1L;
+        long workLogId = 100L;
+        
+        // When
+        String result = sut.stopTimer(storyId, workLogId);
+        
+        // Then
+        assertEquals("redirect:/story/1", result);
+        verify(storyRepo).stopTimer(storyId, workLogId);
+    }
+    
+    @Test
+    @DisplayName("addWorkLog should add work log and redirect to story detail")
+    public void testAddWorkLog() {
+        // Given
+        long storyId = 1L;
+        int days = 0;
+        int hours = 0;
+        int minutes = 30;
+        String comment = "Fixed bug";
+        long userId = 1L;
+        
+        // When
+        String result = sut.addWorkLog(storyId, days, hours, minutes, comment, userId);
+        
+        // Then
+        assertEquals("redirect:/story/1", result);
+        verify(storyRepo).addWorkLog(eq(storyId), any());
+    }
+    
+    @Test
+    @DisplayName("addWorkLog should work with null comment")
+    public void testAddWorkLogWithNullComment() {
+        // Given
+        long storyId = 1L;
+        int days = 0;
+        int hours = 0;
+        int minutes = 45;
+        long userId = 1L;
+        
+        // When
+        String result = sut.addWorkLog(storyId, days, hours, minutes, null, userId);
+        
+        // Then
+        assertEquals("redirect:/story/1", result);
+        verify(storyRepo).addWorkLog(eq(storyId), any());
+    }
+    
+    @Test
+    @DisplayName("addWorkLog should calculate total minutes correctly with days and hours")
+    public void testAddWorkLogWithDaysAndHours() {
+        // Given
+        long storyId = 1L;
+        int days = 1;
+        int hours = 2;
+        int minutes = 30;
+        String comment = "Complex task";
+        long userId = 1L;
+        
+        // When
+        String result = sut.addWorkLog(storyId, days, hours, minutes, comment, userId);
+        
+        // Then
+        assertEquals("redirect:/story/1", result);
+        verify(storyRepo).addWorkLog(eq(storyId), any());
+    }
+    
+    @Test
+    @DisplayName("addWorkLog should redirect with error if duration is zero")
+    public void testAddWorkLogWithZeroDuration() {
+        // Given
+        long storyId = 1L;
+        int days = 0;
+        int hours = 0;
+        int minutes = 0;
+        String comment = "Invalid";
+        long userId = 1L;
+        
+        // When
+        String result = sut.addWorkLog(storyId, days, hours, minutes, comment, userId);
+        
+        // Then
+        assertEquals("redirect:/story/1?error=Duration must be greater than 0", result);
+        verify(storyRepo, never()).addWorkLog(any(), any());
+    }
+    
+    @Test
+    @DisplayName("deleteWorkLog should remove work log and redirect to story detail")
+    public void testDeleteWorkLog() {
+        // Given
+        long storyId = 1L;
+        long workLogId = 100L;
+        
+        // When
+        String result = sut.deleteWorkLog(storyId, workLogId);
+        
+        // Then
+        assertEquals("redirect:/story/1", result);
+        verify(storyRepo).removeWorkLog(storyId, workLogId);
+    }
+    
+    @Test
+    @DisplayName("addWorkLog should truncate comment to 45 characters")
+    public void testAddWorkLogTruncatesLongComment() {
+        // Given
+        long storyId = 1L;
+        int days = 0;
+        int hours = 1;
+        int minutes = 0;
+        String longComment = "This is a very long comment that exceeds the maximum allowed limit";
+        long userId = 1L;
+        
+        // When
+        String result = sut.addWorkLog(storyId, days, hours, minutes, longComment, userId);
+        
+        // Then
+        assertEquals("redirect:/story/1", result);
+        verify(storyRepo).addWorkLog(eq(storyId), argThat(wl -> 
+            wl.getComment() != null && wl.getComment().length() == 45
+        ));
+    }
 }
