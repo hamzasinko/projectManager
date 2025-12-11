@@ -37,7 +37,7 @@ public class BoardIT {
         
         WebDriverManager.chromedriver().setup();
         driver = new ChromeDriver();
-        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(2));
         actions = new Actions(driver);
         
         setupTestProject();
@@ -285,6 +285,11 @@ public class BoardIT {
                         "capacityInput.name = 'maxCapacity';" +
                         "capacityInput.value = '5';" +
                         "form.appendChild(capacityInput);" +
+                        "var hasSubColumnsInput = document.createElement('input');" +
+                        "hasSubColumnsInput.type = 'hidden';" +
+                        "hasSubColumnsInput.name = 'hasSubColumns';" +
+                        "hasSubColumnsInput.value = 'true';" +
+                        "form.appendChild(hasSubColumnsInput);" +
                         "document.body.appendChild(form);" +
                         "form.submit();";
         
@@ -529,7 +534,7 @@ public class BoardIT {
     public void testColumnCapacityLimit() {
         // Créer une colonne avec capacité limitée
         String columnName = "Limited Column " + System.currentTimeMillis();
-        String url = getBaseUrl() + "board/" + testProjectId + "/add-column?name=" + columnName + "&maxCapacity=1";
+        String url = getBaseUrl() + "board/" + testProjectId + "/add-column?name=" + columnName + "&maxCapacity=1&hasSubColumns=true";
         driver.get(url);
         wait.until(ExpectedConditions.urlContains("/board/" + testProjectId));
         

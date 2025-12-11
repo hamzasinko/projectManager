@@ -36,6 +36,16 @@ public class BoardController {
         
         // For each column, get its stories
         for (Column column : columns) {
+            // Initialiser hasSubColumns=true pour les colonnes par défaut (sauf BACKLOG et DONE)
+            String columnName = column.getName().toUpperCase();
+            if (!column.isHasSubColumns() && 
+                (columnName.equals("IN PROGRESS") || 
+                 columnName.equals("REVIEW") || 
+                 columnName.equals("BLOCKED"))) {
+                column.setHasSubColumns(true);
+                repoFactory.getColumnRepo().persist(column);
+            }
+            
             Collection<Story> stories = repoFactory.getStoryRepo().findByColumn((long) column.getId());
             column.setStories(new java.util.ArrayList<>(stories));
         }
@@ -159,8 +169,9 @@ public class BoardController {
     public String addColumnGet(
             @PathVariable Long projectId,
             @RequestParam String name,
-            @RequestParam(required = false, defaultValue = "0") int maxCapacity) {
-        return addColumn(projectId, name, maxCapacity);
+            @RequestParam(required = false, defaultValue = "0") int maxCapacity,
+            @RequestParam(required = false, defaultValue = "false") boolean hasSubColumns) {
+        return addColumn(projectId, name, maxCapacity, hasSubColumns);
     }
     
     /**
@@ -170,7 +181,8 @@ public class BoardController {
     public String addColumn(
             @PathVariable Long projectId,
             @RequestParam String name,
-            @RequestParam(required = false, defaultValue = "0") int maxCapacity) {
+            @RequestParam(required = false, defaultValue = "0") int maxCapacity,
+            @RequestParam(required = false, defaultValue = "false") boolean hasSubColumns) {
 
         Project project = repoFactory.getProjectRepo().find(projectId);
         if (project == null) {
@@ -186,6 +198,7 @@ public class BoardController {
         column.setName(name);
         column.setProject(project);
         column.setMaxCapacity(maxCapacity);
+        column.setHasSubColumns(hasSubColumns);
         
         // Set position as last
         Collection<Column> existingColumns = repoFactory.getColumnRepo().findByProject(projectId);

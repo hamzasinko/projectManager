@@ -29,7 +29,7 @@ class ColumnIT {
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
         driver = new ChromeDriver(options);
-        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(2));
     }
 
     @AfterAll
@@ -62,6 +62,64 @@ class ColumnIT {
 
     @Test
     @Order(2)
+    @DisplayName("Should create column WITH sub-columns (Backlog/Done)")
+    void testCreateColumnWithSubColumns() {
+        driver.get(BASE_URL + "/columns/create");
+
+        WebElement nameInput = driver.findElement(By.id("column_name"));
+        WebElement orderInput = driver.findElement(By.id("column_order"));
+        WebElement limitInput = driver.findElement(By.id("column_limit"));
+        WebElement hasSubColumnsCheckbox = driver.findElement(By.id("column_hasSubColumns"));
+
+        nameInput.sendKeys("Custom With Subs " + System.currentTimeMillis());
+        orderInput.clear();
+        orderInput.sendKeys("2");
+        limitInput.clear();
+        limitInput.sendKeys("5");
+
+        // Verify checkbox is checked by default
+        assertTrue(hasSubColumnsCheckbox.isSelected(), "HasSubColumns checkbox should be checked by default");
+
+        WebElement form = driver.findElement(By.id("column_create_form"));
+        form.submit();
+
+        wait.until(ExpectedConditions.urlContains("/columns"));
+        assertTrue(driver.getCurrentUrl().contains("/columns"));
+    }
+
+    @Test
+    @Order(3)
+    @DisplayName("Should create column WITHOUT sub-columns")
+    void testCreateColumnWithoutSubColumns() {
+        driver.get(BASE_URL + "/columns/create");
+
+        WebElement nameInput = driver.findElement(By.id("column_name"));
+        WebElement orderInput = driver.findElement(By.id("column_order"));
+        WebElement limitInput = driver.findElement(By.id("column_limit"));
+        WebElement hasSubColumnsCheckbox = driver.findElement(By.id("column_hasSubColumns"));
+
+        nameInput.sendKeys("Simple No Subs " + System.currentTimeMillis());
+        orderInput.clear();
+        orderInput.sendKeys("3");
+        limitInput.clear();
+        limitInput.sendKeys("5");
+
+        // Uncheck the checkbox to create column without sub-columns
+        if (hasSubColumnsCheckbox.isSelected()) {
+            hasSubColumnsCheckbox.click();
+        }
+
+        assertFalse(hasSubColumnsCheckbox.isSelected(), "HasSubColumns checkbox should be unchecked");
+
+        WebElement form = driver.findElement(By.id("column_create_form"));
+        form.submit();
+
+        wait.until(ExpectedConditions.urlContains("/columns"));
+        assertTrue(driver.getCurrentUrl().contains("/columns"));
+    }
+
+    @Test
+    @Order(4)
     void testEditColumnName() {
         driver.get(BASE_URL + "/columns");
 

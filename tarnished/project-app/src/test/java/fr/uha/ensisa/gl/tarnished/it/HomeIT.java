@@ -143,7 +143,7 @@ public class HomeIT {
         driver.findElement(By.id("projectDescription")).sendKeys("Test description for home page");
         driver.findElement(By.id("createProjectBtn")).click();
         
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(1));
         // Le controller redirige vers /project/list après création
         wait.until(ExpectedConditions.urlContains("/project/list"));
         
@@ -188,7 +188,7 @@ public class HomeIT {
         driver.findElement(By.id("projectDescription")).sendKeys("Test navigation");
         driver.findElement(By.id("createProjectBtn")).click();
         
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(1));
         // Le controller redirige vers /project/list après création
         wait.until(ExpectedConditions.urlContains("/project/list"));
         
@@ -225,7 +225,7 @@ public class HomeIT {
     public void testHelloRedirect() {
         driver.get(getBaseUrl() + "hello");
         
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(1));
         wait.until(ExpectedConditions.or(
                    ExpectedConditions.urlToBe(getBaseUrl() + "?"),
                    ExpectedConditions.urlToBe(getBaseUrl())));

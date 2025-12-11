@@ -54,6 +54,11 @@
         <div class="col-md-6" th:if="${story.userAssigned == null}">
           <p><strong>Assigned to:</strong> <span class="text-muted">Unassigned</span></p>
         </div>
+        <div class="col-md-12 mt-2">
+          <p><strong>⏱️ Total Time Spent:</strong> 
+            <span class="badge bg-info" th:text="${story.totalTimeSpent + ' minutes'}">0 minutes</span>
+          </p>
+        </div>
       </div>
       
       <!-- Action Buttons -->

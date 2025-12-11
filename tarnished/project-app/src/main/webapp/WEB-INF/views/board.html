@@ -219,8 +219,8 @@
                     </div>
                 </div>
 
-                <!-- Pour les autres colonnes : sous-colonnes Backlog/Done -->
-                <div th:if="${column.name != 'BACKLOG' and column.name != 'DONE'}" 
+                <!-- Pour les colonnes avec sous-colonnes : Backlog/Done -->
+                <div th:if="${column.hasSubColumns}" 
                      style="display: flex; flex-direction: row; gap: 10px; flex-grow: 1;">
                     
                     <!-- Sous-colonne BACKLOG -->
@@ -343,6 +343,17 @@
                                placeholder="Max Capacity (0 = unlimited)" 
                                min="0" 
                                value="0">
+                    </div>
+                    <div class="mb-2 form-check">
+                        <input type="checkbox" 
+                               id="hasSubColumns" 
+                               name="hasSubColumns" 
+                               class="form-check-input" 
+                               value="true" 
+                               checked>
+                        <label class="form-check-label" for="hasSubColumns">
+                            Has Sub-Columns (Backlog / Done)
+                        </label>
                     </div>
                     <button type="submit" class="btn btn-primary btn-sm">Create</button>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="hideAddColumnForm()">Cancel</button>

@@ -87,7 +87,7 @@ public class StoryIT {
         driver.findElement(By.id("createStoryBtn")).click();
         
         // Vérifie la redirection
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(1));
         wait.until(ExpectedConditions.urlContains("/story/list"));
     }
     
@@ -149,7 +149,7 @@ public class StoryIT {
         driver.findElement(By.id("createStoryBtn")).click();
         
         // Vérifie que la story apparaît dans la list (attend d'abord la redirection)
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(1));
         wait.until(ExpectedConditions.urlContains("/story/list"));
 
         String pageSource = driver.getPageSource();
@@ -205,7 +205,7 @@ public class StoryIT {
         driver.findElement(By.id("createStoryBtn")).click();
         
         // 5. Verify redirect to list
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(1));
         wait.until(ExpectedConditions.urlContains("/story/list"));
     }
     
@@ -239,7 +239,7 @@ public class StoryIT {
         
         // 2. Aller sur la liste
         driver.get(getBaseUrl() + "story/list");
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(1));
         wait.until(ExpectedConditions.or(
             ExpectedConditions.presenceOfElementLocated(By.xpath("//button[contains(text(), 'Delete')]") ),
             ExpectedConditions.urlContains("/story/list")
@@ -270,7 +270,7 @@ public class StoryIT {
         driver.findElement(By.id("projectDescription")).sendKeys("For story detail test");
         driver.findElement(By.id("createProjectBtn")).click();
         
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(1));
         wait.until(ExpectedConditions.urlContains("/project/list"));
         
         // Attendre que la page se charge et trouver le projet créé ou utiliser le premier disponible
@@ -334,7 +334,7 @@ public class StoryIT {
         driver.findElement(By.id("projectDescription")).sendKeys("For edit test");
         driver.findElement(By.id("createProjectBtn")).click();
         
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(1));
         wait.until(ExpectedConditions.urlContains("/project/list"));
         
         // Attendre que la page se charge et trouver le projet créé ou utiliser le premier disponible
@@ -395,7 +395,7 @@ public class StoryIT {
         driver.findElement(By.id("projectDescription")).sendKeys("For update test");
         driver.findElement(By.id("createProjectBtn")).click();
         
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(1));
         wait.until(ExpectedConditions.urlContains("/project/list"));
         
         // Attendre que la page se charge et trouver le projet créé ou utiliser le premier disponible
@@ -464,7 +464,7 @@ public class StoryIT {
         driver.findElement(By.id("projectDescription")).sendKeys("For assign test");
         driver.findElement(By.id("createProjectBtn")).click();
         
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(1));
         wait.until(ExpectedConditions.urlContains("/project/list"));
         
         // Attendre que la page se charge et trouver le projet créé ou utiliser le premier disponible
@@ -526,7 +526,7 @@ public class StoryIT {
         driver.findElement(By.id("projectName")).sendKeys(projectName);
         driver.findElement(By.id("createProjectBtn")).click();
         
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(1));
         wait.until(ExpectedConditions.urlContains("/project/list"));
         
         // Attendre que la page se charge et trouver le projet créé ou utiliser le premier disponible

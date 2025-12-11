@@ -162,7 +162,7 @@ public class ProjectIT {
 
         // Recharge page d'édition :
         // Wait until the "Projects" button is visible and click it
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(2));
         WebElement projectsLink = wait.until(ExpectedConditions.elementToBeClickable(
                 By.xpath("//a[text()='Projects']")
         ));
@@ -217,7 +217,7 @@ public class ProjectIT {
         confirmCard.findElement(By.xpath(".//button[contains(text(),'Yes')]")).click();
 
         // 8. Wait for page to reload after deletion
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(2));
         wait.until(ExpectedConditions.urlContains("/project/list"));
         
         // 9. Verify project is gone from UI
@@ -237,7 +237,7 @@ public class ProjectIT {
 
         // 2. Go to project info page and wait for the created card to appear
         driver.get(getBaseUrl() + "/project/list");
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(2));
         // Wait until the page source contains the project name (tolerant) or timeout
         wait.until(d -> d.getPageSource().contains(projectName));
 
@@ -276,7 +276,7 @@ public class ProjectIT {
         driver.findElement(By.id("projectDescription")).sendKeys("For stories test");
         driver.findElement(By.id("createProjectBtn")).click();
         
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(2));
         wait.until(ExpectedConditions.urlContains("/project/list"));
         
         // Attendre que la page se charge et trouver le projet créé ou utiliser le premier disponible

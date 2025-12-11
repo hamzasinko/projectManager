@@ -81,7 +81,7 @@ class ColumnControllerTest {
     void testCreateColumnSuccess() {
         when(projectRepo.find(1L)).thenReturn(project);
 
-        String result = controller.createColumn("To Do", 1, 5, 1L);
+        String result = controller.createColumn("To Do", 1, 5, false, 1L);
 
         assertEquals("redirect:/columns", result);
         verify(columnRepo).persist(any(Column.class));
@@ -89,10 +89,36 @@ class ColumnControllerTest {
 
     @Test
     void testCreateColumnWithoutProject() {
-        String result = controller.createColumn("To Do", 1, 5, null);
+        String result = controller.createColumn("To Do", 1, 5, false, null);
 
         assertEquals("redirect:/columns", result);
         verify(columnRepo).persist(any(Column.class));
+    }
+
+    @Test
+    void testCreateColumnWithSubColumns() {
+        when(projectRepo.find(1L)).thenReturn(project);
+
+        String result = controller.createColumn("Custom Column", 2, 5, true, 1L);
+
+        assertEquals("redirect:/columns", result);
+        verify(columnRepo).persist(argThat(col -> 
+            col.getName().equals("Custom Column") && 
+            col.isHasSubColumns()
+        ));
+    }
+
+    @Test
+    void testCreateColumnWithoutSubColumns() {
+        when(projectRepo.find(1L)).thenReturn(project);
+
+        String result = controller.createColumn("Simple Column", 2, 5, false, 1L);
+
+        assertEquals("redirect:/columns", result);
+        verify(columnRepo).persist(argThat(col -> 
+            col.getName().equals("Simple Column") && 
+            !col.isHasSubColumns()
+        ));
     }
 
     @Test
