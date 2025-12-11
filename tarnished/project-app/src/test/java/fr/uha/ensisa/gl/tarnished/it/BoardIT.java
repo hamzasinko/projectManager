@@ -17,8 +17,8 @@ import java.time.Duration;
 import java.util.List;
 
 /**
- * Tests d'intégration Selenium pour le BoardController (Kanban Board)
- * Teste TOUTES les méthodes du BoardController avec drag and drop réel
+ *Tests d'intégration Selenium pour le BoardController (Kanban Board)
+ *Teste les méthodes du BoardController avec drag and drop
  */
 public class BoardIT {
     
@@ -40,7 +40,6 @@ public class BoardIT {
         wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         actions = new Actions(driver);
         
-        // Créer un projet de test pour les tests du board
         setupTestProject();
     }
     
@@ -52,10 +51,10 @@ public class BoardIT {
         driver.findElement(By.id("projectDescription")).sendKeys("Test project for board integration tests");
         driver.findElement(By.id("createProjectBtn")).click();
         
-        // Le controller redirige vers /project/list après création
+        //le controller redirige vers /project/list après création
         wait.until(ExpectedConditions.urlContains("/project/list"));
         
-        // Trouve le projet créé dans la liste pour récupérer son ID
+        //trouve le projet créé dans la liste pour récupérer son ID
         try {
             WebElement projectCard = wait.until(ExpectedConditions.presenceOfElementLocated(
                 By.xpath("//h5[contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'card')] | //div[contains(@class,'project-card')]//h3[contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'project-card')]")
@@ -725,7 +724,6 @@ public class BoardIT {
         assertTrue(true, "Column capacity update should be processed");
     }
     
-    // Helper method pour créer une story
     private void createTestStory() {
         try {
             List<WebElement> addStoryButtons = driver.findElements(By.className("add-story-btn"));
@@ -741,7 +739,6 @@ public class BoardIT {
                 wait.until(ExpectedConditions.urlContains("/board/" + testProjectId));
             }
         } catch (Exception e) {
-            // Si le formulaire n'est pas disponible, créer via URL directe
             String storyTitle = "Test Story " + System.currentTimeMillis();
             String url = getBaseUrl() + "story/new?projectId=" + testProjectId;
             driver.get(url);

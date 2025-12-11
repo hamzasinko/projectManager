@@ -153,6 +153,17 @@ public class BoardController {
     }
 
     /**
+     * Crée une nouvelle colonne pour un projet (GET - pour compatibilité avec les tests)
+     */
+    @GetMapping("/{projectId}/add-column")
+    public String addColumnGet(
+            @PathVariable Long projectId,
+            @RequestParam String name,
+            @RequestParam(required = false, defaultValue = "0") int maxCapacity) {
+        return addColumn(projectId, name, maxCapacity);
+    }
+    
+    /**
      * Crée une nouvelle colonne pour un projet
      */
     @PostMapping("/{projectId}/add-column")
@@ -325,6 +336,33 @@ public class BoardController {
         }
 
         return "{\"success\":true}";
+    }
+    
+    /**
+     * Met à jour le nom d'une colonne (GET - pour compatibilité avec les tests)
+     */
+    @GetMapping("/{projectId}/update-column")
+    public String updateColumnNameGet(
+            @PathVariable Long projectId,
+            @RequestParam Long columnId,
+            @RequestParam String newName) {
+        try {
+            Column column = repoFactory.getColumnRepo().find(columnId);
+            if (column == null) {
+                return "redirect:/board/" + projectId + "?error=Column not found";
+            }
+            
+            // Validation du nom
+            if (newName == null || newName.trim().isEmpty()) {
+                return "redirect:/board/" + projectId + "?error=Column name cannot be empty";
+            }
+            
+            column.setName(newName.trim());
+            repoFactory.getColumnRepo().persist(column);
+        } catch (Exception e) {
+            return "redirect:/board/" + projectId + "?error=" + e.getMessage();
+        }
+        return "redirect:/board/" + projectId;
     }
     
     /**
