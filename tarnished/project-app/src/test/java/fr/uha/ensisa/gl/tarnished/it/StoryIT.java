@@ -22,7 +22,7 @@ public class StoryIT {
     public static void setupWebDriver() {
         if (driver != null) return;
         
-        host = System.getProperty("host", "192.168.244.102'");
+        host = System.getProperty("host", "localhost");
         port = System.getProperty("servlet.port", "8080");
         
         WebDriverManager.chromedriver().setup();

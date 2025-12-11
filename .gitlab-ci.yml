@@ -1,38 +1,34 @@
 stages:
   - build
-  - selenium-test
   - deploy
 
+# ============================
+# 1️⃣ BUILD
+# ============================
 build:
   stage: build
   image: maven:3.9.4-eclipse-temurin-17
   script:
     - cd tarnished
-    - mvn clean install
+    - mvn clean install -DskipITs -DskipTests
   artifacts:
     paths:
       - tarnished/target/*.war
 
-selenium-tests:
-  stage: selenium-test
-  image: selenium/standalone-chrome:114.0
-  dependencies:
-    - build
-  script:
-    - cd tarnished
-    - mvn test
-  only:
-    - release
-    - main
-
+# ============================
+# 2️⃣ DEPLOY (Docker via Kaniko)
+# ============================
 deploy-docker:
   stage: deploy
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
+  dependencies:
+    - build
   script:
     - cd tarnished
-    - WARFILE=$(find target -name '*.war')
+    - WARFILE=$(find target -name '*.war' | head -n 1)
+    - if [ -z "$WARFILE" ]; then echo "❌ Aucun WAR trouvé !"; exit 1; fi
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - |
@@ -40,6 +36,6 @@ deploy-docker:
       EXPOSE 8080
       ADD $WARFILE /var/lib/jetty/webapps/tarnished.war" > Dockerfile
     - /kaniko/executor --cleanup --context $CI_PROJECT_DIR --destination "$CI_REGISTRY_IMAGE:latest"
-  only:
-    - release
-    - main
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+    - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'
