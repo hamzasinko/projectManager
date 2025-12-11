@@ -1,13 +1,12 @@
 stages:
   - build
-  - test
   - deploy
-  - run
 
 build:
   stage: build
   image: maven:3.9.4-eclipse-temurin-17
   script:
+    - cd tarnished
     - mvn clean install
   artifacts:
     paths:
@@ -19,7 +18,8 @@ deploy-docker:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
   script:
-    - WARFILE=$(find tarnished/target -name '*.war')
+    - cd tarnished
+    - WARFILE=$(find target -name '*.war')
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - alias build='/kaniko/executor --cleanup --context $CI_PROJECT_DIR'
