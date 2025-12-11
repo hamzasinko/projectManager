@@ -24,7 +24,7 @@ public class HelloIT{
 
 	@Test
 	public void hello() throws IOException {
-		HttpURLConnection connection = (HttpURLConnection)new URL("http://localhost:" + port +"/hello").openConnection();
+		HttpURLConnection connection = (HttpURLConnection)new URL("http://192.168.244.102:" + port +"/hello").openConnection();
 		{
 			connection.connect();
 			assertEquals(200, connection.getResponseCode());
