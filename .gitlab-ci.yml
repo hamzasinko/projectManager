@@ -1,18 +1,29 @@
 stages:
   - build
+  - selenium-test
   - deploy
 
 build:
   stage: build
-  image: selenium/standalone-chrome:114.0
-  variables:
-    DISPLAY: :99
+  image: maven:3.9.4-eclipse-temurin-17
   script:
     - cd tarnished
     - mvn clean install
   artifacts:
     paths:
       - tarnished/target/*.war
+
+selenium-tests:
+  stage: selenium-test
+  image: selenium/standalone-chrome:114.0
+  dependencies:
+    - build
+  script:
+    - cd tarnished
+    - mvn test
+  only:
+    - release
+    - main
 
 deploy-docker:
   stage: deploy
