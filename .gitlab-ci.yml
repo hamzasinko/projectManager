@@ -47,17 +47,23 @@ unit-test:
 # ============================
 integration-test:
   stage: integration-test
-  image: selenium/standalone-chrome:114.0
+  image: maven:3-eclipse-temurin-21-alpine
   services:
-    - name: selenium/standalone-chrome
+    - name: selenium/standalone-chrome:114.0
       alias: selenium
   script:
     - cd tarnished/project-app
-    - mvn verify -Dselenium.remote.browser=true
+    - mvn $MAVEN_CLI_OPTS clean install -DskipTests
+    - mvn $MAVEN_CLI_OPTS verify -Dselenium.remote.browser=true -Dsurefire.skip=true
   artifacts:
+    reports:
+      junit:
+        - "**/target/failsafe-reports/TEST-*.xml"
     paths:
+      - "**/target/*.jar"
       - "**/target/*.war"
     expire_in: 1 hour
+
 
 # ============================
 # 4️⃣ DEPLOY (Docker via Kaniko)
