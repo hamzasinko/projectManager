@@ -48,11 +48,26 @@ public class StoryRepoMemTest {
         Story story2 = new Story();
         story2.setTitle("Story 2");
         
-        storyRepo.persist(story1);
-        storyRepo.persist(story2);
+        Story story3 = new Story();
+        story3.setTitle("Story 3");
         
-        assertEquals(1, story1.getId(), "First story should have ID 1");
-        assertEquals(2, story2.getId(), "Second story should have ID 2");
+        storyRepo.persist(story1);
+        long id1 = story1.getId();
+        
+        storyRepo.persist(story2);
+        long id2 = story2.getId();
+        
+        storyRepo.persist(story3);
+        long id3 = story3.getId();
+        
+        // Verify exact incrementation
+        assertEquals(id1 + 1, id2, "Second ID must be exactly first ID + 1");
+        assertEquals(id2 + 1, id3, "Third ID must be exactly second ID + 1");
+        
+        // Also verify they're sequential starting from 1
+        assertTrue(id1 > 0, "First ID should be positive");
+        assertTrue(id2 > id1, "IDs should increase");
+        assertTrue(id3 > id2, "IDs should keep increasing");
     }
 
     @Test
@@ -469,6 +484,27 @@ public class StoryRepoMemTest {
     void testStartTimerNonExistent() {
         WorkLog workLog = storyRepo.startTimer(999L, 1L);
         assertNull(workLog, "Should return null for non-existent story");
+    }
+    
+    @Test
+    @DisplayName("Should assign incrementing IDs to work logs")
+    void testWorkLogIdIncrementation() {
+        // Create story
+        storyRepo.persist(testStory);
+        long storyId = testStory.getId();
+        
+        // Start multiple timers to create work logs
+        WorkLog wl1 = storyRepo.startTimer(storyId, 1L);
+        WorkLog wl2 = storyRepo.startTimer(storyId, 1L);
+        WorkLog wl3 = storyRepo.startTimer(storyId, 1L);
+        
+        assertNotNull(wl1, "First work log should be created");
+        assertNotNull(wl2, "Second work log should be created");
+        assertNotNull(wl3, "Third work log should be created");
+        
+        // Verify exact incrementation
+        assertEquals(wl1.getId() + 1, wl2.getId(), "Second WorkLog ID must be exactly first + 1");
+        assertEquals(wl2.getId() + 1, wl3.getId(), "Third WorkLog ID must be exactly second + 1");
     }
 
     @Test

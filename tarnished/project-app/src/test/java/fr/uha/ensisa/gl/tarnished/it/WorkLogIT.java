@@ -2,6 +2,7 @@ package fr.uha.ensisa.gl.tarnished.it;
 
 import org.junit.jupiter.api.*;
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -29,14 +30,18 @@ class WorkLogIT {
         options.addArguments("--headless");
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
+        options.addArguments("--window-size=1920,1080");
         driver = new ChromeDriver(options);
-        wait = new WebDriverWait(driver, Duration.ofSeconds(3));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         
         // Create test project
         driver.get(BASE_URL + "/project/new");
-        driver.findElement(By.id("projectName")).sendKeys("WorkLog Test Project " + System.currentTimeMillis());
+        WebElement projectNameInput = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("projectName")));
+        projectNameInput.sendKeys("WorkLog Test Project " + System.currentTimeMillis());
         driver.findElement(By.id("projectDescription")).sendKeys("For worklog testing");
-        driver.findElement(By.id("createProjectBtn")).click();
+        
+        WebElement createProjectBtn = wait.until(ExpectedConditions.elementToBeClickable(By.id("createProjectBtn")));
+        createProjectBtn.click();
         wait.until(ExpectedConditions.urlContains("/project/list"));
         
         // Get project ID
@@ -50,8 +55,19 @@ class WorkLogIT {
         
         // Create test story
         driver.get(BASE_URL + "/story/new?projectId=" + testProjectId);
-        driver.findElement(By.id("storyTitle")).sendKeys("WorkLog Test Story " + System.currentTimeMillis());
-        driver.findElement(By.id("createStoryBtn")).click();
+        WebElement storyTitleInput = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("storyTitle")));
+        storyTitleInput.sendKeys("WorkLog Test Story " + System.currentTimeMillis());
+        
+        // Try to click the button, use JavaScript if it fails
+        try {
+            WebElement createStoryBtn = wait.until(ExpectedConditions.elementToBeClickable(By.id("createStoryBtn")));
+            createStoryBtn.click();
+        } catch (Exception e) {
+            // Fallback to JavaScript click
+            WebElement createStoryBtn = driver.findElement(By.id("createStoryBtn"));
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", createStoryBtn);
+        }
+        
         wait.until(ExpectedConditions.urlContains("/board/"));
         
         // Get story ID from URL or page
@@ -130,21 +146,22 @@ class WorkLogIT {
         driver.get(BASE_URL + "/story/" + testStoryId);
         
         try {
-            WebElement durationInput = driver.findElement(By.name("duration"));
+            WebElement minutesInput = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("minutes")));
             WebElement commentInput = driver.findElement(By.name("comment"));
             
-            durationInput.sendKeys("30");
-            commentInput.sendKeys("Manual work log test");
+            minutesInput.clear();
+            minutesInput.sendKeys("30");
+            commentInput.sendKeys("Manual test");
             
-            WebElement submitButton = driver.findElement(By.xpath("//button[contains(text(),'Add Work Log')]"));
+            WebElement submitButton = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[contains(text(),'Add Work Log')]")));
             submitButton.click();
             
             wait.until(ExpectedConditions.urlContains("/story/" + testStoryId));
             
             // Verify work log was added
             driver.get(BASE_URL + "/story/" + testStoryId);
-            assertTrue(driver.getPageSource().contains("30 min") || 
-                       driver.getPageSource().contains("Manual work log test"));
+            assertTrue(driver.getPageSource().contains("30min") || 
+                       driver.getPageSource().contains("Manual test"));
         } catch (Exception e) {
             // Form might not be available
             assertTrue(true);

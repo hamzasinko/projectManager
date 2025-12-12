@@ -40,6 +40,28 @@ class ColumnRepoMemTest {
         assertNotNull(found);
         assertEquals("To Do", found.getName());
     }
+    
+    @Test
+    void testPersistAssignsIncrementingIds() {
+        Column col1 = new Column();
+        col1.setName("Column 1");
+        repo.persist(col1);
+        long id1 = col1.getId();
+        
+        Column col2 = new Column();
+        col2.setName("Column 2");
+        repo.persist(col2);
+        long id2 = col2.getId();
+        
+        Column col3 = new Column();
+        col3.setName("Column 3");
+        repo.persist(col3);
+        long id3 = col3.getId();
+        
+        // IDs must increment by exactly 1
+        assertEquals(id1 + 1, id2, "Second ID should be first ID + 1");
+        assertEquals(id2 + 1, id3, "Third ID should be second ID + 1");
+    }
 
     @Test
     void testFindAll() {
@@ -132,19 +154,103 @@ class ColumnRepoMemTest {
 
         long id = column.getId();
 
+        // Empty column is not full
         assertFalse(repo.isColumnFull(id));
 
+        // One story, not full yet
         Story s1 = new Story();
         s1.setId(1);
         column.getStories().add(s1);
         assertFalse(repo.isColumnFull(id));
 
+        // Exactly at capacity, should be full
         Story s2 = new Story();
         s2.setId(2);
         column.getStories().add(s2);
         assertTrue(repo.isColumnFull(id));
+        
+        // More than capacity, still full
+        Story s3 = new Story();
+        s3.setId(3);
+        column.getStories().add(s3);
+        assertTrue(repo.isColumnFull(id));
+    }
+    
+    @Test
+    void testIsColumnFullWithNoLimit() {
+        Column column = new Column();
+        column.setMaxCapacity(0); // No limit
+        column.setStories(new ArrayList<>());
+        repo.persist(column);
+        
+        long id = column.getId();
+        
+        // With maxCapacity = 0, column is never full
+        assertFalse(repo.isColumnFull(id));
+        
+        for (int i = 0; i < 100; i++) {
+            Story s = new Story();
+            s.setId(i);
+            column.getStories().add(s);
+        }
+        
+        // Still not full even with 100 stories
+        assertFalse(repo.isColumnFull(id));
+    }
+    
+    @Test
+    void testIsColumnFullWithNullColumn() {
+        // Non-existent column should not be full
+        assertFalse(repo.isColumnFull(999L));
+    }
+    
+    @Test
+    void testIsColumnFullWithNullStories() {
+        Column column = new Column();
+        column.setMaxCapacity(5);
+        column.setStories(null); // Null stories list
+        repo.persist(column);
+        
+        long id = column.getId();
+        
+        // Null stories is treated as empty, so not full
+        assertFalse(repo.isColumnFull(id));
     }
 
+    @Test
+    void testCanAcceptStory() {
+        Column column = new Column();
+        column.setMaxCapacity(1);
+        column.setStories(new ArrayList<>());
+        repo.persist(column);
+        
+        long id = column.getId();
+        
+        // Empty column can accept story
+        assertTrue(repo.canAcceptStory(id));
+        
+        // Add one story
+        Story s1 = new Story();
+        s1.setId(1);
+        column.getStories().add(s1);
+        
+        // Full column cannot accept story
+        assertFalse(repo.canAcceptStory(id));
+    }
+    
+    @Test
+    void testCanAcceptStoryWithNoLimit() {
+        Column column = new Column();
+        column.setMaxCapacity(0); // No limit
+        column.setStories(new ArrayList<>());
+        repo.persist(column);
+        
+        long id = column.getId();
+        
+        // Can always accept story when no limit
+        assertTrue(repo.canAcceptStory(id));
+    }
+    
     @Test
     void testMoveStoryBetweenColumnsSuccess() {
         Column col1 = new Column();
@@ -190,43 +296,6 @@ class ColumnRepoMemTest {
         Mockito.when(storyRepo.findByColumn(2L)).thenReturn(List.of(s2));
 
         assertThrows(IllegalStateException.class, () -> repo.moveStoryBetweenColumns(1L, 1L, 2L));
-    }
-
-    @Test
-    void testCanAcceptStory() {
-        Column column = new Column();
-        column.setName("Done");
-        column.setPosition(3);
-        column.setMaxCapacity(2);
-        column.setStories(new ArrayList<>());
-        repo.persist(column);
-
-        long id = column.getId();
-
-        assertTrue(repo.canAcceptStory(id));
-
-        Story s1 = new Story();
-        s1.setId(1);
-        column.getStories().add(s1);
-        assertTrue(repo.canAcceptStory(id));
-
-        Story s2 = new Story();
-        s2.setId(2);
-        column.getStories().add(s2);
-        assertFalse(repo.canAcceptStory(id));
-    }
-
-    @Test
-    void testCanAcceptStoryUnlimitedCapacity() {
-        Column column = new Column();
-        column.setName("Done");
-        column.setPosition(3);
-        column.setMaxCapacity(0); // Unlimited
-        column.setStories(new ArrayList<>());
-        repo.persist(column);
-
-        long id = column.getId();
-        assertTrue(repo.canAcceptStory(id));
     }
 
     @Test

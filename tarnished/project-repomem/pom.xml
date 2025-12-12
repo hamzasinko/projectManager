@@ -121,10 +121,17 @@
           <targetTests>
             <param>fr.uha.ensisa.gl.tarnished.*</param>
           </targetTests>
-          <mutationThreshold>70</mutationThreshold>
+          <mutationThreshold>90</mutationThreshold>
           <threads>2</threads>
           <withHistory>true</withHistory>
           <verbose>true</verbose>
+          <avoidCallsTo>
+            <avoidCallsTo>java.io.PrintStream</avoidCallsTo>
+            <avoidCallsTo>java.util.logging</avoidCallsTo>
+            <avoidCallsTo>org.apache.log4j</avoidCallsTo>
+            <avoidCallsTo>org.slf4j</avoidCallsTo>
+            <avoidCallsTo>java.lang.System</avoidCallsTo>
+          </avoidCallsTo>
           <jvmArgs>
             <jvmArg>--add-opens</jvmArg>
             <jvmArg>java.base/java.lang=ALL-UNNAMED</jvmArg>

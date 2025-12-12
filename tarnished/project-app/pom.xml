@@ -255,8 +255,6 @@
                         </goals>
                         <configuration>
                             <propertyName>jacocoArgLine</propertyName>
-                            <destFile>${project.build.directory}/jacoco.exec</destFile>
-                            <append>true</append>
                         </configuration>
                     </execution>
                     <execution>
@@ -267,8 +265,6 @@
                         </goals>
                         <configuration>
                             <propertyName>jacocoItArgLine</propertyName>
-                            <destFile>${project.build.directory}/jacoco-it.exec</destFile>
-                            <append>true</append>
                         </configuration>
                     </execution>
                     <execution>
