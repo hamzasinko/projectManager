@@ -58,6 +58,7 @@ integration-test:
     - cd tarnished
     # Build complet sans tests
     - mvn $MAVEN_CLI_OPTS clean install -DskipTests
+    - mvn $MAVEN_CLI_OPTS -pl project-app jetty:start
     # Lance tests d'intégration avec Selenium remote
     - mvn $MAVEN_CLI_OPTS verify -Dselenium.remote.browser=true -Dsurefire.skip=true
 
