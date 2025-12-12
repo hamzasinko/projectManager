@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-
+import java.util.Locale;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -45,8 +45,25 @@ public class ColumnController {
         if (name != null && name.length() > 25) {
             name = name.substring(0, 25);
         }
-        
+        // --- Anti-duplication (même nom dans le même projet) ---
+        String normalizedName = (name == null) ? "" : name.trim().toLowerCase(Locale.ROOT);
+
+        boolean alreadyExists = columnRepo.findAll().stream().anyMatch(c ->
+                c.getName() != null
+                        && c.getName().trim().toLowerCase(Locale.ROOT).equals(normalizedName)
+                        && (
+                        (projectId == null && c.getProject() == null) ||
+                                (projectId != null && c.getProject() != null && c.getProject().getId() == projectId)
+                )
+        );
+
+        if (alreadyExists) {
+            return "redirect:/columns?error=Column already exists";
+        }
+
+
         Column column = new Column();
+        name = name.trim();
         column.setName(name);
         column.setPosition(order);
         column.setMaxCapacity(limit);
