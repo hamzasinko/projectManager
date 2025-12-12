@@ -588,4 +588,175 @@ public class StoryRepoMemTest {
         assertEquals(user, retrieved.getUserAssigned());
         assertEquals(created, retrieved.getDateCreated());
     }
+
+    @Test
+    @DisplayName("Should sort stories by position when finding by column")
+    void testFindByColumnSorting() {
+        Story story1 = new Story();
+        story1.setTitle("Story 1");
+        story1.setColumnId(1L);
+        story1.setPosition(3);
+        storyRepo.persist(story1);
+        
+        Story story2 = new Story();
+        story2.setTitle("Story 2");
+        story2.setColumnId(1L);
+        story2.setPosition(1);
+        storyRepo.persist(story2);
+        
+        Story story3 = new Story();
+        story3.setTitle("Story 3");
+        story3.setColumnId(1L);
+        story3.setPosition(2);
+        storyRepo.persist(story3);
+        
+        Collection<Story> stories = storyRepo.findByColumn(1L);
+        Story[] storiesArray = stories.toArray(new Story[0]);
+        
+        assertEquals(3, storiesArray.length, "Should have 3 stories");
+        assertEquals(1, storiesArray[0].getPosition(), "First story should have position 1");
+        assertEquals(2, storiesArray[1].getPosition(), "Second story should have position 2");
+        assertEquals(3, storiesArray[2].getPosition(), "Third story should have position 3");
+    }
+
+    @Test
+    @DisplayName("Should sort stories with null column by position")
+    void testFindByNullColumnSorting() {
+        Story story1 = new Story();
+        story1.setTitle("Story 1");
+        story1.setColumnId(null);
+        story1.setPosition(5);
+        storyRepo.persist(story1);
+        
+        Story story2 = new Story();
+        story2.setTitle("Story 2");
+        story2.setColumnId(null);
+        story2.setPosition(2);
+        storyRepo.persist(story2);
+        
+        Story story3 = new Story();
+        story3.setTitle("Story 3");
+        story3.setColumnId(null);
+        story3.setPosition(3);
+        storyRepo.persist(story3);
+        
+        Collection<Story> stories = storyRepo.findByColumn(null);
+        Story[] storiesArray = stories.toArray(new Story[0]);
+        
+        assertEquals(3, storiesArray.length, "Should have 3 stories");
+        assertEquals(2, storiesArray[0].getPosition(), "First story should have position 2");
+        assertEquals(3, storiesArray[1].getPosition(), "Second story should have position 3");
+        assertEquals(5, storiesArray[2].getPosition(), "Third story should have position 5");
+    }
+
+    @Test
+    @DisplayName("Should initialize work logs list when adding to story without work logs")
+    void testAddWorkLogInitializesList() {
+        // Create a fresh story without using testStory which might have been modified
+        Story freshStory = new Story();
+        freshStory.setTitle("Fresh Story");
+        freshStory.setDescription("No work logs yet");
+        storyRepo.persist(freshStory);
+        long storyId = freshStory.getId();
+        
+        // Ensure story has no work logs initially by checking directly after persist
+        // Note: Story entity might initialize workLogs to empty list in constructor
+        Story story = storyRepo.find(storyId);
+        boolean initiallyEmpty = story.getWorkLogs() == null || story.getWorkLogs().isEmpty();
+        assertTrue(initiallyEmpty, "Work logs should be null or empty initially");
+        
+        WorkLog workLog = new WorkLog(1L, LocalDateTime.now(), 1L, storyId);
+        workLog.setDuration(3600L);
+        
+        storyRepo.addWorkLog(storyId, workLog);
+        
+        Story found = storyRepo.find(storyId);
+        assertNotNull(found.getWorkLogs(), "Work logs should be initialized");
+        assertEquals(1, found.getWorkLogs().size(), "Should have 1 work log");
+        assertEquals(workLog, found.getWorkLogs().get(0), "Work log should match");
+    }
+
+    @Test
+    @DisplayName("Should remove specific work log by ID")
+    void testRemoveWorkLogById() {
+        storyRepo.persist(testStory);
+        long storyId = testStory.getId();
+        
+        WorkLog workLog1 = new WorkLog(10L, LocalDateTime.now(), 1L, storyId);
+        WorkLog workLog2 = new WorkLog(20L, LocalDateTime.now(), 1L, storyId);
+        WorkLog workLog3 = new WorkLog(30L, LocalDateTime.now(), 1L, storyId);
+        
+        storyRepo.addWorkLog(storyId, workLog1);
+        storyRepo.addWorkLog(storyId, workLog2);
+        storyRepo.addWorkLog(storyId, workLog3);
+        
+        assertEquals(3, storyRepo.find(storyId).getWorkLogs().size(), "Should have 3 work logs");
+        
+        storyRepo.removeWorkLog(storyId, 20L);
+        
+        Story found = storyRepo.find(storyId);
+        assertEquals(2, found.getWorkLogs().size(), "Should have 2 work logs remaining");
+        assertTrue(found.getWorkLogs().stream().anyMatch(wl -> wl.getId() == 10L), "Should contain work log 10");
+        assertTrue(found.getWorkLogs().stream().anyMatch(wl -> wl.getId() == 30L), "Should contain work log 30");
+        assertFalse(found.getWorkLogs().stream().anyMatch(wl -> wl.getId() == 20L), "Should not contain work log 20");
+    }
+
+    @Test
+    @DisplayName("Should find and stop specific work log by ID")
+    void testStopTimerFindsCorrectWorkLog() {
+        storyRepo.persist(testStory);
+        long storyId = testStory.getId();
+        
+        WorkLog workLog1 = storyRepo.startTimer(storyId, 1L);
+        WorkLog workLog2 = storyRepo.startTimer(storyId, 1L);
+        WorkLog workLog3 = storyRepo.startTimer(storyId, 1L);
+        
+        assertNotNull(workLog1, "First work log should be created");
+        assertNotNull(workLog2, "Second work log should be created");
+        assertNotNull(workLog3, "Third work log should be created");
+        
+        // Stop the second work log
+        WorkLog stopped = storyRepo.stopTimer(storyId, workLog2.getId());
+        
+        assertNotNull(stopped, "Should find and return the work log");
+        assertEquals(workLog2.getId(), stopped.getId(), "Should stop the correct work log");
+    }
+
+    @Test
+    @DisplayName("Should call stopTimer on work log when stopping")
+    void testStopTimerCallsStopOnWorkLog() {
+        storyRepo.persist(testStory);
+        long storyId = testStory.getId();
+        
+        WorkLog workLog = storyRepo.startTimer(storyId, 1L);
+        assertNotNull(workLog, "Work log should be created");
+        assertNull(workLog.getEnd(), "End time should be null initially");
+        
+        // Wait a tiny bit to ensure duration is non-zero
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            // Ignore
+        }
+        
+        WorkLog stopped = storyRepo.stopTimer(storyId, workLog.getId());
+        
+        assertNotNull(stopped, "Work log should be found");
+        assertNotNull(stopped.getEnd(), "End time should be set after stopping");
+        assertTrue(stopped.getDuration() >= 0, "Duration should be calculated");
+    }
+
+    @Test
+    @DisplayName("Should return null when stopping timer for non-existent work log")
+    void testStopTimerNonExistentWorkLog() {
+        storyRepo.persist(testStory);
+        long storyId = testStory.getId();
+        
+        WorkLog workLog = storyRepo.startTimer(storyId, 1L);
+        assertNotNull(workLog, "Work log should be created");
+        
+        WorkLog stopped = storyRepo.stopTimer(storyId, 999L);
+        
+        assertNull(stopped, "Should return null for non-existent work log ID");
+    }
 }

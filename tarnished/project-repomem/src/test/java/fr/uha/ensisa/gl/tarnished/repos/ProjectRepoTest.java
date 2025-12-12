@@ -190,4 +190,30 @@ public class ProjectRepoTest {
         assertTrue(p2.getId() > p1.getId());
         assertEquals(p1.getId() + 1, p2.getId());
     }
+
+    @Test
+    void testDefaultColumnsHaveZeroMaxCapacity() {
+        // Use a real ColumnRepo to verify actual capacity values
+        ColumnRepo realColumnRepo = new fr.uha.ensisa.gl.tarnished.mems.ColumnRepoMem();
+        repo.setColumnRepo(realColumnRepo);
+        
+        Project p = new Project();
+        p.setName("Test Project");
+        repo.persist(p);
+        
+        // Find all columns for this project
+        java.util.Collection<Column> columns = realColumnRepo.findByProject((long) p.getId());
+        
+        assertEquals(5, columns.size(), "Should have 5 default columns");
+        
+        // Verify each column has maxCapacity of exactly 0
+        for (Column column : columns) {
+            assertEquals(0, column.getMaxCapacity(), 
+                "Column " + column.getName() + " should have maxCapacity of exactly 0");
+            assertNotEquals(1, column.getMaxCapacity(), 
+                "Column " + column.getName() + " should not have maxCapacity of 1");
+            assertNotEquals(-1, column.getMaxCapacity(), 
+                "Column " + column.getName() + " should not have maxCapacity of -1");
+        }
+    }
 }

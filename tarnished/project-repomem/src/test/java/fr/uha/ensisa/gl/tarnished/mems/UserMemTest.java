@@ -114,4 +114,71 @@ public class UserMemTest {
         User found = userMem.find(999);
         assertNull(found);
     }
+
+    @Test
+    public void testFindReturnsCorrectUser() {
+        UserRepoMem userMem = new UserRepoMem();
+
+        User user1 = new User();
+        user1.setEmail("user1@ex.com");
+        userMem.add(user1);
+
+        User user2 = new User();
+        user2.setEmail("user2@ex.com");
+        userMem.add(user2);
+
+        User user3 = new User();
+        user3.setEmail("user3@ex.com");
+        userMem.add(user3);
+
+        // Find specific user by ID
+        User found = userMem.find(user2.getId());
+        assertNotNull(found);
+        assertEquals(user2.getId(), found.getId());
+        assertEquals("user2@ex.com", found.getEmail());
+    }
+
+    @Test
+    public void testGetReturnsCorrectUserByEmail() {
+        UserRepoMem userMem = new UserRepoMem();
+
+        User user1 = new User();
+        user1.setEmail("alice@ex.com");
+        userMem.add(user1);
+
+        User user2 = new User();
+        user2.setEmail("bob@ex.com");
+        userMem.add(user2);
+
+        User user3 = new User();
+        user3.setEmail("charlie@ex.com");
+        userMem.add(user3);
+
+        // Get specific user by email
+        User found = userMem.get("bob@ex.com");
+        assertNotNull(found);
+        assertEquals("bob@ex.com", found.getEmail());
+        assertEquals(user2.getId(), found.getId());
+    }
+
+    @Test
+    public void testAddAutoIncrementsId() {
+        UserRepoMem userMem = new UserRepoMem();
+
+        User user1 = new User();
+        user1.setEmail("user1@ex.com");
+        userMem.add(user1);
+
+        User user2 = new User();
+        user2.setEmail("user2@ex.com");
+        userMem.add(user2);
+
+        User user3 = new User();
+        user3.setEmail("user3@ex.com");
+        userMem.add(user3);
+
+        // Verify exact incrementation
+        assertEquals(user1.getId() + 1, user2.getId(), "Second ID must be exactly first ID + 1");
+        assertEquals(user2.getId() + 1, user3.getId(), "Third ID must be exactly second ID + 1");
+    }
 }

@@ -378,4 +378,63 @@ class ColumnRepoMemTest {
 
         assertFalse(repo.isColumnFull((long) column.getId()));
     }
+
+    @Test
+    void testMoveStoryBetweenColumnsWithMaxCapacityZero() {
+        // Test boundary condition: maxCapacity = 0 (unlimited)
+        Column columnFrom = new Column();
+        columnFrom.setId(1);
+        columnFrom.setMaxCapacity(5);
+        repo.persist(columnFrom);
+
+        Column columnTo = new Column();
+        columnTo.setId(2);
+        columnTo.setMaxCapacity(0); // Unlimited capacity
+        repo.persist(columnTo);
+
+        Story story = new Story();
+        story.setId(10);
+
+        // Mock story and column stories
+        List<Story> existingStories = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            Story s = new Story();
+            s.setId(i);
+            existingStories.add(s);
+        }
+
+        Mockito.when(storyRepo.find(10L)).thenReturn(story);
+        Mockito.when(storyRepo.findByColumn(2L)).thenReturn(existingStories);
+
+        // Should succeed even with 100 stories because maxCapacity is 0 (unlimited)
+        repo.moveStoryBetweenColumns(10L, 1L, 2L);
+
+        Mockito.verify(storyRepo).moveToColumn(10L, 2L);
+    }
+
+    @Test
+    void testMoveStoryBetweenColumnsWithMaxCapacityOne() {
+        // Test boundary condition: maxCapacity = 1 (exactly at boundary)
+        Column columnFrom = new Column();
+        columnFrom.setId(1);
+        columnFrom.setMaxCapacity(5);
+        repo.persist(columnFrom);
+
+        Column columnTo = new Column();
+        columnTo.setId(2);
+        columnTo.setMaxCapacity(1); // Exactly 1
+        repo.persist(columnTo);
+
+        Story story = new Story();
+        story.setId(10);
+
+        // Empty target column
+        Mockito.when(storyRepo.find(10L)).thenReturn(story);
+        Mockito.when(storyRepo.findByColumn(2L)).thenReturn(new ArrayList<>());
+
+        // Should succeed because target is empty and capacity is 1
+        repo.moveStoryBetweenColumns(10L, 1L, 2L);
+
+        Mockito.verify(storyRepo).moveToColumn(10L, 2L);
+    }
 }
