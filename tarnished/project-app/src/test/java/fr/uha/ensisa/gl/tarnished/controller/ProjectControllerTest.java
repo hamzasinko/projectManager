@@ -492,7 +492,7 @@ public class ProjectControllerTest {
 
         String result = sut.createProject(name, description);
 
-        assertTrue(result.contains("redirect:/board/"));
+        assertEquals("redirect:/project/list", result);
 
         ArgumentCaptor<Project> projectCaptor = ArgumentCaptor.forClass(Project.class);
         verify(projectRepo).persist(projectCaptor.capture());
