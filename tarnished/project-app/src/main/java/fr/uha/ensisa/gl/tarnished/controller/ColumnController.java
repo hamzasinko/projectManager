@@ -38,6 +38,7 @@ public class ColumnController {
     public String createColumn(@RequestParam String name,
                                @RequestParam int order,
                                @RequestParam int limit,
+                               @RequestParam(required = false, defaultValue = "false") boolean hasSubColumns,
                                @RequestParam(required = false) Long projectId) {
         ColumnRepo columnRepo = repoFactory.getColumnRepo();
         
@@ -50,6 +51,7 @@ public class ColumnController {
         column.setName(name);
         column.setPosition(order);
         column.setMaxCapacity(limit);
+        column.setHasSubColumns(hasSubColumns);
         column.setStories(new ArrayList<>());
         
         if (projectId != null) {

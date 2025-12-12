@@ -164,17 +164,13 @@ public class StoryTest {
     }
 
     @Test
-    @DisplayName("Should remove work log successfully")
-    void testRemoveWorkLog() {
-        WorkLog log = new WorkLog();
-        log.setId(1);
-        log.setDuration(30);
-        List<WorkLog> modifiedWorkLogs = sut.getWorkLogs();
-        modifiedWorkLogs.add(log);
-        modifiedWorkLogs.remove(0);
-        sut.setWorkLogs(modifiedWorkLogs);
-        
-        assertEquals(0, sut.getWorkLogs().size(), "Work logs should be empty after removal");
+    @DisplayName("Should ignore removal when list is null")
+    void testRemoveWorkLogNullList() {
+        sut.setWorkLogs(null);
+
+        sut.removeWorkLog(99);
+
+        assertNull(sut.getWorkLogs());
     }
 
     @Test
@@ -287,9 +283,76 @@ public class StoryTest {
         workLogs.add(workLog2);
         
         sut.setWorkLogs(workLogs);
-        
-        long totalTime = sut.getWorkLogs().stream().mapToLong(WorkLog::getDuration).sum();
-        
-        assertEquals(75, totalTime);
+
+        sut.calculateTotalTime();
+
+        assertEquals(75, sut.getTotalTimeSpent());
+    }
+
+    @Test
+    @DisplayName("Should add work log and initialize list when null")
+    void testAddWorkLogInitializesList() {
+        sut.setWorkLogs(null);
+        WorkLog workLog = new WorkLog();
+        workLog.setDuration(15);
+
+        sut.addWorkLog(workLog);
+
+        assertEquals(1, sut.getWorkLogs().size());
+        assertEquals(15, sut.getTotalTimeSpent());
+    }
+
+    @Test
+    @DisplayName("Should remove work log by id and recalculate total time")
+    void testRemoveWorkLog() {
+        WorkLog first = new WorkLog();
+        first.setId(1);
+        first.setDuration(20);
+        WorkLog second = new WorkLog();
+        second.setId(2);
+        second.setDuration(10);
+
+        sut.addWorkLog(first);
+        sut.addWorkLog(second);
+
+        sut.removeWorkLog(1);
+
+        assertEquals(1, sut.getWorkLogs().size());
+        assertEquals(10, sut.getTotalTimeSpent());
+    }
+
+    @Test
+    @DisplayName("Should calculate total time to zero when workLogs is null")
+    void testCalculateTotalTimeNullSafe() {
+        sut.setWorkLogs(null);
+
+        sut.calculateTotalTime();
+
+        assertEquals(0, sut.getTotalTimeSpent());
+    }
+
+    @Test
+    @DisplayName("Should return running work log when available")
+    void testGetRunningWorkLog() {
+        WorkLog stopped = new WorkLog();
+        stopped.setId(1);
+        stopped.stopTimer();
+
+        WorkLog running = new WorkLog();
+        running.setId(2);
+
+        sut.addWorkLog(stopped);
+        sut.addWorkLog(running);
+
+        WorkLog result = sut.getRunningWorkLog();
+
+        assertNotNull(result);
+        assertEquals(2, result.getId());
+    }
+
+    @Test
+    @DisplayName("Should return null when no running work log exists")
+    void testGetRunningWorkLogEmpty() {
+        assertNull(sut.getRunningWorkLog());
     }
 }

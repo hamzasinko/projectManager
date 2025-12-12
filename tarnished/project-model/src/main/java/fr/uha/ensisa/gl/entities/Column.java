@@ -21,6 +21,8 @@ public class Column {
 
     private int maxCapacity;
 
+    private boolean hasSubColumns;
+
     private Project project;
 
     private List<Story> stories;

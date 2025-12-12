@@ -110,8 +110,6 @@ public class ColumnRepoMem implements ColumnRepo {
             }
         }
         
-        // Simply update the story's columnId - don't touch column.stories lists
-        // They will be refreshed by BoardController when the page is loaded/displayed
         if (storyRepo != null) {
             storyRepo.moveToColumn(storyId, toColumnId);
         }

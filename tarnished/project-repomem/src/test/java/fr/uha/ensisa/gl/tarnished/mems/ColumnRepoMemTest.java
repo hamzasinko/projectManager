@@ -40,6 +40,28 @@ class ColumnRepoMemTest {
         assertNotNull(found);
         assertEquals("To Do", found.getName());
     }
+    
+    @Test
+    void testPersistAssignsIncrementingIds() {
+        Column col1 = new Column();
+        col1.setName("Column 1");
+        repo.persist(col1);
+        long id1 = col1.getId();
+        
+        Column col2 = new Column();
+        col2.setName("Column 2");
+        repo.persist(col2);
+        long id2 = col2.getId();
+        
+        Column col3 = new Column();
+        col3.setName("Column 3");
+        repo.persist(col3);
+        long id3 = col3.getId();
+        
+        // IDs must increment by exactly 1
+        assertEquals(id1 + 1, id2, "Second ID should be first ID + 1");
+        assertEquals(id2 + 1, id3, "Third ID should be second ID + 1");
+    }
 
     @Test
     void testFindAll() {
@@ -132,19 +154,103 @@ class ColumnRepoMemTest {
 
         long id = column.getId();
 
+        // Empty column is not full
         assertFalse(repo.isColumnFull(id));
 
+        // One story, not full yet
         Story s1 = new Story();
         s1.setId(1);
         column.getStories().add(s1);
         assertFalse(repo.isColumnFull(id));
 
+        // Exactly at capacity, should be full
         Story s2 = new Story();
         s2.setId(2);
         column.getStories().add(s2);
         assertTrue(repo.isColumnFull(id));
+        
+        // More than capacity, still full
+        Story s3 = new Story();
+        s3.setId(3);
+        column.getStories().add(s3);
+        assertTrue(repo.isColumnFull(id));
+    }
+    
+    @Test
+    void testIsColumnFullWithNoLimit() {
+        Column column = new Column();
+        column.setMaxCapacity(0); // No limit
+        column.setStories(new ArrayList<>());
+        repo.persist(column);
+        
+        long id = column.getId();
+        
+        // With maxCapacity = 0, column is never full
+        assertFalse(repo.isColumnFull(id));
+        
+        for (int i = 0; i < 100; i++) {
+            Story s = new Story();
+            s.setId(i);
+            column.getStories().add(s);
+        }
+        
+        // Still not full even with 100 stories
+        assertFalse(repo.isColumnFull(id));
+    }
+    
+    @Test
+    void testIsColumnFullWithNullColumn() {
+        // Non-existent column should not be full
+        assertFalse(repo.isColumnFull(999L));
+    }
+    
+    @Test
+    void testIsColumnFullWithNullStories() {
+        Column column = new Column();
+        column.setMaxCapacity(5);
+        column.setStories(null); // Null stories list
+        repo.persist(column);
+        
+        long id = column.getId();
+        
+        // Null stories is treated as empty, so not full
+        assertFalse(repo.isColumnFull(id));
     }
 
+    @Test
+    void testCanAcceptStory() {
+        Column column = new Column();
+        column.setMaxCapacity(1);
+        column.setStories(new ArrayList<>());
+        repo.persist(column);
+        
+        long id = column.getId();
+        
+        // Empty column can accept story
+        assertTrue(repo.canAcceptStory(id));
+        
+        // Add one story
+        Story s1 = new Story();
+        s1.setId(1);
+        column.getStories().add(s1);
+        
+        // Full column cannot accept story
+        assertFalse(repo.canAcceptStory(id));
+    }
+    
+    @Test
+    void testCanAcceptStoryWithNoLimit() {
+        Column column = new Column();
+        column.setMaxCapacity(0); // No limit
+        column.setStories(new ArrayList<>());
+        repo.persist(column);
+        
+        long id = column.getId();
+        
+        // Can always accept story when no limit
+        assertTrue(repo.canAcceptStory(id));
+    }
+    
     @Test
     void testMoveStoryBetweenColumnsSuccess() {
         Column col1 = new Column();
@@ -190,5 +296,145 @@ class ColumnRepoMemTest {
         Mockito.when(storyRepo.findByColumn(2L)).thenReturn(List.of(s2));
 
         assertThrows(IllegalStateException.class, () -> repo.moveStoryBetweenColumns(1L, 1L, 2L));
+    }
+
+    @Test
+    void testAddStoryToColumn() {
+        Column column = new Column();
+        column.setId(1);
+        column.setMaxCapacity(5);
+        column.setStories(new ArrayList<>());
+        repo.persist(column);
+
+        Story story = new Story();
+        story.setId(10);
+        Mockito.when(storyRepo.find(10L)).thenReturn(story);
+
+        repo.addStoryToColumn(10L, 1L);
+
+        Mockito.verify(storyRepo).moveToColumn(10L, 1L);
+    }
+
+    @Test
+    void testAddStoryToColumnFull() {
+        Column column = new Column();
+        column.setId(1);
+        column.setMaxCapacity(1);
+        column.setStories(new ArrayList<>());
+        Story existingStory = new Story();
+        existingStory.setId(5);
+        column.getStories().add(existingStory);
+        repo.persist(column);
+
+        assertThrows(IllegalStateException.class, () -> repo.addStoryToColumn(10L, 1L));
+    }
+
+    @Test
+    void testAddStoryToColumnNullColumn() {
+        repo.addStoryToColumn(10L, 999L); // Non-existent column
+        // Should not throw, just do nothing
+    }
+
+    @Test
+    void testRemoveStoryFromColumn() {
+        repo.removeStoryFromColumn(10L, 1L);
+        Mockito.verify(storyRepo).moveToColumn(10L, null);
+    }
+
+    @Test
+    void testMoveStoryBetweenColumnsNullTarget() {
+        repo.moveStoryBetweenColumns(10L, 1L, null);
+        Mockito.verify(storyRepo).moveToColumn(10L, null);
+    }
+
+    @Test
+    void testMoveStoryBetweenColumnsNullStoryRepo() {
+        repo.setStoryRepo(null);
+        Column col1 = new Column();
+        col1.setId(1);
+        repo.persist(col1);
+
+        Column col2 = new Column();
+        col2.setId(2);
+        repo.persist(col2);
+
+        // Should not throw when storyRepo is null
+        repo.moveStoryBetweenColumns(10L, 1L, 2L);
+    }
+
+    @Test
+    void testIsColumnFullNullColumn() {
+        assertFalse(repo.isColumnFull(999L));
+    }
+
+    @Test
+    void testIsColumnFullNullStories() {
+        Column column = new Column();
+        column.setName("Done");
+        column.setPosition(3);
+        column.setMaxCapacity(2);
+        column.setStories(null);
+        repo.persist(column);
+
+        assertFalse(repo.isColumnFull((long) column.getId()));
+    }
+
+    @Test
+    void testMoveStoryBetweenColumnsWithMaxCapacityZero() {
+        // Test boundary condition: maxCapacity = 0 (unlimited)
+        Column columnFrom = new Column();
+        columnFrom.setId(1);
+        columnFrom.setMaxCapacity(5);
+        repo.persist(columnFrom);
+
+        Column columnTo = new Column();
+        columnTo.setId(2);
+        columnTo.setMaxCapacity(0); // Unlimited capacity
+        repo.persist(columnTo);
+
+        Story story = new Story();
+        story.setId(10);
+
+        // Mock story and column stories
+        List<Story> existingStories = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            Story s = new Story();
+            s.setId(i);
+            existingStories.add(s);
+        }
+
+        Mockito.when(storyRepo.find(10L)).thenReturn(story);
+        Mockito.when(storyRepo.findByColumn(2L)).thenReturn(existingStories);
+
+        // Should succeed even with 100 stories because maxCapacity is 0 (unlimited)
+        repo.moveStoryBetweenColumns(10L, 1L, 2L);
+
+        Mockito.verify(storyRepo).moveToColumn(10L, 2L);
+    }
+
+    @Test
+    void testMoveStoryBetweenColumnsWithMaxCapacityOne() {
+        // Test boundary condition: maxCapacity = 1 (exactly at boundary)
+        Column columnFrom = new Column();
+        columnFrom.setId(1);
+        columnFrom.setMaxCapacity(5);
+        repo.persist(columnFrom);
+
+        Column columnTo = new Column();
+        columnTo.setId(2);
+        columnTo.setMaxCapacity(1); // Exactly 1
+        repo.persist(columnTo);
+
+        Story story = new Story();
+        story.setId(10);
+
+        // Empty target column
+        Mockito.when(storyRepo.find(10L)).thenReturn(story);
+        Mockito.when(storyRepo.findByColumn(2L)).thenReturn(new ArrayList<>());
+
+        // Should succeed because target is empty and capacity is 1
+        repo.moveStoryBetweenColumns(10L, 1L, 2L);
+
+        Mockito.verify(storyRepo).moveToColumn(10L, 2L);
     }
 }

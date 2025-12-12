@@ -26,8 +26,8 @@
   <!-- Project Info Card -->
   <div class="card">
     <div class="card-body">
-      <h3 class="card-title" th:text="${project.name}">Project Name</h3>
-      <p class="card-text" th:text="${project.description}">Project Description</p>
+      <h3 id="projectNameInfo" class="card-title" th:text="${project.name}">Project Name</h3>
+      <p id="projectDescriptionInfo" class="card-text" th:text="${project.description}">Project Description</p>
       <p>Date Started: <span th:text="${#dates.format(project.dateStarted, 'yyyy-MM-dd')}">Start Date</span></p>
       <p>Owner: <span th:text="${project.owner.name}">Owner Name</span></p>
       <p>Members:
