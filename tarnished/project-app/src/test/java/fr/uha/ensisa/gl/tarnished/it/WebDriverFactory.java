@@ -31,9 +31,22 @@ public class WebDriverFactory {
             options.addArguments("--disable-gpu");
             options.addArguments("--window-size=1920,1080");
             options.addArguments("--disable-extensions");
-            options.addArguments("--proxy-server='direct://'");
-            options.addArguments("--proxy-bypass-list=*");
-            options.addArguments("--start-maximized");
+            options.addArguments("--disable-software-rasterizer");
+            options.addArguments("--disable-setuid-sandbox");
+            options.addArguments("--remote-debugging-port=9222");
+            options.addArguments("--disable-background-timer-throttling");
+            options.addArguments("--disable-backgrounding-occluded-windows");
+            options.addArguments("--disable-breakpad");
+            options.addArguments("--disable-component-extensions-with-background-pages");
+            options.addArguments("--disable-features=TranslateUI,BlinkGenPropertyTrees");
+            options.addArguments("--disable-ipc-flooding-protection");
+            options.addArguments("--disable-renderer-backgrounding");
+            options.addArguments("--enable-features=NetworkService,NetworkServiceInProcess");
+            options.addArguments("--force-color-profile=srgb");
+            options.addArguments("--hide-scrollbars");
+            options.addArguments("--metrics-recording-only");
+            options.addArguments("--mute-audio");
+            options.setAcceptInsecureCerts(true);
             System.out.println("[WebDriverFactory] Running in CI/CD mode (headless)");
         } else {
             System.out.println("[WebDriverFactory] Running in local mode (with display)");

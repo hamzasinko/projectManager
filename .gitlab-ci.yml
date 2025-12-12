@@ -6,12 +6,28 @@ stages:
 build:
   stage: build
   image: maven:3.9.4-eclipse-temurin-17
+  before_script:
+    # Install Chrome and dependencies for Selenium tests
+    - apt-get update -qq
+    - apt-get install -y wget gnupg2 software-properties-common
+    - wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
+    - echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
+    - apt-get update -qq
+    - apt-get install -y google-chrome-stable
+    # Install additional dependencies for headless Chrome
+    - apt-get install -y xvfb libgbm1 libnss3 libnspr4 libasound2 libatk-bridge2.0-0 libatk1.0-0 libcups2 libdbus-1-3 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 fonts-liberation
+    # Verify Chrome installation
+    - google-chrome --version
   script:
     - cd tarnished
     - mvn clean install
   artifacts:
     paths:
       - tarnished/target/*.war
+    reports:
+      junit:
+        - tarnished/project-app/target/surefire-reports/TEST-*.xml
+        - tarnished/project-app/target/failsafe-reports/TEST-*.xml
 
 selenium-tests:
   stage: selenium-test
