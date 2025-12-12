@@ -590,5 +590,107 @@ public class BoardControllerTest {
 
         assertTrue(result.contains("error"));
     }
+
+    @Test
+    void testMoveStoryUpdatesPosition() {
+        Long projectId = 1L;
+        Long storyId = 1L;
+        Long toColumnId = 2L;
+
+        Column targetColumn = new Column();
+        targetColumn.setId(2);
+        targetColumn.setName("IN PROGRESS");
+        targetColumn.setMaxCapacity(0);
+
+        Story story = new Story();
+        story.setId(1);
+        story.setTitle("Test Story");
+        story.setPosition(5);
+
+        when(columnRepo.find(toColumnId)).thenReturn(targetColumn);
+        when(storyRepo.find(storyId)).thenReturn(story);
+        when(storyRepo.findByColumn(toColumnId)).thenReturn(new ArrayList<>());
+
+        String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null);
+
+        assertTrue(result.contains("success"));
+        assertEquals(0, story.getPosition());
+        verify(storyRepo).persist(story);
+    }
+
+    @Test
+    void testMoveStoryToDefaultColumn() {
+        Long projectId = 1L;
+        Long storyId = 1L;
+        Long toColumnId = 2L;
+
+        Column targetColumn = new Column();
+        targetColumn.setId(2);
+        targetColumn.setName("DONE");
+        targetColumn.setMaxCapacity(0);
+
+        Story story = new Story();
+        story.setId(1);
+        story.setTitle("Test Story");
+        story.setStatus(StoryStatus.BACKLOG);
+
+        when(columnRepo.find(toColumnId)).thenReturn(targetColumn);
+        when(storyRepo.find(storyId)).thenReturn(story);
+        when(storyRepo.findByColumn(toColumnId)).thenReturn(new ArrayList<>());
+
+        String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null);
+
+        assertTrue(result.contains("success"));
+        assertEquals(StoryStatus.DONE, story.getStatus());
+        verify(storyRepo).persist(story);
+    }
+
+    @Test
+    void testDeleteColumnDoneNotAllowed() {
+        Long projectId = 1L;
+        Long columnId = 1L;
+
+        Column column = new Column();
+        column.setId(1);
+        column.setName("DONE");
+
+        when(columnRepo.find(columnId)).thenReturn(column);
+
+        String result = controller.deleteColumn(projectId, columnId);
+
+        assertTrue(result.contains("error"));
+        assertTrue(result.contains("Cannot delete"));
+        verify(columnRepo, never()).remove(anyLong());
+    }
+
+    @Test
+    void testReorderColumnsWithoutBacklog() {
+        Long projectId = 1L;
+        String columnOrder = "1,2,3";
+
+        Column col1 = new Column();
+        col1.setId(1);
+        col1.setName("Column 1");
+
+        Column col2 = new Column();
+        col2.setId(2);
+        col2.setName("Column 2");
+
+        Column col3 = new Column();
+        col3.setId(3);
+        col3.setName("Column 3");
+
+        List<Column> allColumns = new ArrayList<>();
+        allColumns.add(col1);
+        allColumns.add(col2);
+        allColumns.add(col3);
+
+        when(columnRepo.findByProject(projectId)).thenReturn(allColumns);
+
+        String result = controller.reorderColumns(projectId, columnOrder);
+
+        assertTrue(result.contains("success"));
+        verify(columnRepo, atLeast(3)).reorder(anyLong(), anyInt());
+    }
 }
 

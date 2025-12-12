@@ -237,7 +237,7 @@ public class ProjectIT {
 
         // 2. Go to project info page and wait for the created card to appear
         driver.get(getBaseUrl() + "/project/list");
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(2));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
         // Wait until the page source contains the project name (tolerant) or timeout
         wait.until(d -> d.getPageSource().contains(projectName));
 

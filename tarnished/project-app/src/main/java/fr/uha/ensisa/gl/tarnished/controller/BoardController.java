@@ -173,7 +173,7 @@ public class BoardController {
             @RequestParam(required = false, defaultValue = "false") boolean hasSubColumns) {
         return addColumn(projectId, name, maxCapacity, hasSubColumns);
     }
-    
+
     /**
      * Crée une nouvelle colonne pour un projet
      */
