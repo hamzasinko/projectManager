@@ -27,7 +27,7 @@ public class StoryIT {
         if (driver != null) return;
         
         host = System.getProperty("host", "localhost");
-        port = System.getProperty("servlet.port", "8090");
+        port = System.getProperty("servlet.port", "8080");
         
         driver = WebDriverFactory.createChromeDriver();
     }
