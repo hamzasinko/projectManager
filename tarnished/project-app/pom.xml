@@ -178,7 +178,7 @@
                         </goals>
                         <configuration>
                             <scanIntervalSeconds>0</scanIntervalSeconds>
-                            <daemon>true</daemon>
+                            <!-- daemon supprimé pour CI -->
                         </configuration>
                     </execution>
                     <execution>
