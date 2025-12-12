@@ -1,17 +1,13 @@
 package fr.uha.ensisa.gl.tarnished.it;
 
+import io.github.bonigarcia.wdm.WebDriverManager;
 import org.junit.jupiter.api.*;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.Select;
-import org.openqa.selenium.support.ui.WebDriverWait;
+import org.openqa.selenium.*;
+import org.openqa.selenium.chrome.*;
+import org.openqa.selenium.support.ui.*;
 
+import java.net.URL;
 import java.time.Duration;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -20,31 +16,54 @@ class ColumnIT {
 
     private static WebDriver driver;
     private static WebDriverWait wait;
-    private static final String BASE_URL = "http://localhost:8080";
+
+    private static String host;
+    private static String port;
+    private static String BASE_URL;
 
     @BeforeAll
-    static void setUpClass() {
+    static void setUp() throws Exception {
+
+        host = System.getProperty("host", "localhost");
+        port = System.getProperty("servlet.port", "8080");
+        BASE_URL = "http://" + host + ":" + port;
+
+        String remote = System.getProperty("selenium.remote.browser");
+
         ChromeOptions options = new ChromeOptions();
-        options.addArguments("--headless");
+        options.addArguments("--remote-allow-origins=*");
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
-        driver = new ChromeDriver(options);
-        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        options.addArguments("--headless=new");  // mode headless compatible GitLab
+
+        if ("true".equalsIgnoreCase(remote)) {
+            System.out.println("Running Selenium in REMOTE mode (GitLab)");
+            driver = new org.openqa.selenium.remote.RemoteWebDriver(
+                    new URL("http://selenium:4444"),
+                    options
+            );
+        } else {
+            System.out.println("Running Selenium in LOCAL mode");
+            WebDriverManager.chromedriver().setup();
+            driver = new ChromeDriver(options);
+        }
+
+        wait = new WebDriverWait(driver, Duration.ofSeconds(8));
     }
 
     @AfterAll
     static void tearDownClass() {
-        if (driver != null) {
-            driver.quit();
-        }
+        if (driver != null) driver.quit();
     }
+
+    // --------------------------------------------------------------------
 
     @Test
     @Order(1)
     void testCreateColumnViaForm() {
         driver.get(BASE_URL + "/columns/create");
 
-        WebElement nameInput = driver.findElement(By.id("column_name"));
+        WebElement nameInput = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("column_name")));
         WebElement orderInput = driver.findElement(By.id("column_order"));
         WebElement limitInput = driver.findElement(By.id("column_limit"));
 
@@ -60,15 +79,19 @@ class ColumnIT {
         assertTrue(driver.getCurrentUrl().contains("/columns"));
     }
 
+    // --------------------------------------------------------------------
+
     @Test
     @Order(2)
     void testEditColumnName() {
         driver.get(BASE_URL + "/columns");
 
-        WebElement editButton = driver.findElement(By.cssSelector("[id^='column_edit_']"));
+        WebElement editButton = wait.until(
+                ExpectedConditions.elementToBeClickable(By.cssSelector("[id^='column_edit_']"))
+        );
         editButton.click();
 
-        WebElement nameInput = driver.findElement(By.id("column_name_edit"));
+        WebElement nameInput = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("column_name_edit")));
         nameInput.clear();
         nameInput.sendKeys("In Progress");
 
@@ -78,6 +101,8 @@ class ColumnIT {
         assertTrue(driver.getCurrentUrl().contains("/columns"));
     }
 
+    // --------------------------------------------------------------------
+
     @Test
     @Order(9)
     void testStopTimerOnStory() {
@@ -86,21 +111,23 @@ class ColumnIT {
         try {
             WebElement stopTimerForm = driver.findElement(By.cssSelector("[id^='timer_stop_']"));
             stopTimerForm.submit();
-
             assertTrue(driver.getCurrentUrl().contains("/stories"));
-        } catch (Exception e) {
-            // Timer might not be running
+        } catch (NoSuchElementException e) {
+            // Aucun timer à stopper → test OK
             assertTrue(true);
         }
     }
+
+    // --------------------------------------------------------------------
 
     @Test
     @Order(10)
     void testDragAndDropColumns() {
         driver.get(BASE_URL + "/columns");
-
         assertTrue(driver.findElement(By.id("column_list")).isDisplayed());
     }
+
+    // --------------------------------------------------------------------
 
     @Test
     @Order(11)
@@ -110,11 +137,12 @@ class ColumnIT {
 
         driver.get(BASE_URL + "/columns/create");
         assertEquals(200, getHttpStatus());
-
-        assertTrue(true);
     }
 
+    // --------------------------------------------------------------------
+
     private int getHttpStatus() {
+        // GitLab CI ne permet pas de faire un vrai request.getStatus()
         return driver.getPageSource().contains("error") ? 404 : 200;
     }
 }
