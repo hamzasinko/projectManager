@@ -47,14 +47,20 @@ unit-test:
 # ============================
 integration-test:
   stage: integration-test
+
   image: maven:3-eclipse-temurin-21-alpine
+
   services:
     - name: selenium/standalone-chrome
       alias: selenium
+
   script:
     - cd tarnished
+    # Build complet sans tests
     - mvn $MAVEN_CLI_OPTS clean install -DskipTests
+    # Lance tests d'intégration avec Selenium remote
     - mvn $MAVEN_CLI_OPTS verify -Dselenium.remote.browser=true -Dsurefire.skip=true
+
   artifacts:
     reports:
       junit:
@@ -64,29 +70,38 @@ integration-test:
       - "tarnished/**/target/*.war"
     expire_in: 1 hour
 
-
-
 # ============================
 # 4️⃣ DEPLOY (Docker via Kaniko)
 # ============================
 deploy-docker:
   stage: deploy
+
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
+
   needs:
     - job: integration-test
       artifacts: true
+
   rules:
     - if: '$CI_COMMIT_REF_NAME == "main"'
     - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'
+
   script:
     - cd tarnished
     - WARFILE=$(find project-app/target -name "*.war" | head -n 1)
     - if [ -z "$WARFILE" ]; then echo "❌ Aucun WAR trouvé !"; exit 1; fi
+
+    # Auth Docker GitLab
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+
+    # Dockerfile dynamique
     - |
       echo "FROM jetty:11.0-jre17
       EXPOSE 8080
       ADD $WARFILE /var/lib/jetty/webapps/tarnished.war" > Dockerfile
+
+    # Build & push image
     - /kaniko/executor --cleanup --context $CI_PROJECT_DIR --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME"
+
