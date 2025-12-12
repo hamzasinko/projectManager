@@ -10,12 +10,15 @@ import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
 import fr.uha.ensisa.gl.tarnished.repos.StoryRepo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -691,6 +694,126 @@ public class BoardControllerTest {
 
         assertTrue(result.contains("success"));
         verify(columnRepo, atLeast(3)).reorder(anyLong(), anyInt());
+    }
+
+    @Test
+    void testAddColumnWithSubColumns() {
+        Long projectId = 1L;
+        String columnName = "Testing";
+        int maxCapacity = 5;
+        boolean hasSubColumns = true;
+
+        Project project = new Project();
+        project.setId(1);
+
+        when(projectRepo.find(projectId)).thenReturn(project);
+        when(columnRepo.findByProject(projectId)).thenReturn(List.of());
+
+        String result = controller.addColumn(projectId, columnName, maxCapacity, hasSubColumns);
+
+        assertEquals("redirect:/board/" + projectId, result);
+
+        ArgumentCaptor<Column> captor = ArgumentCaptor.forClass(Column.class);
+        verify(columnRepo).persist(captor.capture());
+
+        Column captured = captor.getValue();
+        assertEquals(columnName, captured.getName());
+        assertEquals(maxCapacity, captured.getMaxCapacity());
+        assertTrue(captured.isHasSubColumns());
+    }
+
+    @Test
+    void testShowBoardWithSubColumnsInProgress() {
+        Long projectId = 1L;
+
+        Project project = new Project();
+        project.setId(1);
+
+        Column inProgressCol = new Column();
+        inProgressCol.setId(2);
+        inProgressCol.setName("IN PROGRESS");
+        inProgressCol.setHasSubColumns(true);
+
+        when(projectRepo.find(projectId)).thenReturn(project);
+        when(columnRepo.findByProject(projectId)).thenReturn(List.of(inProgressCol));
+        when(storyRepo.findByColumn(2L)).thenReturn(List.of());
+
+        ModelAndView mav = controller.showBoard(projectId);
+
+        assertEquals("board", mav.getViewName());
+        Collection<Column> columns = (Collection<Column>) mav.getModel().get("columns");
+        assertNotNull(columns);
+        assertTrue(columns.stream().anyMatch(c -> c.isHasSubColumns()));
+    }
+
+    @Test
+    void testMoveStoryToBlockedColumn() {
+        Long projectId = 1L;
+        Long storyId = 10L;
+        Long blockedColumnId = 5L;
+
+        Column blockedColumn = new Column();
+        blockedColumn.setId(5);
+        blockedColumn.setName("BLOCKED");
+        blockedColumn.setMaxCapacity(0);
+
+        Story story = new Story();
+        story.setId(10);
+        story.setStatus(StoryStatus.IN_PROGRESS);
+
+        when(columnRepo.find(blockedColumnId)).thenReturn(blockedColumn);
+        when(storyRepo.find(storyId)).thenReturn(story);
+        when(storyRepo.findByColumn(blockedColumnId)).thenReturn(new ArrayList<>());
+
+        String result = controller.moveStory(projectId, storyId, blockedColumnId, null, null, null);
+
+        assertTrue(result.contains("success"));
+        assertEquals(StoryStatus.BLOCKED, story.getStatus());
+        verify(storyRepo).persist(story);
+    }
+
+    @Test
+    void testReorderStoriesWithEmptyOrder() {
+        Long projectId = 1L;
+        Long columnId = 1L;
+        String storyOrder = "";
+
+        String result = controller.reorderStories(projectId, columnId, storyOrder);
+
+        assertTrue(result.contains("success"));
+        verify(storyRepo, never()).persist(any(Story.class));
+    }
+
+    @Test
+    void testMoveAllStoriesToDifferentColumn() {
+        Long projectId = 1L;
+        Long fromColumnId = 1L;
+        Long toColumnId = 2L;
+
+        Story story1 = new Story();
+        story1.setId(1);
+        story1.setColumnId(fromColumnId);
+
+        Story story2 = new Story();
+        story2.setId(2);
+        story2.setColumnId(fromColumnId);
+
+        Column fromColumn = new Column();
+        fromColumn.setId(1);
+
+        Column toColumn = new Column();
+        toColumn.setId(2);
+
+        when(columnRepo.find(fromColumnId)).thenReturn(fromColumn);
+        when(columnRepo.find(toColumnId)).thenReturn(toColumn);
+        when(storyRepo.findByColumn(fromColumnId)).thenReturn(Arrays.asList(story1, story2));
+
+        String result = controller.moveAllStories(projectId, fromColumnId, toColumnId);
+
+        assertEquals("success", result);
+        verify(storyRepo, times(2)).persist(any(Story.class));
+        assertEquals(toColumnId, story1.getColumnId());
+        assertEquals(toColumnId, story2.getColumnId());
     }
 }
 

@@ -445,4 +445,60 @@ public class ProjectControllerTest {
         assertEquals("redirect:/project/list", mav.getViewName());
     }
 
+    @Test
+    @DisplayName("deleteProject should delete stories and columns before project")
+    void testDeleteProjectWithStoriesAndColumns() {
+        long projectId = 1L;
+
+        fr.uha.ensisa.gl.entities.Story story1 = new fr.uha.ensisa.gl.entities.Story();
+        story1.setId(10);
+        fr.uha.ensisa.gl.entities.Story story2 = new fr.uha.ensisa.gl.entities.Story();
+        story2.setId(20);
+
+        fr.uha.ensisa.gl.entities.Column col1 = new fr.uha.ensisa.gl.entities.Column();
+        col1.setId(1);
+        fr.uha.ensisa.gl.entities.Column col2 = new fr.uha.ensisa.gl.entities.Column();
+        col2.setId(2);
+
+        fr.uha.ensisa.gl.tarnished.repos.StoryRepo mockStoryRepo = mock(fr.uha.ensisa.gl.tarnished.repos.StoryRepo.class);
+        fr.uha.ensisa.gl.tarnished.repos.ColumnRepo mockColumnRepo = mock(fr.uha.ensisa.gl.tarnished.repos.ColumnRepo.class);
+
+        when(repoFactory.getStoryRepo()).thenReturn(mockStoryRepo);
+        when(repoFactory.getColumnRepo()).thenReturn(mockColumnRepo);
+        when(mockStoryRepo.findByProject(projectId)).thenReturn(List.of(story1, story2));
+        when(mockColumnRepo.findByProject(projectId)).thenReturn(List.of(col1, col2));
+
+        String result = sut.deleteProject(projectId);
+
+        assertEquals("redirect:/project/list", result);
+        verify(mockStoryRepo).remove(10L);
+        verify(mockStoryRepo).remove(20L);
+        verify(mockColumnRepo).remove(1L);
+        verify(mockColumnRepo).remove(2L);
+        verify(projectRepo).remove(projectId);
+    }
+
+    @Test
+    @DisplayName("createProject should set owner when provided")
+    void testCreateProjectWithOwner() throws IOException {
+        String name = "Test Project";
+        String description = "Description";
+
+        User owner = new User();
+        owner.setId(1);
+        owner.setName("Owner");
+
+        when(userRepo.getAll()).thenReturn(List.of(owner));
+
+        String result = sut.createProject(name, description);
+
+        assertTrue(result.contains("redirect:/board/"));
+
+        ArgumentCaptor<Project> projectCaptor = ArgumentCaptor.forClass(Project.class);
+        verify(projectRepo).persist(projectCaptor.capture());
+
+        Project captured = projectCaptor.getValue();
+        assertNotNull(captured.getOwner());
+    }
+
 }
