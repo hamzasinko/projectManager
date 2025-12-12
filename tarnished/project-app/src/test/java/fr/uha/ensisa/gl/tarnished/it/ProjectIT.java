@@ -30,8 +30,7 @@ public class ProjectIT {
         host = System.getProperty("host", "localhost");
         port = System.getProperty("servlet.port", "8090");
         
-        WebDriverManager.chromedriver().setup();
-        driver = new ChromeDriver();
+        driver = WebDriverFactory.createChromeDriver();
     }
     
     @AfterAll

@@ -24,11 +24,7 @@ class ColumnIT {
 
     @BeforeAll
     static void setUpClass() {
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--headless");
-        options.addArguments("--no-sandbox");
-        options.addArguments("--disable-dev-shm-usage");
-        driver = new ChromeDriver(options);
+        driver = WebDriverFactory.createChromeDriver();
         wait = new WebDriverWait(driver, Duration.ofSeconds(2));
     }
 

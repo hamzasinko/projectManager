@@ -26,12 +26,7 @@ class WorkLogIT {
 
     @BeforeAll
     static void setUpClass() {
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--headless");
-        options.addArguments("--no-sandbox");
-        options.addArguments("--disable-dev-shm-usage");
-        options.addArguments("--window-size=1920,1080");
-        driver = new ChromeDriver(options);
+        driver = WebDriverFactory.createChromeDriver();
         wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         
         // Create test project

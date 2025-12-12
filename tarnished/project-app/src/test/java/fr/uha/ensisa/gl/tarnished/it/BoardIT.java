@@ -35,8 +35,7 @@ public class BoardIT {
         host = System.getProperty("host", "localhost");
         port = System.getProperty("servlet.port", "8090");
         
-        WebDriverManager.chromedriver().setup();
-        driver = new ChromeDriver();
+        driver = WebDriverFactory.createChromeDriver();
         wait = new WebDriverWait(driver, Duration.ofSeconds(2));
         actions = new Actions(driver);
         
