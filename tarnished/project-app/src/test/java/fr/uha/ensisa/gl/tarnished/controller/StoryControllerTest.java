@@ -3,6 +3,7 @@ package fr.uha.ensisa.gl.tarnished.controller;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import fr.uha.ensisa.gl.entities.User;
 import fr.uha.ensisa.gl.tarnished.repos.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -301,26 +302,23 @@ public class StoryControllerTest {
     @Test
     @DisplayName("assignStory should assign user to story and redirect to board")
     public void testAssignStory() throws IOException {
-        // Given
-        long storyId = 1L;
+        int storyId = 1;
         int userId = 10;
-        
-        Story mockStory = mock(Story.class);
-        when(mockStory.getProjectId()).thenReturn(1L);
-        fr.uha.ensisa.gl.entities.User mockUser = mock(fr.uha.ensisa.gl.entities.User.class);
-        
-        when(storyRepo.find(storyId)).thenReturn(mockStory);
-        fr.uha.ensisa.gl.tarnished.repos.UserRepo userRepo = mock(fr.uha.ensisa.gl.tarnished.repos.UserRepo.class);
-        when(repoFactory.getUserRepo()).thenReturn(userRepo);
+
+        Story story = new Story();
+        story.setId(storyId);
+        story.setProjectId(1L);
+
+        User mockUser = mock(User.class);
+
+        when(storyRepo.find(storyId)).thenReturn(story);
         when(userRepo.find(userId)).thenReturn(mockUser);
-        
-        // When
-        String result = sut.assignStory(storyId, userId);
-        
-        // Then
+
+        String result = sut.assignStory((long)storyId, userId);
+
         assertEquals("redirect:/board/1", result);
-        verify(mockStory).setUserAssigned(mockUser);
-        verify(storyRepo).persist(mockStory);
+        assertEquals(mockUser, story.getUserAssigned());
+        verify(storyRepo).persist(story);
     }
 
     @Test
