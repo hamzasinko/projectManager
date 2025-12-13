@@ -13,26 +13,30 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class HelloIT{
-	
-	private static String port;
-	
-	@BeforeAll
-	public static void findPort() {
-		port = System.getProperty("servlet.port", "8080");
-	}
+public class HelloIT {
 
-	@Test
-	public void hello() throws IOException {
-		HttpURLConnection connection = (HttpURLConnection)new URL("http://localhost:" + port +"/hello").openConnection();
-		{
-			connection.connect();
-			assertEquals(200, connection.getResponseCode());
-			
-			try (InputStream in = connection.getInputStream()) {
-				String output = new BufferedReader(new InputStreamReader(in)).lines().collect(Collectors.joining("\n"));
-			}
-		}
-	}
+    private static String host;
+    private static String port;
 
+    @BeforeAll
+    public static void init() {
+        host = System.getProperty("host", "localhost");
+        port = System.getProperty("servlet.port", "8080");
+    }
+
+    @Test
+    public void hello() throws IOException {
+        String url = "http://" + host + ":" + port + "/hello";
+        HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+
+        connection.connect();
+        assertEquals(200, connection.getResponseCode());
+
+        try (InputStream in = connection.getInputStream()) {
+            String output = new BufferedReader(new InputStreamReader(in))
+                    .lines()
+                    .collect(Collectors.joining("\n"));
+            // on ne teste pas le contenu ici, juste que ça répond 200
+        }
+    }
 }

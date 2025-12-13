@@ -48,8 +48,6 @@ unit-test:
 integration-test:
   stage: integration-test
 
-  image: maven:3-eclipse-temurin-21-alpine
-
   services:
     - name: selenium/standalone-chrome
       alias: selenium
@@ -61,9 +59,12 @@ integration-test:
     # Démarrer Jetty sur le conteneur Maven
     - mvn $MAVEN_CLI_OPTS -pl project-app jetty:start
     # Lancer tests d'intégration avec Selenium remote,
-    # en passant le host utilisé dans le code de test
-    - mvn $MAVEN_CLI_OPTS verify -Dselenium.remote.browser=true -Dsurefire.skip=true -Dhost=selenium -Dport=8080
-
+    # en passant le host et le port utilisés dans le code de test
+    - mvn $MAVEN_CLI_OPTS verify \
+      -Dselenium.remote.browser=true \
+      -Dsurefire.skip=true \
+      -Dhost=selenium \
+      -Dservlet.port=8080
 
   artifacts:
     reports:
@@ -108,4 +109,3 @@ deploy-docker:
 
     # Build & push image
     - /kaniko/executor --cleanup --context $CI_PROJECT_DIR --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME"
-

@@ -1,15 +1,13 @@
 package fr.uha.ensisa.gl.tarnished.it;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.junit.jupiter.api.*;
 import org.openqa.selenium.*;
-import org.openqa.selenium.chrome.*;
 import org.openqa.selenium.support.ui.*;
-import java.net.URL;
-import io.github.bonigarcia.wdm.WebDriverManager;
+
 import java.time.Duration;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ColumnIT {
@@ -22,32 +20,12 @@ class ColumnIT {
     private static String BASE_URL;
 
     @BeforeAll
-    static void setUp() throws Exception {
-
+    static void setUp() {
         host = System.getProperty("host", "localhost");
         port = System.getProperty("servlet.port", "8080");
         BASE_URL = "http://" + host + ":" + port;
 
-        String remote = System.getProperty("selenium.remote.browser");
-
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--remote-allow-origins=*");
-        options.addArguments("--no-sandbox");
-        options.addArguments("--disable-dev-shm-usage");
-        options.addArguments("--headless=new");  // mode headless compatible GitLab
-
-        if ("true".equalsIgnoreCase(remote)) {
-            System.out.println("Running Selenium in REMOTE mode (GitLab)");
-            driver = new org.openqa.selenium.remote.RemoteWebDriver(
-                    new URL("http://selenium:4444"),
-                    options
-            );
-        } else {
-            System.out.println("Running Selenium in LOCAL mode");
-            WebDriverManager.chromedriver().setup();
-            driver = new ChromeDriver(options);
-        }
-
+        driver = WebDriverFactory.createChromeDriver();
         wait = new WebDriverWait(driver, Duration.ofSeconds(8));
     }
 
@@ -63,7 +41,8 @@ class ColumnIT {
     void testCreateColumnViaForm() {
         driver.get(BASE_URL + "/columns/create");
 
-        WebElement nameInput = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("column_name")));
+        WebElement nameInput = wait.until(
+                ExpectedConditions.presenceOfElementLocated(By.id("column_name")));
         WebElement orderInput = driver.findElement(By.id("column_order"));
         WebElement limitInput = driver.findElement(By.id("column_limit"));
 
@@ -98,8 +77,8 @@ class ColumnIT {
         limitInput.clear();
         limitInput.sendKeys("5");
 
-        // Verify checkbox is checked by default
-        assertTrue(hasSubColumnsCheckbox.isSelected(), "HasSubColumns checkbox should be checked by default");
+        assertTrue(hasSubColumnsCheckbox.isSelected(),
+                "HasSubColumns checkbox should be checked by default");
 
         WebElement form = driver.findElement(By.id("column_create_form"));
         form.submit();
@@ -125,12 +104,12 @@ class ColumnIT {
         limitInput.clear();
         limitInput.sendKeys("5");
 
-        // Uncheck the checkbox to create column without sub-columns
         if (hasSubColumnsCheckbox.isSelected()) {
             hasSubColumnsCheckbox.click();
         }
 
-        assertFalse(hasSubColumnsCheckbox.isSelected(), "HasSubColumns checkbox should be unchecked");
+        assertFalse(hasSubColumnsCheckbox.isSelected(),
+                "HasSubColumns checkbox should be unchecked");
 
         WebElement form = driver.findElement(By.id("column_create_form"));
         form.submit();
@@ -145,11 +124,12 @@ class ColumnIT {
         driver.get(BASE_URL + "/columns");
 
         WebElement editButton = wait.until(
-                ExpectedConditions.elementToBeClickable(By.cssSelector("[id^='column_edit_']"))
-        );
+                ExpectedConditions.elementToBeClickable(
+                        By.cssSelector("[id^='column_edit_']")));
         editButton.click();
 
-        WebElement nameInput = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("column_name_edit")));
+        WebElement nameInput = wait.until(
+                ExpectedConditions.presenceOfElementLocated(By.id("column_name_edit")));
         nameInput.clear();
         nameInput.sendKeys("In Progress");
 
@@ -167,12 +147,12 @@ class ColumnIT {
         driver.get(BASE_URL + "/story/list");
 
         try {
-            WebElement stopTimerForm = driver.findElement(By.cssSelector("[id^='timer_stop_']"));
+            WebElement stopTimerForm = driver.findElement(
+                    By.cssSelector("[id^='timer_stop_']"));
             stopTimerForm.submit();
 
             assertTrue(driver.getCurrentUrl().contains("/stories"));
         } catch (Exception e) {
-            // Timer might not be running
             assertTrue(true);
         }
     }
@@ -183,7 +163,6 @@ class ColumnIT {
     @Order(10)
     void testDragAndDropColumns() {
         driver.get(BASE_URL + "/columns");
-
         assertTrue(driver.findElement(By.id("column_list")).isDisplayed());
     }
 
@@ -207,7 +186,6 @@ class ColumnIT {
     @Order(12)
     @DisplayName("Should delete a column")
     void testDeleteColumn() {
-        // Créer une colonne d'abord
         driver.get(BASE_URL + "/columns/create");
         WebElement nameInput = driver.findElement(By.id("column_name"));
         nameInput.sendKeys("Column To Delete " + System.currentTimeMillis());
@@ -219,8 +197,8 @@ class ColumnIT {
 
         wait.until(ExpectedConditions.urlContains("/columns"));
 
-        // Trouver le bouton Delete et cliquer
-        List<WebElement> deleteButtons = driver.findElements(By.cssSelector("form[action*='/delete']"));
+        List<WebElement> deleteButtons = driver.findElements(
+                By.cssSelector("form[action*='/delete']"));
         if (!deleteButtons.isEmpty()) {
             deleteButtons.get(deleteButtons.size() - 1).submit();
             wait.until(ExpectedConditions.urlContains("/columns"));
@@ -232,7 +210,6 @@ class ColumnIT {
     @Order(13)
     @DisplayName("Should reorder a column")
     void testReorderColumn() {
-        // Créer une colonne d'abord
         driver.get(BASE_URL + "/columns/create");
         WebElement nameInput = driver.findElement(By.id("column_name"));
         nameInput.sendKeys("Column To Reorder " + System.currentTimeMillis());
@@ -244,8 +221,8 @@ class ColumnIT {
 
         wait.until(ExpectedConditions.urlContains("/columns"));
 
-        // Trouver le bouton Reorder et cliquer
-        List<WebElement> reorderForms = driver.findElements(By.cssSelector("form[action*='/reorder']"));
+        List<WebElement> reorderForms = driver.findElements(
+                By.cssSelector("form[action*='/reorder']"));
         if (!reorderForms.isEmpty()) {
             reorderForms.get(0).submit();
             wait.until(ExpectedConditions.urlContains("/columns"));
@@ -257,7 +234,6 @@ class ColumnIT {
     @Order(14)
     @DisplayName("Should move story between columns")
     void testMoveStory() {
-        // Créer un projet d'abord
         driver.get(BASE_URL + "/project/new");
         String projectName = "Move Story Project " + System.currentTimeMillis();
         driver.findElement(By.id("projectName")).sendKeys(projectName);
@@ -266,53 +242,50 @@ class ColumnIT {
 
         wait.until(ExpectedConditions.urlContains("/project/list"));
 
-        // Attendre que la page se charge et trouver le projet créé ou utiliser le premier disponible
         String projectId = null;
         try {
             WebElement projectCard = wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.xpath("//h5[contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'card')] | //div[contains(@class,'project-card')]//h3[contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'project-card')]")
+                    By.xpath("//h5[contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'card')] | " +
+                            "//div[contains(@class,'project-card')]//h3.contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'project-card')]")
             ));
             projectId = projectCard.getAttribute("data-id");
             if (projectId == null || projectId.isEmpty()) {
-                WebElement boardLink = projectCard.findElement(By.xpath(".//a[contains(@href,'/board/')]"));
+                WebElement boardLink = projectCard.findElement(
+                        By.xpath(".//a[contains(@href,'/board/')]"));
                 String href = boardLink.getAttribute("href");
                 projectId = href.split("/board/")[1].split("\\?")[0];
             }
         } catch (Exception e) {
-            // Fallback: utiliser le premier lien board disponible ou skip
             try {
-                WebElement firstBoardLink = wait.until(ExpectedConditions.presenceOfElementLocated(By.xpath("//a[contains(@href,'/board/')]")));
+                WebElement firstBoardLink = wait.until(
+                        ExpectedConditions.presenceOfElementLocated(
+                                By.xpath("//a[contains(@href,'/board/')]")));
                 String href = firstBoardLink.getAttribute("href");
                 projectId = href.split("/board/")[1].split("\\?")[0];
             } catch (Exception e2) {
-                // Le déplacement de story est déjà testé dans BoardIT
                 assertTrue(true, "Story move functionality should be available");
                 return;
             }
         }
 
-        // Créer une story
         driver.get(BASE_URL + "/story/new?projectId=" + projectId);
-        driver.findElement(By.id("storyTitle")).sendKeys("Story To Move " + System.currentTimeMillis());
+        driver.findElement(By.id("storyTitle"))
+                .sendKeys("Story To Move " + System.currentTimeMillis());
 
-        // Utiliser JavaScript pour cliquer si le clic normal échoue
         try {
             driver.findElement(By.id("createStoryBtn")).click();
         } catch (Exception e) {
-            // Si le clic échoue, utiliser JavaScript
-            org.openqa.selenium.JavascriptExecutor js = (org.openqa.selenium.JavascriptExecutor) driver;
-            js.executeScript("arguments[0].click();", driver.findElement(By.id("createStoryBtn")));
+            JavascriptExecutor js = (JavascriptExecutor) driver;
+            js.executeScript("arguments[0].click();",
+                    driver.findElement(By.id("createStoryBtn")));
         }
 
         wait.until(ExpectedConditions.urlContains("/board/"));
 
-        // Trouver les colonnes disponibles
         List<WebElement> columns = driver.findElements(By.className("kanban-column"));
         if (columns.size() >= 2) {
-            // Le déplacement de story est déjà testé dans BoardIT
             assertTrue(true, "Story move functionality should be available");
         } else {
-            // Même si pas assez de colonnes, le test passe car la fonctionnalité existe
             assertTrue(true, "Story move functionality should be available");
         }
     }
