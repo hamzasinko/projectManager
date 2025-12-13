@@ -52,14 +52,14 @@
             
             <!-- Show project selector only if projectId is not provided from board -->
             <div class="mb-3" th:if="${projectId == null}">
-                <label for="projectId" class="form-label">Project *</label>
-                <select class="form-select" id="projectId" name="projectId" required>
+                <label for="projectId" class="form-label">Project</label>
+                <select class="form-select" id="projectId" name="projectId">
                     <option value="">Select a project...</option>
                     <option th:each="project : ${projects}" 
                             th:value="${project.id}" 
                             th:text="${project.name}">Project Name</option>
                 </select>
-                <div class="form-text">A story must be attached to a project</div>
+                <div class="form-text">Selecting a project is optional; leave blank for no project</div>
             </div>
             
             <!-- Show project info if coming from board -->

@@ -36,8 +36,9 @@ public class ColumnController {
 
     @PostMapping("/columns/create")
     public String createColumn(@RequestParam String name,
-                               @RequestParam int order,
-                               @RequestParam int limit,
+                               @RequestParam(required = false, defaultValue = "0") int order,
+                               @RequestParam(required = false, defaultValue = "0") int limit,
+                               @RequestParam(required = false, defaultValue = "false") boolean hasSubColumns,
                                @RequestParam(required = false) Long projectId) {
         ColumnRepo columnRepo = repoFactory.getColumnRepo();
         
@@ -67,6 +68,7 @@ public class ColumnController {
         column.setName(name);
         column.setPosition(order);
         column.setMaxCapacity(limit);
+        column.setHasSubColumns(hasSubColumns);
         column.setStories(new ArrayList<>());
         
         if (projectId != null) {
@@ -90,7 +92,7 @@ public class ColumnController {
     @PostMapping("/columns/{id}/edit")
     public String editColumn(@PathVariable Long id,
                              @RequestParam String name,
-                             @RequestParam int order,
+                             @RequestParam(required = false, defaultValue = "0") int order,
                              @RequestParam(required = false, defaultValue = "0") int limit) {
         ColumnRepo columnRepo = repoFactory.getColumnRepo();
         Column column = columnRepo.find(id);
@@ -118,7 +120,7 @@ public class ColumnController {
     }
 
     @PostMapping("/columns/{id}/reorder")
-    public String reorderColumn(@PathVariable Long id, @RequestParam int newOrder) {
+    public String reorderColumn(@PathVariable Long id, @RequestParam(required = false, defaultValue = "0") int newOrder) {
         ColumnRepo columnRepo = repoFactory.getColumnRepo();
         columnRepo.reorder(id, newOrder);
         return "redirect:/columns";

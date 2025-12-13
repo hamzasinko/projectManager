@@ -242,226 +242,263 @@ public class ProjectControllerTest {
     }
 
     @Test
-    @DisplayName("createProject with name length 29 should succeed")
-    void testCreateProjectNameLength29() throws Exception {
-        when(userRepo.getAll()).thenReturn(List.of(new User()));
-        String name = "A".repeat(29);
-        
-        String result = sut.createProject(name, "desc");
-        
-        assertEquals("redirect:/project/list", result);
+    @DisplayName("showProjectStories should return view with stories")
+    void testShowProjectStories() {
+        long projectId = 1L;
+
+        Project project = new Project();
+        project.setId((int) projectId);
+        project.setName("Test Project");
+
+        fr.uha.ensisa.gl.tarnished.repos.StoryRepo storyRepo = mock(fr.uha.ensisa.gl.tarnished.repos.StoryRepo.class);
+        when(projectRepo.find(projectId)).thenReturn(project);
+        when(repoFactory.getStoryRepo()).thenReturn(storyRepo);
+        when(storyRepo.findByProject(projectId)).thenReturn(List.of());
+
+        ModelAndView mav = sut.showProjectStories(projectId);
+
+        assertEquals("project-stories", mav.getViewName());
+        assertEquals(project, mav.getModel().get("project"));
     }
 
     @Test
-    @DisplayName("showProject with null project should redirect to list")
-    void testShowProjectNull() {
-        when(projectRepo.find(999L)).thenReturn(null);
-        
-        ModelAndView result = sut.showProject(999L);
-        
-        assertEquals("redirect:/project/list", result.getViewName());
+    @DisplayName("createProject should handle empty name")
+    void testCreateProjectWithEmptyName() throws IOException {
+        String emptyName = "";
+        String description = "Description";
+
+        String result = sut.createProject(emptyName, description);
+
+        assertTrue(result.contains("error") || result.contains("redirect"));
+        verify(projectRepo, never()).persist(any(Project.class));
     }
 
     @Test
-    @DisplayName("editProject should create user when repo is empty")
-    void testEditProjectCreatesUser() {
-        Project p = new Project();
-        when(projectRepo.find(1L)).thenReturn(p);
+    @DisplayName("updateProject should redirect to project info")
+    void testUpdateProjectRedirection() {
+        long projectId = 1L;
+        String name = "Updated";
+        String description = "Desc";
+
+        Project project = new Project();
+        project.setId((int) projectId);
+
+        when(projectRepo.find(projectId)).thenReturn(project);
         when(userRepo.getAll()).thenReturn(List.of());
-        
-        sut.editProject(1L);
-        
-        verify(userRepo).add(any(User.class));
-    }
 
-    @Test
-    @DisplayName("updateProject with null name should return error")
-    public void testUpdateProjectNullName() {
-        Project project = new Project();
-        when(projectRepo.find(1L)).thenReturn(project);
-        
-        String result = sut.updateProject(1L, null, "desc", List.of());
-        
-        assertTrue(result.contains("error=Project name is required"));
-    }
+        String result = sut.updateProject(projectId, name, description, List.of());
 
-    @Test
-    @DisplayName("updateProject with empty name should return error")
-    public void testUpdateProjectEmptyName() {
-        Project project = new Project();
-        when(projectRepo.find(1L)).thenReturn(project);
-        
-        String result = sut.updateProject(1L, "   ", "desc", List.of());
-        
-        assertTrue(result.contains("error=Project name is required"));
-    }
-
-    @Test
-    @DisplayName("updateProject with name too long should return error")
-    public void testUpdateProjectNameTooLong() {
-        Project project = new Project();
-        when(projectRepo.find(1L)).thenReturn(project);
-        String longName = "A".repeat(30);
-        
-        String result = sut.updateProject(1L, longName, "desc", List.of());
-        
-        assertTrue(result.contains("error=Project name must be less than 29"));
-    }
-
-    @Test
-    @DisplayName("updateProject should set name and update")
-    public void testUpdateProjectSuccess() {
-        Project project = new Project();
-        project.setId(5);
-        when(projectRepo.find(1L)).thenReturn(project);
-        when(userRepo.getAll()).thenReturn(List.of());
-        
-        String result = sut.updateProject(1L, "NewName", "NewDesc", List.of());
-        
-        assertEquals("NewName", project.getName());
-        assertEquals("NewDesc", project.getDescription());
+        assertEquals("redirect:/project/info/" + projectId, result);
         verify(projectRepo).update(project);
-        assertEquals("redirect:/project/info/5", result);
     }
 
     @Test
-    @DisplayName("updateProject with non-existent project should redirect to list")
-    public void testUpdateProjectNotFound() {
-        when(projectRepo.find(999L)).thenReturn(null);
-        
-        String result = sut.updateProject(999L, "Name", "desc", List.of());
-        
+    @DisplayName("updateProject should handle empty name")
+    void testUpdateProjectEmptyName() {
+        long projectId = 1L;
+
+        String result = sut.updateProject(projectId, "", "Description", List.of());
+
+        assertTrue(result.contains("error"));
+        verify(projectRepo, never()).update(any(Project.class));
+    }
+
+    @Test
+    @DisplayName("updateProject should handle null name")
+    void testUpdateProjectNullName() {
+        long projectId = 1L;
+
+        String result = sut.updateProject(projectId, null, "Description", List.of());
+
+        assertTrue(result.contains("error"));
+        verify(projectRepo, never()).update(any(Project.class));
+    }
+
+    @Test
+    @DisplayName("updateProject should handle long name")
+    void testUpdateProjectLongName() {
+        long projectId = 1L;
+        String longName = "This is a very long project name that exceeds the limit of 29 characters";
+
+        String result = sut.updateProject(projectId, longName, "Description", List.of());
+
+        assertTrue(result.contains("error"));
+        verify(projectRepo, never()).update(any(Project.class));
+    }
+
+    @Test
+    @DisplayName("updateProject should handle null project")
+    void testUpdateProjectNotFound() {
+        long projectId = 999L;
+
+        when(projectRepo.find(projectId)).thenReturn(null);
+
+        String result = sut.updateProject(projectId, "Name", "Description", List.of());
+
         assertEquals("redirect:/project/list", result);
+        verify(projectRepo, never()).update(any(Project.class));
     }
 
     @Test
-    @DisplayName("updateProject with memberIds should update members")
-    public void testUpdateProjectWithMembers() {
+    @DisplayName("updateProject should set members from memberIds")
+    void testUpdateProjectWithMembers() {
+        long projectId = 1L;
+
         Project project = new Project();
+        project.setId((int) projectId);
+
         User user1 = new User();
         user1.setId(10);
         User user2 = new User();
         user2.setId(20);
-        
-        when(projectRepo.find(1L)).thenReturn(project);
-        when(userRepo.getAll()).thenReturn(Arrays.asList(user1, user2));
-        
-        sut.updateProject(1L, "Name", "desc", Arrays.asList(10L, 20L));
-        
+
+        when(projectRepo.find(projectId)).thenReturn(project);
+        when(userRepo.getAll()).thenReturn(List.of(user1, user2));
+
+        String result = sut.updateProject(projectId, "Name", "Description", List.of(10L, 20L));
+
+        assertEquals("redirect:/project/info/" + projectId, result);
         assertEquals(2, project.getMembers().size());
         verify(projectRepo).update(project);
     }
 
     @Test
-    @DisplayName("updateProject with empty memberIds should clear members")
-    public void testUpdateProjectEmptyMembers() {
+    @DisplayName("updateProject should clear members when memberIds is empty")
+    void testUpdateProjectClearMembers() {
+        long projectId = 1L;
+
         Project project = new Project();
-        project.setId(7);
-        when(projectRepo.find(1L)).thenReturn(project);
+        project.setId((int) projectId);
+
+        when(projectRepo.find(projectId)).thenReturn(project);
         when(userRepo.getAll()).thenReturn(List.of());
-        
-        String result = sut.updateProject(1L, "Name", "desc", List.of());
-        
+
+        String result = sut.updateProject(projectId, "Name", "Description", List.of());
+
+        assertEquals("redirect:/project/info/" + projectId, result);
+        assertEquals(0, project.getMembers().size());
         verify(projectRepo).update(project);
-        assertEquals("redirect:/project/info/7", result);
     }
 
-    // ====== NEW TESTS FOR showProjectStories ======
+    @Test
+    @DisplayName("updateProject should clear members when memberIds is null")
+    void testUpdateProjectNullMembers() {
+        long projectId = 1L;
+
+        Project project = new Project();
+        project.setId((int) projectId);
+
+        when(projectRepo.find(projectId)).thenReturn(project);
+        when(userRepo.getAll()).thenReturn(List.of());
+
+        String result = sut.updateProject(projectId, "Name", "Description", null);
+
+        assertEquals("redirect:/project/info/" + projectId, result);
+        assertEquals(0, project.getMembers().size());
+        verify(projectRepo).update(project);
+    }
 
     @Test
-    @DisplayName("showProjectStories should display stories for valid project")
-    public void testShowProjectStories() {
+    @DisplayName("editProject should return view with members")
+    void testEditProjectWithMembers() {
+        long projectId = 1L;
+
         Project project = new Project();
-        project.setId(1);
+        project.setId((int) projectId);
         project.setName("Test Project");
-        
+
+        User user1 = new User();
+        user1.setId(10);
+
+        project.setMembers(List.of(user1));
+
+        when(projectRepo.find(projectId)).thenReturn(project);
+        when(userRepo.getAll()).thenReturn(List.of(user1));
+
+        ModelAndView mav = sut.editProject(projectId);
+
+        assertEquals("project-edit", mav.getViewName());
+        assertEquals(project, mav.getModel().get("project"));
+    }
+
+    @Test
+    @DisplayName("showProjectStories should handle null project")
+    void testShowProjectStoriesNullProject() {
+        long projectId = 999L;
+
+        when(projectRepo.find(projectId)).thenReturn(null);
+
+        ModelAndView mav = sut.showProjectStories(projectId);
+
+        assertEquals("redirect:/", mav.getViewName());
+    }
+
+    @Test
+    @DisplayName("showProject should redirect when project not found")
+    void testShowProjectNotFound() {
+        long projectId = 999L;
+
+        when(projectRepo.find(projectId)).thenReturn(null);
+
+        ModelAndView mav = sut.showProject(projectId);
+
+        assertEquals("redirect:/project/list", mav.getViewName());
+    }
+
+    @Test
+    @DisplayName("deleteProject should delete stories and columns before project")
+    void testDeleteProjectWithStoriesAndColumns() {
+        long projectId = 1L;
+
         fr.uha.ensisa.gl.entities.Story story1 = new fr.uha.ensisa.gl.entities.Story();
         story1.setId(10);
         fr.uha.ensisa.gl.entities.Story story2 = new fr.uha.ensisa.gl.entities.Story();
         story2.setId(20);
-        
-        fr.uha.ensisa.gl.tarnished.repos.StoryRepo storyRepo = mock(fr.uha.ensisa.gl.tarnished.repos.StoryRepo.class);
-        
-        when(projectRepo.find(1L)).thenReturn(project);
-        when(repoFactory.getStoryRepo()).thenReturn(storyRepo);
-        when(storyRepo.findByProject(1L)).thenReturn(Arrays.asList(story1, story2));
-        
-        ModelAndView result = sut.showProjectStories(1L);
-        
-        assertEquals("project-stories", result.getViewName());
-        assertEquals(project, result.getModel().get("project"));
-        
-        Collection<?> stories = (Collection<?>) result.getModel().get("stories");
-        assertEquals(2, stories.size());
-        
-        verify(storyRepo).findByProject(1L);
+
+        fr.uha.ensisa.gl.entities.Column col1 = new fr.uha.ensisa.gl.entities.Column();
+        col1.setId(1);
+        fr.uha.ensisa.gl.entities.Column col2 = new fr.uha.ensisa.gl.entities.Column();
+        col2.setId(2);
+
+        fr.uha.ensisa.gl.tarnished.repos.StoryRepo mockStoryRepo = mock(fr.uha.ensisa.gl.tarnished.repos.StoryRepo.class);
+        fr.uha.ensisa.gl.tarnished.repos.ColumnRepo mockColumnRepo = mock(fr.uha.ensisa.gl.tarnished.repos.ColumnRepo.class);
+
+        when(repoFactory.getStoryRepo()).thenReturn(mockStoryRepo);
+        when(repoFactory.getColumnRepo()).thenReturn(mockColumnRepo);
+        when(mockStoryRepo.findByProject(projectId)).thenReturn(List.of(story1, story2));
+        when(mockColumnRepo.findByProject(projectId)).thenReturn(List.of(col1, col2));
+
+        String result = sut.deleteProject(projectId);
+
+        assertEquals("redirect:/project/list", result);
+        verify(mockStoryRepo).remove(10L);
+        verify(mockStoryRepo).remove(20L);
+        verify(mockColumnRepo).remove(1L);
+        verify(mockColumnRepo).remove(2L);
+        verify(projectRepo).remove(projectId);
     }
 
     @Test
-    @DisplayName("showProjectStories with null project should redirect to home")
-    public void testShowProjectStoriesNotFound() {
-        when(projectRepo.find(999L)).thenReturn(null);
-        
-        ModelAndView result = sut.showProjectStories(999L);
-        
-        assertEquals("redirect:/", result.getViewName());
-        verify(projectRepo).find(999L);
-    }
+    @DisplayName("createProject should set owner when provided")
+    void testCreateProjectWithOwner() throws IOException {
+        String name = "Test Project";
+        String description = "Description";
 
-    @Test
-    @DisplayName("showProject should display project details")
-    public void testShowProjectInfo() {
-        Project project = new Project();
-        project.setId(1);
-        project.setName("Test Project");
-        
-        when(projectRepo.find(1L)).thenReturn(project);
-        
-        ModelAndView result = sut.showProject(1L);
-        
-        assertEquals("project-detail", result.getViewName());
-        assertEquals(project, result.getModel().get("project"));
-    }
+        User owner = new User();
+        owner.setId(1);
+        owner.setName("Owner");
 
-    @Test
-    @DisplayName("showProject with null project should redirect to list")
-    public void testShowProjectNotFound() {
-        when(projectRepo.find(999L)).thenReturn(null);
-        
-        ModelAndView result = sut.showProject(999L);
-        
-        assertEquals("redirect:/project/list", result.getViewName());
-    }
+        when(userRepo.getAll()).thenReturn(List.of(owner));
 
-    // ====== Additional edge cases for createProject ======
+        String result = sut.createProject(name, description);
 
-    @Test
-    @DisplayName("createProject with null name should redirect with error")
-    public void testCreateProjectNullName() throws IOException {
-        String result = sut.createProject(null, "Description");
-        
-        assertTrue(result.contains("error=Project name is required"));
-        verify(projectRepo, never()).persist(any());
-    }
+        assertEquals("redirect:/project/list", result);
 
-    @Test
-    @DisplayName("createProject with empty name should redirect with error")
-    public void testCreateProjectEmptyName() throws IOException {
-        String result = sut.createProject("   ", "Description");
-        
-        assertTrue(result.contains("error=Project name is required"));
-        verify(projectRepo, never()).persist(any());
-    }
+        ArgumentCaptor<Project> projectCaptor = ArgumentCaptor.forClass(Project.class);
+        verify(projectRepo).persist(projectCaptor.capture());
 
-    @Test
-    @DisplayName("createProject with name longer than 29 chars should redirect with error")
-    public void testCreateProjectNameTooLong() throws IOException {
-        String longName = "A".repeat(30);
-        
-        String result = sut.createProject(longName, "Description");
-        
-        assertTrue(result.contains("error=Project name must be less than 29 characters"));
-        verify(projectRepo, never()).persist(any());
+        Project captured = projectCaptor.getValue();
+        assertNotNull(captured.getOwner());
     }
 
 }

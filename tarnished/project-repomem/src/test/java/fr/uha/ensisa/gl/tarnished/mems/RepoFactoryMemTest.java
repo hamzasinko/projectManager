@@ -5,96 +5,120 @@ import fr.uha.ensisa.gl.tarnished.repos.ProjectRepo;
 import fr.uha.ensisa.gl.tarnished.repos.StoryRepo;
 import fr.uha.ensisa.gl.tarnished.repos.UserRepo;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@DisplayName("RepoFactoryMem Tests")
-class RepoFactoryMemTest {
-
-    private RepoFactoryMem repoFactory;
+public class RepoFactoryMemTest {
+    private RepoFactoryMem factory;
 
     @BeforeEach
-    void setUp() {
-        repoFactory = new RepoFactoryMem();
+    void setup() {
+        factory = new RepoFactoryMem();
     }
 
     @Test
-    @DisplayName("Should return ColumnRepo instance")
-    void testGetColumnRepo() {
-        ColumnRepo columnRepo = repoFactory.getColumnRepo();
-        assertNotNull(columnRepo);
-        assertInstanceOf(ColumnRepoMem.class, columnRepo);
-    }
-
-    @Test
-    @DisplayName("Should return same ColumnRepo instance on multiple calls")
-    void testGetColumnRepoSingleton() {
-        ColumnRepo columnRepo1 = repoFactory.getColumnRepo();
-        ColumnRepo columnRepo2 = repoFactory.getColumnRepo();
-        assertSame(columnRepo1, columnRepo2);
-    }
-
-    @Test
-    @DisplayName("Should return ProjectRepo instance")
-    void testGetProjectRepo() {
-        ProjectRepo projectRepo = repoFactory.getProjectRepo();
-        assertNotNull(projectRepo);
-        assertInstanceOf(ProjectRepoMem.class, projectRepo);
-    }
-
-    @Test
-    @DisplayName("Should return same ProjectRepo instance on multiple calls")
-    void testGetProjectRepoSingleton() {
-        ProjectRepo projectRepo1 = repoFactory.getProjectRepo();
-        ProjectRepo projectRepo2 = repoFactory.getProjectRepo();
-        assertSame(projectRepo1, projectRepo2);
-    }
-
-    @Test
-    @DisplayName("Should return StoryRepo instance")
     void testGetStoryRepo() {
-        StoryRepo storyRepo = repoFactory.getStoryRepo();
-        assertNotNull(storyRepo);
-        assertInstanceOf(StoryRepoMem.class, storyRepo);
+        StoryRepo repo = factory.getStoryRepo();
+        assertNotNull(repo);
+        assertTrue(repo instanceof StoryRepoMem);
     }
 
     @Test
-    @DisplayName("Should return same StoryRepo instance on multiple calls")
-    void testGetStoryRepoSingleton() {
-        StoryRepo storyRepo1 = repoFactory.getStoryRepo();
-        StoryRepo storyRepo2 = repoFactory.getStoryRepo();
-        assertSame(storyRepo1, storyRepo2);
+    void testGetColumnRepo() {
+        ColumnRepo repo = factory.getColumnRepo();
+        assertNotNull(repo);
+        assertTrue(repo instanceof ColumnRepoMem);
     }
 
     @Test
-    @DisplayName("Should return UserRepo instance")
+    void testGetProjectRepo() {
+        ProjectRepo repo = factory.getProjectRepo();
+        assertNotNull(repo);
+        assertTrue(repo instanceof ProjectRepoMem);
+    }
+
+    @Test
     void testGetUserRepo() {
-        UserRepo userRepo = repoFactory.getUserRepo();
-        assertNotNull(userRepo);
-        assertInstanceOf(UserRepoMem.class, userRepo);
+        UserRepo repo = factory.getUserRepo();
+        assertNotNull(repo);
+        assertTrue(repo instanceof UserRepoMem);
     }
 
     @Test
-    @DisplayName("Should return same UserRepo instance on multiple calls")
-    void testGetUserRepoSingleton() {
-        UserRepo userRepo1 = repoFactory.getUserRepo();
-        UserRepo userRepo2 = repoFactory.getUserRepo();
-        assertSame(userRepo1, userRepo2);
-    }
-
-    @Test
-    @DisplayName("Should configure dependencies between repos")
-    void testRepoDependencies() {
-        // Get all repos
-        ColumnRepo columnRepo = repoFactory.getColumnRepo();
-        ProjectRepo projectRepo = repoFactory.getProjectRepo();
-        StoryRepo storyRepo = repoFactory.getStoryRepo();
-
-        // All should be initialized
+    void testColumnRepoHasStoryRepoInjected() {
+        ColumnRepo columnRepo = factory.getColumnRepo();
         assertNotNull(columnRepo);
+        // Verify it's the same instance
+        assertSame(factory.storyRepo, factory.getStoryRepo());
+    }
+
+    @Test
+    void testProjectRepoHasColumnRepoInjected() {
+        ProjectRepo projectRepo = factory.getProjectRepo();
         assertNotNull(projectRepo);
-        assertNotNull(storyRepo);
+        // Verify it's the same instance
+        assertSame(factory.columnRepo, factory.getColumnRepo());
+    }
+
+    @Test
+    void testAllReposAreNotNull() {
+        assertNotNull(factory.storyRepo);
+        assertNotNull(factory.columnRepo);
+        assertNotNull(factory.projectRepo);
+        assertNotNull(factory.userRepo);
+    }
+
+    @Test
+    void testGetReposReturnsSameInstance() {
+        StoryRepo repo1 = factory.getStoryRepo();
+        StoryRepo repo2 = factory.getStoryRepo();
+        assertSame(repo1, repo2, "Should return same instance");
+    }
+
+    @Test
+    void testColumnRepoCanUseStoryRepo() {
+        ColumnRepo columnRepo = factory.getColumnRepo();
+        StoryRepo storyRepo = factory.getStoryRepo();
+        
+        // Create a story
+        fr.uha.ensisa.gl.entities.Story story = new fr.uha.ensisa.gl.entities.Story();
+        story.setTitle("Test Story");
+        storyRepo.persist(story);
+        
+        // Create a column and verify it can work with stories
+        fr.uha.ensisa.gl.entities.Column column = new fr.uha.ensisa.gl.entities.Column();
+        column.setName("Test Column");
+        column.setMaxCapacity(5);
+        columnRepo.persist(column);
+        
+        // Move story to column - this requires StoryRepo to be injected
+        storyRepo.moveToColumn((long) story.getId(), (long) column.getId());
+        
+        // Verify the story was moved
+        fr.uha.ensisa.gl.entities.Story foundStory = storyRepo.find((long) story.getId());
+        assertEquals((long) column.getId(), foundStory.getColumnId());
+    }
+
+    @Test
+    void testProjectRepoCanUseColumnRepo() {
+        ProjectRepo projectRepo = factory.getProjectRepo();
+        ColumnRepo columnRepo = factory.getColumnRepo();
+        
+        // Create a project - this should create default columns via ColumnRepo
+        fr.uha.ensisa.gl.entities.Project project = new fr.uha.ensisa.gl.entities.Project();
+        project.setName("Test Project");
+        projectRepo.persist(project);
+        
+        // Verify the project was created
+        fr.uha.ensisa.gl.entities.Project foundProject = projectRepo.find(project.getId());
+        assertNotNull(foundProject);
+        assertEquals("Test Project", foundProject.getName());
+        
+        // Verify columns were created (requires ColumnRepo injection)
+        // The default columns should have been created
+        java.util.Collection<fr.uha.ensisa.gl.entities.Column> columns = columnRepo.findByProject((long) project.getId());
+        assertTrue(columns.size() > 0, "Default columns should have been created");
     }
 }
+

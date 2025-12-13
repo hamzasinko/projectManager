@@ -28,12 +28,6 @@
       <version>${junit.jupiter.version}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.junit.platform</groupId>
-      <artifactId>junit-platform-launcher</artifactId>
-      <version>1.13.4</version>
-      <scope>test</scope>
-    </dependency>
       <dependency>
           <groupId>org.mockito</groupId>
           <artifactId>mockito-core</artifactId>
@@ -44,25 +38,127 @@
 
   <build>
     <plugins>
-      <!-- PITest avec exportLineCoverage pour éviter coverage minion -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${maven.surefire.plugin.version}</version>
+        <configuration>
+          <argLine>${jacocoArgLine}</argLine>
+          <forkCount>1</forkCount>
+          <reuseForks>false</reuseForks>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.version}</version>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+            <configuration>
+              <propertyName>jacocoArgLine</propertyName>
+              <destFile>${project.build.directory}/jacoco.exec</destFile>
+              <append>true</append>
+            </configuration>
+          </execution>
+          <execution>
+            <id>report-and-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report</goal>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>INSTRUCTION</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>0.85</minimum>
+                    </limit>
+                  </limits>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <version>${spotbugs.plugin.version}</version>
+        <configuration>
+          <failOnError>false</failOnError>
+          <effort>Max</effort>
+          <threshold>Low</threshold>
+          <excludeFilterFile>${project.basedir}/spotbugs-exclude.xml</excludeFilterFile>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
       <plugin>
         <groupId>org.pitest</groupId>
         <artifactId>pitest-maven</artifactId>
+        <version>${pitest.plugin.version}</version>
         <configuration>
-          <features>
-            <feature>+CLASSLIMIT(limit[50])</feature>
-          </features>
-          <timeoutConstant>10000</timeoutConstant>
-          <exportLineCoverage>true</exportLineCoverage>
-          <outputFormats>
-            <format>HTML</format>
-            <format>XML</format>
-          </outputFormats>
+          <targetClasses>
+            <param>fr.uha.ensisa.gl.tarnished.*</param>
+          </targetClasses>
+          <targetTests>
+            <param>fr.uha.ensisa.gl.tarnished.*</param>
+          </targetTests>
+          <mutationThreshold>90</mutationThreshold>
+          <threads>2</threads>
+          <withHistory>true</withHistory>
+          <verbose>true</verbose>
+          <avoidCallsTo>
+            <avoidCallsTo>java.io.PrintStream</avoidCallsTo>
+            <avoidCallsTo>java.util.logging</avoidCallsTo>
+            <avoidCallsTo>org.apache.log4j</avoidCallsTo>
+            <avoidCallsTo>org.slf4j</avoidCallsTo>
+            <avoidCallsTo>java.lang.System</avoidCallsTo>
+          </avoidCallsTo>
           <jvmArgs>
-            <jvmArg>-XX:+EnableDynamicAgentLoading</jvmArg>
-            <jvmArg>-Djdk.attach.allowAttachSelf=true</jvmArg>
+            <jvmArg>--add-opens</jvmArg>
+            <jvmArg>java.base/java.lang=ALL-UNNAMED</jvmArg>
+            <jvmArg>--add-opens</jvmArg>
+            <jvmArg>java.base/java.util=ALL-UNNAMED</jvmArg>
+            <jvmArg>--add-opens</jvmArg>
+            <jvmArg>java.base/java.io=ALL-UNNAMED</jvmArg>
+            <jvmArg>--add-opens</jvmArg>
+            <jvmArg>java.base/java.lang.reflect=ALL-UNNAMED</jvmArg>
           </jvmArgs>
         </configuration>
+        <executions>
+          <execution>
+            <id>mutation-test</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>mutationCoverage</goal>
+            </goals>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>org.pitest</groupId>
+            <artifactId>pitest-junit5-plugin</artifactId>
+            <version>1.2.1</version>
+          </dependency>
+        </dependencies>
       </plugin>
     </plugins>
   </build>
