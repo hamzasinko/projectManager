@@ -83,4 +83,57 @@ class ColumnTest {
         assertEquals(2, column.getStories().size());
         assertTrue(column.getStories().size() >= column.getMaxCapacity());
     }
+
+    @Test
+    void testColumnWithSubColumnsEnabled() {
+        Column column = new Column();
+        column.setId(1);
+        column.setName("Custom Column");
+        column.setPosition(2);
+        column.setMaxCapacity(5);
+        column.setHasSubColumns(true);
+        
+        assertTrue(column.isHasSubColumns());
+        assertEquals("Custom Column", column.getName());
+    }
+
+    @Test
+    void testColumnWithSubColumnsDisabled() {
+        Column column = new Column();
+        column.setId(1);
+        column.setName("Simple Column");
+        column.setPosition(1);
+        column.setMaxCapacity(3);
+        column.setHasSubColumns(false);
+        
+        assertFalse(column.isHasSubColumns());
+        assertEquals("Simple Column", column.getName());
+    }
+
+    @Test
+    void testColumnDefaultSubColumnsValue() {
+        Column column = new Column();
+        column.setId(1);
+        column.setName("Default Column");
+        column.setPosition(1);
+        column.setMaxCapacity(5);
+        
+        // Default value for boolean is false
+        assertFalse(column.isHasSubColumns());
+    }
+
+    @Test
+    void testColumnWithSubColumnsToggle() {
+        Column column = new Column();
+        column.setId(1);
+        column.setName("Toggle Column");
+        column.setPosition(1);
+        column.setMaxCapacity(5);
+        column.setHasSubColumns(true);
+        
+        assertTrue(column.isHasSubColumns());
+        
+        column.setHasSubColumns(false);
+        assertFalse(column.isHasSubColumns());
+    }
 }

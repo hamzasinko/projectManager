@@ -25,6 +25,7 @@ public class Story {
     private Long projectId;
     private Long columnId;
     private int position; // Position dans la colonne pour le tri manuel
+    private String subColumn; // "BACKLOG" ou "DONE" pour les colonnes avec sous-colonnes
 
     public void addWorkLog(WorkLog workLog) {
         if (workLogs == null) {

@@ -3,6 +3,7 @@ package fr.uha.ensisa.gl.tarnished.controller;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import fr.uha.ensisa.gl.entities.User;
 import fr.uha.ensisa.gl.tarnished.repos.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import fr.uha.ensisa.gl.entities.Project;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Tests unitaires avec Mockito pour StoryController
@@ -130,29 +132,36 @@ public class StoryControllerTest {
         String testTitle = "Test Story";
         
         String redirect = sut.createStory(testTitle, null, null, null);
-        
-        assertEquals("redirect:/story/new?error=Project is required", redirect);
-        verify(storyRepo, never()).persist(any(Story.class));
+
+        // Controller now allows creating a story without a project and redirects to the story list
+        assertEquals("redirect:/story/list", redirect);
+        // Story should have been persisted
+        verify(storyRepo).persist(any(Story.class));
     }
     
     @Test
-    @DisplayName("listStories should redirect to home")
+    @DisplayName("listStories should return story-list view")
     public void testListStoriesEmpty() throws IOException {
-        // listStories now redirects to home as stories should be accessed via project boards
-        String result = sut.listStories();
+        // listStories should return the story-list view with stories model
+        org.springframework.web.servlet.ModelAndView result = sut.listStories();
         
         assertNotNull(result);
-        assertEquals("redirect:/", result, "Should redirect to home page");
+        assertEquals("story-list", result.getViewName(), "Should return story-list view");
+        assertTrue(result.getModelMap().containsKey("stories"), "Model should contain stories");
     }
     
     @Test
-    @DisplayName("listStories should redirect to home regardless of data")
+    @DisplayName("listStories should return story-list view regardless of data")
     public void testListStoriesWithData() throws IOException {
-        // listStories now always redirects to home
-        String result = sut.listStories();
-        
+        // listStories should return the story-list view even when data exists
+        when(repoFactory.getStoryRepo()).thenReturn(storyRepo);
+        when(storyRepo.findAll()).thenReturn(Arrays.asList(new Story()));
+
+        org.springframework.web.servlet.ModelAndView result = sut.listStories();
+
         assertNotNull(result);
-        assertEquals("redirect:/", result, "Should redirect to home page");
+        assertEquals("story-list", result.getViewName(), "Should return story-list view");
+        assertTrue(result.getModelMap().containsKey("stories"), "Model should contain stories");
     }
     
     @Test
@@ -302,26 +311,23 @@ public class StoryControllerTest {
     @Test
     @DisplayName("assignStory should assign user to story and redirect to board")
     public void testAssignStory() throws IOException {
-        // Given
-        long storyId = 1L;
+        int storyId = 1;
         int userId = 10;
-        
-        Story mockStory = mock(Story.class);
-        when(mockStory.getProjectId()).thenReturn(1L);
-        fr.uha.ensisa.gl.entities.User mockUser = mock(fr.uha.ensisa.gl.entities.User.class);
-        
-        when(storyRepo.find(storyId)).thenReturn(mockStory);
-        fr.uha.ensisa.gl.tarnished.repos.UserRepo userRepo = mock(fr.uha.ensisa.gl.tarnished.repos.UserRepo.class);
-        when(repoFactory.getUserRepo()).thenReturn(userRepo);
+
+        Story story = new Story();
+        story.setId(storyId);
+        story.setProjectId(1L);
+
+        User mockUser = mock(User.class);
+
+        when(storyRepo.find(storyId)).thenReturn(story);
         when(userRepo.find(userId)).thenReturn(mockUser);
-        
-        // When
-        String result = sut.assignStory(storyId, userId);
-        
-        // Then
+
+        String result = sut.assignStory((long)storyId, userId);
+
         assertEquals("redirect:/board/1", result);
-        verify(mockStory).setUserAssigned(mockUser);
-        verify(storyRepo).persist(mockStory);
+        assertEquals(mockUser, story.getUserAssigned());
+        verify(storyRepo).persist(story);
     }
 
     @Test
@@ -342,4 +348,617 @@ public class StoryControllerTest {
         verify(mockStory).setUserAssigned(null);
         verify(storyRepo).persist(mockStory);
     }
+    
+    @Test
+    @DisplayName("startTimer should start timer and redirect to story detail")
+    public void testStartTimer() {
+        // Given
+        long storyId = 1L;
+        long userId = 1L;
+        
+        // When
+        String result = sut.startTimer(storyId, userId);
+        
+        // Then
+        assertEquals("redirect:/story/1", result);
+        verify(storyRepo).startTimer(storyId, userId);
+    }
+    
+    @Test
+    @DisplayName("stopTimer should stop timer and redirect to story detail")
+    public void testStopTimer() {
+        // Given
+        long storyId = 1L;
+        long workLogId = 100L;
+        
+        // When
+        String result = sut.stopTimer(storyId, workLogId);
+        
+        // Then
+        assertEquals("redirect:/story/1", result);
+        verify(storyRepo).stopTimer(storyId, workLogId);
+    }
+    
+    @Test
+    @DisplayName("addWorkLog should add work log and redirect to story detail")
+    public void testAddWorkLog() {
+        // Given
+        long storyId = 1L;
+        int days = 0;
+        int hours = 0;
+        int minutes = 30;
+        String comment = "Fixed bug";
+        long userId = 1L;
+        
+        // When
+        String result = sut.addWorkLog(storyId, days, hours, minutes, comment, userId);
+        
+        // Then
+        assertEquals("redirect:/story/1", result);
+        verify(storyRepo).addWorkLog(eq(storyId), any());
+    }
+    
+    @Test
+    @DisplayName("addWorkLog should work with null comment")
+    public void testAddWorkLogWithNullComment() {
+        // Given
+        long storyId = 1L;
+        int days = 0;
+        int hours = 0;
+        int minutes = 45;
+        long userId = 1L;
+        
+        // When
+        String result = sut.addWorkLog(storyId, days, hours, minutes, null, userId);
+        
+        // Then
+        assertEquals("redirect:/story/1", result);
+        verify(storyRepo).addWorkLog(eq(storyId), any());
+    }
+    
+    @Test
+    @DisplayName("addWorkLog should calculate total minutes correctly with days and hours")
+    public void testAddWorkLogWithDaysAndHours() {
+        // Given
+        long storyId = 1L;
+        int days = 1;
+        int hours = 2;
+        int minutes = 30;
+        String comment = "Complex task";
+        long userId = 1L;
+        
+        // When
+        String result = sut.addWorkLog(storyId, days, hours, minutes, comment, userId);
+        
+        // Then
+        assertEquals("redirect:/story/1", result);
+        verify(storyRepo).addWorkLog(eq(storyId), any());
+    }
+    
+    @Test
+    @DisplayName("addWorkLog should redirect with error if duration is zero")
+    public void testAddWorkLogWithZeroDuration() {
+        // Given
+        long storyId = 1L;
+        int days = 0;
+        int hours = 0;
+        int minutes = 0;
+        String comment = "Invalid";
+        long userId = 1L;
+        
+        // When
+        String result = sut.addWorkLog(storyId, days, hours, minutes, comment, userId);
+        
+        // Then
+        assertEquals("redirect:/story/1?error=Duration must be greater than 0", result);
+        verify(storyRepo, never()).addWorkLog(any(), any());
+    }
+    
+    @Test
+    @DisplayName("deleteWorkLog should remove work log and redirect to story detail")
+    public void testDeleteWorkLog() {
+        // Given
+        long storyId = 1L;
+        long workLogId = 100L;
+        
+        // When
+        String result = sut.deleteWorkLog(storyId, workLogId);
+        
+        // Then
+        assertEquals("redirect:/story/1", result);
+        verify(storyRepo).removeWorkLog(storyId, workLogId);
+    }
+    
+    @Test
+    @DisplayName("addWorkLog should truncate comment to 45 characters")
+    public void testAddWorkLogTruncatesLongComment() {
+        // Given
+        long storyId = 1L;
+        int days = 0;
+        int hours = 1;
+        int minutes = 0;
+        String longComment = "This is a very long comment that exceeds the maximum allowed limit";
+        long userId = 1L;
+        
+        // When
+        String result = sut.addWorkLog(storyId, days, hours, minutes, longComment, userId);
+        
+        // Then
+        assertEquals("redirect:/story/1", result);
+        verify(storyRepo).addWorkLog(eq(storyId), argThat(wl -> 
+            wl.getComment() != null && wl.getComment().length() == 45
+        ));
+    }
+
+    @Test
+    @DisplayName("showStory should redirect when story is null")
+    void testShowStoryWithNullStory() throws IOException {
+        long storyId = 999L;
+
+        when(storyRepo.find(storyId)).thenReturn(null);
+
+        ModelAndView mav = sut.showStory(storyId);
+
+        assertEquals("redirect:/", mav.getViewName());
+    }
+
+    @Test
+    @DisplayName("showCreateForm should include projectId when provided")
+    void testShowCreateFormWithProjectId() {
+        Long projectId = 1L;
+
+        when(projectRepo.findAll()).thenReturn(Arrays.asList());
+
+        ModelAndView mav = sut.showCreateForm(projectId, null);
+
+        assertEquals("story-create", mav.getViewName());
+        assertEquals(projectId, mav.getModel().get("projectId"));
+    }
+
+    @Test
+    @DisplayName("showCreateForm should include columnId when provided")
+    void testShowCreateFormWithColumnId() {
+        Long columnId = 5L;
+
+        when(projectRepo.findAll()).thenReturn(Arrays.asList());
+
+        ModelAndView mav = sut.showCreateForm(null, columnId);
+
+        assertEquals("story-create", mav.getViewName());
+        assertEquals(columnId, mav.getModel().get("columnId"));
+    }
+
+    @Test
+    @DisplayName("createStory should handle title length validation")
+    void testCreateStoryTitleTooLong() throws IOException {
+        String longTitle = "This is a very long title that definitely exceeds fifty-nine characters limit";
+        Long projectId = 1L;
+
+        String result = sut.createStory(longTitle, "Description", projectId, null);
+
+        assertTrue(result.contains("error"));
+        verify(storyRepo, never()).persist(any(Story.class));
+    }
+
+    @Test
+    @DisplayName("editStory should return view for valid story")
+    void testEditStoryValid() {
+        long storyId = 1L;
+
+        Story story = new Story();
+        story.setId((int) storyId);
+        story.setTitle("Test Story");
+        story.setProjectId(10L);
+
+        when(storyRepo.find(storyId)).thenReturn(story);
+        when(userRepo.getAll()).thenReturn(List.of());
+
+        ModelAndView mav = sut.editStory(storyId);
+
+        assertEquals("story-edit", mav.getViewName());
+        assertEquals(story, mav.getModel().get("story"));
+    }
+
+    @Test
+    @DisplayName("editStory should redirect when story has no projectId")
+    void testEditStoryNoProjectId() {
+        long storyId = 1L;
+
+        Story story = new Story();
+        story.setId((int) storyId);
+        story.setTitle("Test Story");
+        story.setProjectId(null);
+
+        when(storyRepo.find(storyId)).thenReturn(story);
+
+        ModelAndView mav = sut.editStory(storyId);
+
+        assertEquals("redirect:/", mav.getViewName());
+    }
+
+    @Test
+    @DisplayName("editStory should include column info when story is in a column")
+    void testEditStoryWithColumn() {
+        long storyId = 1L;
+
+        Story story = new Story();
+        story.setId((int) storyId);
+        story.setTitle("Test Story");
+        story.setProjectId(10L);
+        story.setColumnId(5L);
+
+        fr.uha.ensisa.gl.entities.Column column = new fr.uha.ensisa.gl.entities.Column();
+        column.setId(5);
+        column.setName("BACKLOG");
+
+        when(storyRepo.find(storyId)).thenReturn(story);
+        when(userRepo.getAll()).thenReturn(List.of());
+        when(columnRepo.find(5L)).thenReturn(column);
+
+        ModelAndView mav = sut.editStory(storyId);
+
+        assertEquals("story-edit", mav.getViewName());
+        assertEquals(column, mav.getModel().get("column"));
+        assertTrue((Boolean) mav.getModel().get("isDefaultColumn"));
+    }
+
+    @Test
+    @DisplayName("createStory with columnId should set story to that column")
+    void testCreateStoryWithColumnId() throws IOException {
+        String title = "Test Story";
+        String description = "Description";
+        Long projectId = 1L;
+        Long columnId = 5L;
+
+        fr.uha.ensisa.gl.entities.Column column = new fr.uha.ensisa.gl.entities.Column();
+        column.setId(5);
+        column.setName("IN PROGRESS");
+
+        when(columnRepo.find(columnId)).thenReturn(column);
+
+        String result = sut.createStory(title, description, projectId, columnId);
+
+        assertTrue(result.contains("redirect:/board/"));
+
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        verify(storyRepo).persist(storyCaptor.capture());
+
+        Story capturedStory = storyCaptor.getValue();
+        assertEquals(columnId, capturedStory.getColumnId());
+    }
+
+    @Test
+    @DisplayName("createStory with projectId should find BACKLOG column")
+    void testCreateStoryFindsBacklogColumn() throws IOException {
+        String title = "Test Story";
+        Long projectId = 1L;
+
+        fr.uha.ensisa.gl.entities.Column backlogColumn = new fr.uha.ensisa.gl.entities.Column();
+        backlogColumn.setId(3);
+        backlogColumn.setName("BACKLOG");
+
+        fr.uha.ensisa.gl.entities.Column otherColumn = new fr.uha.ensisa.gl.entities.Column();
+        otherColumn.setId(4);
+        otherColumn.setName("DONE");
+
+        when(columnRepo.findByProject(projectId)).thenReturn(List.of(backlogColumn, otherColumn));
+
+        String result = sut.createStory(title, null, projectId, null);
+
+        assertTrue(result.contains("redirect:/board/"));
+
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        verify(storyRepo).persist(storyCaptor.capture());
+
+        Story capturedStory = storyCaptor.getValue();
+        assertEquals(3L, capturedStory.getColumnId());
+    }
+
+    @Test
+    @DisplayName("updateStory should handle story in default column")
+    void testUpdateStoryInDefaultColumn() {
+        long storyId = 1L;
+
+        Story story = new Story();
+        story.setId((int) storyId);
+        story.setProjectId(10L);
+        story.setColumnId(3L);
+        story.setStatus(StoryStatus.BACKLOG);
+
+        fr.uha.ensisa.gl.entities.Column backlogColumn = new fr.uha.ensisa.gl.entities.Column();
+        backlogColumn.setId(3);
+        backlogColumn.setName("BACKLOG");
+
+        when(storyRepo.find(storyId)).thenReturn(story);
+        when(columnRepo.find(3L)).thenReturn(backlogColumn);
+
+        String result = sut.updateStory(storyId, "Updated Title", "Description", "DONE");
+
+        assertTrue(result.contains("redirect:/board/"));
+        // Status should NOT change because it's in a default column
+        assertEquals(StoryStatus.BACKLOG, story.getStatus());
+        verify(storyRepo).persist(story);
+    }
+
+    @Test
+    @DisplayName("listStories should return view with all stories")
+    void testListStoriesWithStories() throws IOException {
+        Story story1 = new Story();
+        story1.setId(1);
+        story1.setTitle("Story 1");
+
+        Story story2 = new Story();
+        story2.setId(2);
+        story2.setTitle("Story 2");
+
+        when(storyRepo.findAll()).thenReturn(List.of(story1, story2));
+
+        ModelAndView mav = sut.listStories();
+
+        assertEquals("story-list", mav.getViewName());
+        Collection<Story> stories = (Collection<Story>) mav.getModel().get("stories");
+        assertEquals(2, stories.size());
+    }
+
+
+
+    @Test
+    @DisplayName("updateStory should handle null description")
+    void testUpdateStoryWithNullDescription() {
+        long storyId = 1L;
+        String title = "Updated Title";
+        String status = "IN_PROGRESS";
+
+        Story story = new Story();
+        story.setId((int) storyId);
+        story.setProjectId(10L);
+
+        when(storyRepo.find(storyId)).thenReturn(story);
+
+        String result = sut.updateStory(storyId, title, null, status);
+
+        assertTrue(result.contains("redirect:/board/"));
+        assertEquals(title, story.getTitle());
+        assertNull(story.getDescription());
+        verify(storyRepo).persist(story);
+    }
+
+    @Test
+    @DisplayName("updateStory should update description")
+    void testUpdateStoryWithDescription() {
+        long storyId = 1L;
+        String title = "Updated Title";
+        String description = "Updated Description";
+
+        Story story = new Story();
+        story.setId((int) storyId);
+        story.setProjectId(10L);
+
+        when(storyRepo.find(storyId)).thenReturn(story);
+
+        String result = sut.updateStory(storyId, title, description, "BACKLOG");
+
+        assertTrue(result.contains("redirect:/board/"));
+        assertEquals(description, story.getDescription());
+        verify(storyRepo).persist(story);
+    }
+
+    @Test
+    @DisplayName("updateStory should redirect to story list when story not found")
+    void testUpdateStoryNotFound() {
+        long storyId = 999L;
+
+        when(storyRepo.find(storyId)).thenReturn(null);
+
+        String result = sut.updateStory(storyId, "Title", "Description", null);
+
+        assertEquals("redirect:/story/list", result);
+        verify(storyRepo, never()).persist(any(Story.class));
+    }
+
+    @Test
+    @DisplayName("updateStory should handle empty title")
+    void testUpdateStoryEmptyTitle() {
+        long storyId = 1L;
+
+        Story story = new Story();
+        story.setId((int) storyId);
+        story.setProjectId(10L);
+
+        when(storyRepo.find(storyId)).thenReturn(story);
+
+        String result = sut.updateStory(storyId, "", "Description", null);
+
+        assertTrue(result.contains("error"));
+        verify(storyRepo, never()).persist(any(Story.class));
+    }
+
+    @Test
+    @DisplayName("updateStory should handle long title")
+    void testUpdateStoryLongTitle() {
+        long storyId = 1L;
+        String longTitle = "This is a very long title that definitely exceeds fifty-nine characters";
+
+        Story story = new Story();
+        story.setId((int) storyId);
+        story.setProjectId(10L);
+
+        when(storyRepo.find(storyId)).thenReturn(story);
+
+        String result = sut.updateStory(storyId, longTitle, "Description", null);
+
+        assertTrue(result.contains("error"));
+        verify(storyRepo, never()).persist(any(Story.class));
+    }
+
+    @Test
+    @DisplayName("updateStory should allow status change when not in default column")
+    void testUpdateStoryStatusChangeInCustomColumn() {
+        long storyId = 1L;
+
+        Story story = new Story();
+        story.setId((int) storyId);
+        story.setProjectId(10L);
+        story.setColumnId(5L);
+        story.setStatus(StoryStatus.BACKLOG);
+
+        fr.uha.ensisa.gl.entities.Column customColumn = new fr.uha.ensisa.gl.entities.Column();
+        customColumn.setId(5);
+        customColumn.setName("Custom Column");
+
+        when(storyRepo.find(storyId)).thenReturn(story);
+        when(columnRepo.find(5L)).thenReturn(customColumn);
+
+        String result = sut.updateStory(storyId, "Title", "Description", "DONE");
+
+        assertTrue(result.contains("redirect:/board/"));
+        assertEquals(StoryStatus.DONE, story.getStatus());
+        verify(storyRepo).persist(story);
+    }
+
+    @Test
+    @DisplayName("updateStory should ignore invalid status value")
+    void testUpdateStoryInvalidStatus() {
+        long storyId = 1L;
+
+        Story story = new Story();
+        story.setId((int) storyId);
+        story.setProjectId(10L);
+        story.setColumnId(5L);
+        story.setStatus(StoryStatus.BACKLOG);
+
+        fr.uha.ensisa.gl.entities.Column customColumn = new fr.uha.ensisa.gl.entities.Column();
+        customColumn.setId(5);
+        customColumn.setName("Custom");
+
+        when(storyRepo.find(storyId)).thenReturn(story);
+        when(columnRepo.find(5L)).thenReturn(customColumn);
+
+        String result = sut.updateStory(storyId, "Title", "Description", "INVALID_STATUS");
+
+        assertTrue(result.contains("redirect:/board/"));
+        assertEquals(StoryStatus.BACKLOG, story.getStatus()); // Status unchanged
+        verify(storyRepo).persist(story);
+    }
+
+    @Test
+    @DisplayName("updateStory should redirect to story page when no projectId")
+    void testUpdateStoryNoProjectId() {
+        long storyId = 1L;
+
+        Story story = new Story();
+        story.setId((int) storyId);
+        story.setProjectId(null);
+
+        when(storyRepo.find(storyId)).thenReturn(story);
+
+        String result = sut.updateStory(storyId, "Title", "Description", null);
+
+        assertEquals("redirect:/story/" + storyId, result);
+        verify(storyRepo).persist(story);
+    }
+
+    @Test
+    @DisplayName("deleteStory should redirect to board when story has projectId")
+    void testDeleteStoryWithProjectId() {
+        long storyId = 1L;
+
+        Story story = new Story();
+        story.setId((int) storyId);
+        story.setProjectId(10L);
+
+        when(storyRepo.find(storyId)).thenReturn(story);
+
+        String result = sut.deleteStory(storyId);
+
+        assertEquals("redirect:/board/10", result);
+        verify(storyRepo).remove(storyId);
+    }
+
+
+    @Test
+    @DisplayName("assignStory should handle user assignment correctly")
+    void testAssignStorySuccess() {
+        long storyId = 1L;
+        int userId = 10;
+
+        Story story = new Story();
+        story.setId((int) storyId);
+        story.setProjectId(5L);
+
+        fr.uha.ensisa.gl.entities.User user = new fr.uha.ensisa.gl.entities.User();
+        user.setId(userId);
+        user.setName("Test User");
+
+        when(storyRepo.find(storyId)).thenReturn(story);
+        when(userRepo.find(userId)).thenReturn(user);
+
+        String result = sut.assignStory(storyId, userId);
+
+        assertEquals("redirect:/board/5", result);
+        assertEquals(user, story.getUserAssigned());
+        verify(storyRepo).persist(story);
+    }
+
+    @Test
+    @DisplayName("assignStory should redirect to home when no projectId")
+    void testAssignStoryWithoutProjectId() {
+        long storyId = 1L;
+        int userId = 10;
+
+        Story story = new Story();
+        story.setId((int) storyId);
+        story.setProjectId(null);
+
+        fr.uha.ensisa.gl.entities.User user = new fr.uha.ensisa.gl.entities.User();
+        user.setId(userId);
+
+        when(storyRepo.find(storyId)).thenReturn(story);
+        when(userRepo.find(userId)).thenReturn(user);
+
+        String result = sut.assignStory(storyId, userId);
+
+        assertEquals("redirect:/", result);
+        verify(storyRepo).persist(story);
+    }
+
+    @Test
+    @DisplayName("unassignStory should remove user assignment")
+    void testUnassignStorySuccess() {
+        long storyId = 1L;
+
+        fr.uha.ensisa.gl.entities.User user = new fr.uha.ensisa.gl.entities.User();
+        user.setId(10);
+
+        Story story = new Story();
+        story.setId((int) storyId);
+        story.setProjectId(5L);
+        story.setUserAssigned(user);
+
+        when(storyRepo.find(storyId)).thenReturn(story);
+
+        String result = sut.unassignStory(storyId);
+
+        assertEquals("redirect:/board/5", result);
+        assertNull(story.getUserAssigned());
+        verify(storyRepo).persist(story);
+    }
+
+    @Test
+    @DisplayName("unassignStory should redirect to home when no projectId")
+    void testUnassignStoryWithoutProjectId() {
+        long storyId = 1L;
+
+        Story story = new Story();
+        story.setId((int) storyId);
+        story.setProjectId(null);
+
+        when(storyRepo.find(storyId)).thenReturn(story);
+
+        String result = sut.unassignStory(storyId);
+
+        assertEquals("redirect:/", result);
+        verify(storyRepo).persist(story);
+    }
+
 }
