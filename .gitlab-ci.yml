@@ -58,9 +58,15 @@ integration-test:
     - cd tarnished
     # Build complet sans tests
     - mvn $MAVEN_CLI_OPTS clean install -DskipTests
+    # Démarrer Jetty sur le conteneur Maven
     - mvn $MAVEN_CLI_OPTS -pl project-app jetty:start
-    # Lance tests d'intégration avec Selenium remote
-    - mvn $MAVEN_CLI_OPTS verify -Dselenium.remote.browser=true -Dsurefire.skip=true
+    # Lancer tests d'intégration avec Selenium remote,
+    # en passant le host utilisé dans le code de test
+    - mvn $MAVEN_CLI_OPTS verify \
+      -Dselenium.remote.browser=true \
+      -Dsurefire.skip=true \
+      -Dhost=selenium \
+      -Dport=8080
 
   artifacts:
     reports:
