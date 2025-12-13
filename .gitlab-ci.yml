@@ -62,11 +62,8 @@ integration-test:
     - mvn $MAVEN_CLI_OPTS -pl project-app jetty:start
     # Lancer tests d'intégration avec Selenium remote,
     # en passant le host utilisé dans le code de test
-    - mvn $MAVEN_CLI_OPTS verify \
-      -Dselenium.remote.browser=true \
-      -Dsurefire.skip=true \
-      -Dhost=selenium \
-      -Dport=8080
+    - mvn $MAVEN_CLI_OPTS verify -Dselenium.remote.browser=true -Dsurefire.skip=true -Dhost=selenium -Dport=8080
+
 
   artifacts:
     reports:
