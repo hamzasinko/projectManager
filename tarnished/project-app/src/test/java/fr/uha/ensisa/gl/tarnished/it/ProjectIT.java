@@ -3,9 +3,7 @@ package fr.uha.ensisa.gl.tarnished.it;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.*;
-import io.github.bonigarcia.wdm.WebDriverManager;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -187,48 +185,56 @@ public class ProjectIT {
         // 1. Create a new project
         driver.get(getBaseUrl() + "project/new");
 
-        String projectName = "Selenium Delete " + (System.currentTimeMillis() % 10000);
+        String projectName = "Selenium Delete " + System.currentTimeMillis();
         driver.findElement(By.id("projectName")).sendKeys(projectName);
         driver.findElement(By.id("projectDescription")).sendKeys("To delete");
         driver.findElement(By.id("createProjectBtn")).click();
 
-        // 2. Go to project list
+        // 2. Wait for redirect after creation (could be /project/list or /board/{id})
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        wait.until(ExpectedConditions.or(
+            ExpectedConditions.urlContains("/project/list"),
+            ExpectedConditions.urlContains("/board/")
+        ));
+
+        // 3. Navigate to project list explicitly
         driver.get(getBaseUrl() + "project/list");
+        Thread.sleep(2000); // Give time for page to load
 
-        // 3. Locate the card containing the newly created project
-        WebElement card = driver.findElement(
-                By.xpath("//h5[contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'card')]")
-        );
+        // 4. Wait for the project card to appear with explicit wait
+        WebElement card = wait.until(ExpectedConditions.presenceOfElementLocated(
+            By.xpath("//h5[contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'card')]")
+        ));
 
-        // 4. Extract project ID from data-id attribute
+        // 5. Extract project ID from data-id attribute
         String projectIdStr = card.getAttribute("data-id");
         assertNotNull(projectIdStr, "Card should have a data-id attribute");
         long projectId = Long.parseLong(projectIdStr);
 
-        // 5. Click the Delete button
-        card.findElement(By.xpath(".//button[contains(text(),'Delete')]")).click();
+        // 6. Click the Delete button
+        WebElement deleteBtn = card.findElement(By.xpath(".//button[contains(text(),'Delete')]"));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", deleteBtn);
+        Thread.sleep(500);
+        deleteBtn.click();
 
-        // 6. Confirm card is visible
-        WebElement confirmCard = driver.findElement(By.id("confirmCard-" + projectId));
+        // 7. Wait for confirmation card to appear
+        WebElement confirmCard = wait.until(ExpectedConditions.presenceOfElementLocated(
+            By.id("confirmCard-" + projectId)
+        ));
         assertTrue(confirmCard.isDisplayed(), "Confirmation card should appear");
 
-        // 7. Click Yes, delete
+        // 8. Click Yes, delete
         confirmCard.findElement(By.xpath(".//button[contains(text(),'Yes')]")).click();
 
-        // 8. Wait for page to reload after deletion
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        // 9. Wait for page to reload after deletion
         wait.until(ExpectedConditions.urlContains("/project/list"));
-
-        // 9. Wait for the project to actually disappear from the DOM (with retry)
-        // Give time for backend to process deletion and page to refresh
         Thread.sleep(2000);
         driver.navigate().refresh();
-        Thread.sleep(1000);
+        Thread.sleep(2000);
 
-        // 10. Verify project is gone from UI (with tolerance for timing issues)
-        // Try multiple times with refreshes
+        // 10. Verify project is gone from UI (with retry)
         boolean deleted = false;
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 5; i++) {
             String pageSource = driver.getPageSource();
             if (!pageSource.contains(projectName)) {
                 deleted = true;
@@ -239,10 +245,7 @@ public class ProjectIT {
             Thread.sleep(1000);
         }
 
-        // If still not deleted after retries, just verify we're on project list page
-        // (deletion might have worked but page refresh timing is off)
-        assertTrue(deleted || driver.getCurrentUrl().contains("/project/list"),
-                  "Project deletion should complete or redirect to project list");
+        assertTrue(deleted, "Project should be deleted from the list");
     }
 
     @Test
@@ -250,76 +253,65 @@ public class ProjectIT {
     public void testProjectInfoUI() throws InterruptedException {
         // 1. Create a project via UI
         driver.get(getBaseUrl() + "/project/new");
-        String projectName = "Selenium Display " + (System.currentTimeMillis() % 10000);
+        // Use a shorter name to respect the 29 character limit
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String projectName = "Test " + timestamp.substring(timestamp.length() - 6); // Last 6 digits
         driver.findElement(By.id("projectName")).sendKeys(projectName);
         driver.findElement(By.id("projectDescription")).sendKeys("Display test");
         driver.findElement(By.id("createProjectBtn")).click();
 
-        // 2. Go to project info page and wait for the created card to appear
-        driver.get(getBaseUrl() + "/project/list");
-
-        // Give the page time to fully load and render
-        Thread.sleep(2000);
-
-        // Check if project appears on the page with a longer timeout
+        // 2. Wait for redirect after creation
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        try {
-            // Wait until the page source contains the project name (tolerant) or timeout
-            wait.until(d -> {
-                String src = d.getPageSource();
-                return src.contains(projectName) || src.contains("project-card") || src.contains("card");
-            });
-        } catch (Exception e) {
-            // If still not found, refresh and try again
-            driver.navigate().refresh();
-            Thread.sleep(2000);
+        wait.until(ExpectedConditions.or(
+            ExpectedConditions.urlContains("/project/list"),
+            ExpectedConditions.urlContains("/board/")
+        ));
+        
+        // 3. Navigate to project list if we were redirected to board
+        String currentUrl = driver.getCurrentUrl();
+        if (currentUrl.contains("/board/")) {
+            driver.get(getBaseUrl() + "/project/list");
         }
+        
+        // 4. Wait for page to load and project list to be visible
+        WebDriverWait longWait = new WebDriverWait(driver, Duration.ofSeconds(30));
+        longWait.until(ExpectedConditions.presenceOfElementLocated(By.id("projectsList")));
+        Thread.sleep(1000); // Give time for the list to render
+        
+        // 5. Wait for the specific project card to appear (with unique name)
+        WebElement card = longWait.until(ExpectedConditions.presenceOfElementLocated(
+            By.xpath("//h5[contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'card')]")
+        ));
 
-        // Try to find and click on project details - with full error handling
-        try {
-            // Try to find the exact card; if not found, fallback to first available card
-            By cardXpath = By.xpath("//h5[contains(.,'" + projectName + "')]/ancestor::div[contains(@class,'card')]");
-            WebElement card = null;
-            try {
-                card = driver.findElement(cardXpath);
-            } catch (Exception e) {
-                // fallback: pick first card on the list
-                try {
-                    card = driver.findElement(By.cssSelector(".card"));
-                } catch (Exception e2) {
-                    // If no cards found at all, the test passes as project was created
-                    // (this is a UI timing issue, not a functional failure)
-                    assertTrue(true, "Project created successfully, UI timing prevents detail verification");
-                    return;
-                }
-            }
+        // 5. Verify the card contains the correct project name before clicking
+        String cardText = card.getText();
+        assertTrue(cardText.contains(projectName), 
+                  "Card should contain the project name: " + projectName);
 
-            // Scroll to element to make it clickable
-            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", card);
-            Thread.sleep(500);
+        // 6. Scroll to element and click Details link
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", card);
+        Thread.sleep(500);
 
-            WebElement detailsLink = card.findElement(By.xpath(".//a[contains(text(),'Details')]"));
-            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", detailsLink);
+        WebElement detailsLink = wait.until(ExpectedConditions.elementToBeClickable(
+            card.findElement(By.xpath(".//a[contains(text(),'Details')]"))
+        ));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", detailsLink);
 
-            Thread.sleep(1000);
+        // 7. Wait for project info page to load
+        wait.until(ExpectedConditions.or(
+            ExpectedConditions.presenceOfElementLocated(By.id("projectNameInfo")),
+            ExpectedConditions.urlContains("/project/")
+        ));
+        Thread.sleep(1000);
 
-            // 3. Verify project info page displays the correct data (if we get here)
-            try {
-                WebElement nameElem = driver.findElement(By.id("projectNameInfo"));
-                WebElement descElem = driver.findElement(By.id("projectDescriptionInfo"));
+        // 8. Verify project info page displays the correct data
+        WebElement nameElem = driver.findElement(By.id("projectNameInfo"));
+        WebElement descElem = driver.findElement(By.id("projectDescriptionInfo"));
 
-                assertEquals(projectName, nameElem.getText());
-                assertEquals("Display test", descElem.getText());
-            } catch (Exception e) {
-                // If elements not found, just verify we're on a valid page
-                assertTrue(driver.getCurrentUrl().contains("/project/"),
-                          "Should be on project page after clicking details");
-            }
-        } catch (Exception e) {
-            // Any other error - test passes as long as project was created
-            assertTrue(driver.getCurrentUrl().contains("/project"),
-                      "Project operations should work even with UI timing issues");
-        }
+        assertEquals(projectName, nameElem.getText(), 
+                    "Project name should match: " + projectName);
+        assertEquals("Display test", descElem.getText(), 
+                    "Project description should match");
     }
 
     @Test

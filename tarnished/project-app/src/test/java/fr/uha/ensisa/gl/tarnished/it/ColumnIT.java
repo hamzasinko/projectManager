@@ -228,6 +228,8 @@ class ColumnIT {
     void testMoveStory() {
         // Créer un projet d'abord
         driver.get(BASE_URL + "/project/new");
+        // Attendre que le formulaire soit chargé
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.id("projectName")));
         String projectName = "Move Story Project " + System.currentTimeMillis();
         driver.findElement(By.id("projectName")).sendKeys(projectName);
         driver.findElement(By.id("projectDescription")).sendKeys("For move test");
@@ -261,7 +263,11 @@ class ColumnIT {
         }
         
         // Créer une story
-        driver.get(BASE_URL + "/story/new?projectId=" + projectId);
+        if (projectId != null && !projectId.isEmpty()) {
+            driver.get(BASE_URL + "/story/new?projectId=" + projectId);
+        } else {
+            driver.get(BASE_URL + "/story/new");
+        }
         driver.findElement(By.id("storyTitle")).sendKeys("Story To Move " + System.currentTimeMillis());
         
         // Utiliser JavaScript pour cliquer si le clic normal échoue

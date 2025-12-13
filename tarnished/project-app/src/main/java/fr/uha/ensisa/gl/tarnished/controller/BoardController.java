@@ -200,9 +200,32 @@ public class BoardController {
         column.setMaxCapacity(maxCapacity);
         column.setHasSubColumns(hasSubColumns);
         
-        // Set position as last
+        // Trouver la colonne DONE et placer la nouvelle colonne juste avant
         Collection<Column> existingColumns = repoFactory.getColumnRepo().findByProject(projectId);
-        column.setPosition(existingColumns.size() + 1);
+        Column doneColumn = null;
+        for (Column col : existingColumns) {
+            if (col != null && col.getName() != null && "DONE".equalsIgnoreCase(col.getName().trim())) {
+                doneColumn = col;
+                break;
+            }
+        }
+        
+        if (doneColumn != null) {
+            // Placer la nouvelle colonne juste avant DONE
+            int donePosition = doneColumn.getPosition();
+            column.setPosition(donePosition);
+            
+            // Décaler toutes les colonnes à partir de DONE (incluant DONE) vers la droite
+            for (Column col : existingColumns) {
+                if (col != null && col.getPosition() >= donePosition) {
+                    col.setPosition(col.getPosition() + 1);
+                    repoFactory.getColumnRepo().persist(col);
+                }
+            }
+        } else {
+            // Si pas de DONE, placer à la fin
+            column.setPosition(existingColumns.size() + 1);
+        }
 
         repoFactory.getColumnRepo().persist(column);
 

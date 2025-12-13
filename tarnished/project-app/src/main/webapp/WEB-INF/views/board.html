@@ -182,7 +182,10 @@
                     </button>
 
                     <!-- Stories in this column -->
-                    <div class="column-stories" style="flex-grow: 1;">
+                    <div class="column-stories" style="flex-grow: 1;"
+                         ondrop="drop(event)" 
+                         ondragover="allowDrop(event)"
+                         ondragleave="dragLeave(event)">
                         <div th:each="story : ${column.stories}" 
                              class="story-card"
                              th:id="'story-' + ${story.id}"
@@ -198,6 +201,69 @@
                                 <span class="badge status-badge"
                                       th:classappend="${'status-' + story.status}"
                                       th:text="${#strings.replace(story.status.toString(), '_', ' ')}">BACKLOG</span>
+                                
+                                <div class="mt-2" th:if="${story.totalTimeSpent > 0}">
+                                    <i class="bi bi-clock"></i> 
+                                    <span class="duration-display" th:attr="data-minutes=${story.totalTimeSpent}" th:text="${story.totalTimeSpent + ' min'}">0 min</span>
+                                </div>
+                            </div>
+
+                            <div class="story-actions">
+                                <a th:href="@{'/story/' + ${story.id}}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    Details
+                                </a>
+                                <a th:href="@{'/story/' + ${story.id} + '/edit'}" 
+                                   class="btn btn-sm btn-outline-warning">
+                                    Edit
+                                </a>
+                                <form th:if="${story.getRunningWorkLog() == null}" 
+                                      th:action="@{'/story/' + ${story.id} + '/timer/start'}" 
+                                      method="post" 
+                                      style="display: inline; margin: 0;">
+                                    <button type="submit" class="btn btn-sm btn-success" title="Start Timer">Start</button>
+                                </form>
+                                <form th:if="${story.getRunningWorkLog() != null}" 
+                                      th:action="@{'/story/' + ${story.id} + '/timer/stop'}" 
+                                      method="post" 
+                                      style="display: inline; margin: 0;">
+                                    <input type="hidden" name="workLogId" th:value="${story.getRunningWorkLog().id}"/>
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Stop Timer">Stop</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pour les colonnes personnalisées SANS sous-colonnes -->
+                <div th:if="${column.name != 'BACKLOG' and column.name != 'DONE' and !column.hasSubColumns}" 
+                     style="flex-grow: 1; display: flex; flex-direction: column;">
+                    <button class="btn btn-outline-secondary btn-sm add-story-btn"
+                            th:onclick="'addStoryToColumn(' + ${project.id} + ', ' + ${column.id} + ')'"
+                            style="margin-bottom: 10px;">
+                        + Add Story
+                    </button>
+
+                    <!-- Stories in this column -->
+                    <div class="column-stories" style="flex-grow: 1;"
+                         ondrop="drop(event)" 
+                         ondragover="allowDrop(event)"
+                         ondragleave="dragLeave(event)">
+                        <div th:each="story : ${column.stories}" 
+                             class="story-card"
+                             th:id="'story-' + ${story.id}"
+                             th:data-story-id="${story.id}"
+                             draggable="true"
+                             ondragstart="drag(event)"
+                             ondragover="storyDragOver(event)"
+                             ondrop="storyDrop(event)">
+                            
+                            <div class="story-title" th:text="${story.title}">Story Title</div>
+                            
+                            <div class="story-meta">
+                                <span class="badge status-badge"
+                                      th:classappend="${'status-' + story.status}"
+                                      th:text="${#strings.replace(story.status.toString(), '_', ' ')}">STATUS</span>
                                 
                                 <div class="mt-2" th:if="${story.totalTimeSpent > 0}">
                                     <i class="bi bi-clock"></i> 
@@ -380,8 +446,7 @@
                                name="maxCapacity" 
                                class="form-control form-control-sm" 
                                placeholder="Max Capacity (0 = unlimited)" 
-                               min="0" 
-                               value="0">
+                               min="0">
                     </div>
                     <div class="mb-2 form-check">
                         <input type="checkbox" 
@@ -421,6 +486,39 @@
                 <button onclick="cancelDeleteColumn()" class="btn btn-secondary">Cancel</button>
                 <button onclick="confirmDeleteColumn()" class="btn btn-danger" style="margin-left:10px;">Delete Column</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal for column editing -->
+    <div id="editColumnModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999;">
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:30px; border-radius:8px; max-width:500px; width:90%;">
+            <h4>Edit Column</h4>
+            <form id="editColumnForm" onsubmit="return false;">
+                <div class="mb-3">
+                    <label for="editColumnName" class="form-label"><strong>Column Name *</strong></label>
+                    <input type="text" 
+                           id="editColumnName" 
+                           class="form-control" 
+                           maxlength="25"
+                           required
+                           onkeypress="if(event.key==='Enter') {event.preventDefault(); document.getElementById('editColumnCapacity').focus();}">
+                    <small class="form-text text-muted">Max 25 characters</small>
+                </div>
+                <div class="mb-3" id="editCapacityContainer">
+                    <label for="editColumnCapacity" class="form-label"><strong>Max Capacity</strong></label>
+                    <input type="number" 
+                           id="editColumnCapacity" 
+                           class="form-control" 
+                           min="0" 
+                           value="0"
+                           onkeypress="if(event.key==='Enter') confirmEditColumn()">
+                    <small class="form-text text-muted">Enter 0 for unlimited capacity, or a number to limit the number of stories</small>
+                </div>
+                <div style="text-align:right; margin-top:20px;">
+                    <button type="button" onclick="cancelEditColumn()" class="btn btn-secondary">Cancel</button>
+                    <button type="button" onclick="confirmEditColumn()" class="btn btn-primary" style="margin-left:10px;">Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -597,8 +695,16 @@
                     return;
                 }
                 
-                // Same column, same subcolumn - just append to end
-                target.appendChild(draggedStory);
+                // Same column, same subcolumn - just append to end (mais vérifier qu'on ne duplique pas)
+                // Vérifier que la story n'est pas déjà dans cette zone
+                const existingInTarget = target.querySelector(`[data-story-id="${draggedStory.dataset.storyId}"]`);
+                if (!existingInTarget || existingInTarget === draggedStory) {
+                    // Remove from current location first to avoid duplication
+                    if (draggedStory.parentElement && draggedStory.parentElement !== target) {
+                        draggedStory.parentElement.removeChild(draggedStory);
+                    }
+                    target.appendChild(draggedStory);
+                }
                 draggedStory.style.opacity = '1';
                 clearInterval(autoScrollInterval);
                 draggedStory = null;
@@ -638,14 +744,31 @@
             
             // Same column and same subcolumn = manual reordering
             if (fromColumnId === toColumnId) {
-                const rect = targetStory.getBoundingClientRect();
-                const midpoint = rect.top + rect.height / 2;
-                
-                // Insert before or after based on mouse position
-                if (ev.clientY < midpoint) {
-                    columnStories.insertBefore(draggedStory, targetStory);
+                // Vérifier que la story n'est pas déjà à la bonne position (éviter les duplications)
+                if (draggedStory.parentElement === columnStories) {
+                    // La story est déjà dans la bonne colonne, juste réordonner
+                    const rect = targetStory.getBoundingClientRect();
+                    const midpoint = rect.top + rect.height / 2;
+                    
+                    // Insert before or after based on mouse position
+                    if (ev.clientY < midpoint) {
+                        columnStories.insertBefore(draggedStory, targetStory);
+                    } else {
+                        columnStories.insertBefore(draggedStory, targetStory.nextSibling);
+                    }
                 } else {
-                    columnStories.insertBefore(draggedStory, targetStory.nextSibling);
+                    // La story vient d'une autre colonne, la déplacer d'abord
+                    if (draggedStory.parentElement) {
+                        draggedStory.parentElement.removeChild(draggedStory);
+                    }
+                    const rect = targetStory.getBoundingClientRect();
+                    const midpoint = rect.top + rect.height / 2;
+                    
+                    if (ev.clientY < midpoint) {
+                        columnStories.insertBefore(draggedStory, targetStory);
+                    } else {
+                        columnStories.insertBefore(draggedStory, targetStory.nextSibling);
+                    }
                 }
                 
                 draggedStory.style.opacity = '1';
@@ -737,12 +860,22 @@
                     const targetColumnStories = document.querySelector(`[data-column-id="${toColumnId}"] .column-stories`);
                     
                     if (targetColumnStories && movedStoryElement) {
-                        // Remove from current location first
-                        if (movedStoryElement.parentElement) {
-                            movedStoryElement.parentElement.removeChild(movedStoryElement);
+                        // Vérifier que la story n'est pas déjà dans la colonne cible (éviter les duplications)
+                        const existingStory = targetColumnStories.querySelector(`[data-story-id="${storyId}"]`);
+                        if (existingStory && existingStory !== movedStoryElement) {
+                            // La story existe déjà dans la colonne cible, ne pas la dupliquer
+                            console.warn('[DEBUG] Story already exists in target column, removing duplicate');
+                            if (movedStoryElement.parentElement) {
+                                movedStoryElement.parentElement.removeChild(movedStoryElement);
+                            }
+                        } else {
+                            // Remove from current location first
+                            if (movedStoryElement.parentElement) {
+                                movedStoryElement.parentElement.removeChild(movedStoryElement);
+                            }
+                            // Always insert at top (prepend)
+                            targetColumnStories.insertBefore(movedStoryElement, targetColumnStories.firstChild);
                         }
-                        // Always insert at top (prepend)
-                        targetColumnStories.insertBefore(movedStoryElement, targetColumnStories.firstChild);
                         // Sauvegarder le nouvel ordre de la colonne de destination
                         saveStoryOrder(toColumnId);
                     }
@@ -942,6 +1075,8 @@
             window.location.href = '/story/new?projectId=' + projectIdParam + '&columnId=' + columnId;
         }
 
+        let columnToEdit = null;
+
         function editColumn(button) {
             const columnId = button.getAttribute('data-column-id');
             const currentName = button.getAttribute('data-column-name');
@@ -952,41 +1087,66 @@
             // Vérifier si c'est BACKLOG ou DONE
             const isBacklogOrDone = currentName.toUpperCase() === 'BACKLOG' || currentName.toUpperCase() === 'DONE';
             
-            // Demander le nouveau nom
-            let newName = prompt('Enter new column name (max 25 characters):', currentName);
-            if (newName === null) {
-                console.log('[DEBUG] User cancelled name prompt');
-                return; // Cancel
+            // Stocker les infos de la colonne à éditer
+            columnToEdit = {
+                id: columnId,
+                isBacklogOrDone: isBacklogOrDone
+            };
+            
+            // Remplir le formulaire du modal
+            document.getElementById('editColumnName').value = currentName;
+            document.getElementById('editColumnCapacity').value = currentCapacity;
+            
+            // Afficher/masquer le champ capacité selon le type de colonne
+            const capacityContainer = document.getElementById('editCapacityContainer');
+            if (isBacklogOrDone) {
+                capacityContainer.style.display = 'none';
+            } else {
+                capacityContainer.style.display = 'block';
             }
             
-            // Validation: limit to 25 characters
+            // Afficher le modal
+            document.getElementById('editColumnModal').style.display = 'block';
+        }
+        
+        function cancelEditColumn() {
+            document.getElementById('editColumnModal').style.display = 'none';
+            columnToEdit = null;
+        }
+        
+        function confirmEditColumn() {
+            if (!columnToEdit) return;
+            
+            const newName = document.getElementById('editColumnName').value.trim();
+            let newCapacity = '0';
+            
+            // Validation du nom
+            if (!newName || newName.length === 0) {
+                alert('Column name is required!');
+                return;
+            }
+            
             if (newName.length > 25) {
                 alert('Column name must not exceed 25 characters! It will be truncated.');
-                newName = newName.substring(0, 25);
+                document.getElementById('editColumnName').value = newName.substring(0, 25);
+                return;
             }
             
-            let newCapacity = currentCapacity;
-            
-            // Pour les colonnes autres que BACKLOG et DONE, demander la capacité
-            if (!isBacklogOrDone) {
-                const capacityInput = prompt('Enter max capacity (0 = unlimited):', currentCapacity);
-                if (capacityInput === null) {
-                    console.log('[DEBUG] User cancelled capacity prompt');
-                    return; // Cancel
+            // Récupérer la capacité seulement si ce n'est pas BACKLOG/DONE
+            if (!columnToEdit.isBacklogOrDone) {
+                newCapacity = document.getElementById('editColumnCapacity').value || '0';
+                if (isNaN(newCapacity) || parseInt(newCapacity) < 0) {
+                    alert('Capacity must be a positive number or 0!');
+                    return;
                 }
-                newCapacity = capacityInput;
-            } else {
-                // Pour BACKLOG et DONE, garder capacité à 0 (infini)
-                newCapacity = '0';
-                console.log('[DEBUG] BACKLOG/DONE column - capacity stays unlimited');
             }
             
             console.log('[DEBUG] New values - Name:', newName, 'Capacity:', newCapacity);
             console.log('[DEBUG] Posting to: /board/' + projectId + '/update-column-full');
             
             const formData = new URLSearchParams();
-            formData.append('columnId', columnId);
-            formData.append('newName', newName.trim());
+            formData.append('columnId', columnToEdit.id);
+            formData.append('newName', newName);
             formData.append('maxCapacity', newCapacity);
 
             fetch('/board/' + projectId + '/update-column-full', {
@@ -1029,12 +1189,19 @@
         // Validation for add column form
         document.getElementById('addColumnForm').addEventListener('submit', function(e) {
             const nameInput = this.querySelector('input[name="name"]');
+            const capacityInput = this.querySelector('input[name="maxCapacity"]');
+            
             if (nameInput.value.length > 25) {
                 e.preventDefault();
                 alert('Column name must not exceed 25 characters!');
                 nameInput.value = nameInput.value.substring(0, 25);
                 nameInput.focus();
                 return false;
+            }
+            
+            // Si le champ capacité est vide, le définir à 0 (unlimited)
+            if (capacityInput.value === '' || capacityInput.value === null) {
+                capacityInput.value = '0';
             }
         });
         
