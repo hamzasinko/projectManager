@@ -59,7 +59,7 @@ integration-test:
     # Démarrer Jetty sur le conteneur Maven
     - mvn $MAVEN_CLI_OPTS -pl project-app jetty:start
     # Lancer tests d'intégration avec Selenium remote
-    - mvn $MAVEN_CLI_OPTS verify -Dselenium.remote.browser=true -Dsurefire.skip=true -Dhost=gestiondetaches -Dservlet.port=8080
+    - mvn $MAVEN_CLI_OPTS verify -Dselenium.remote.browser=true -Dsurefire.skip=true -Dhost=selenium -Dservlet.port=8080
 
   artifacts:
     reports:
