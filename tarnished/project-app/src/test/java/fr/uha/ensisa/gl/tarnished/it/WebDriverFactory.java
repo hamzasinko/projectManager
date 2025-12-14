@@ -1,37 +1,40 @@
 package fr.uha.ensisa.gl.tarnished.it;
 
 import io.github.bonigarcia.wdm.WebDriverManager;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.*;
+import org.openqa.selenium.chrome.*;
+import org.openqa.selenium.remote.RemoteWebDriver;
 
-/**
- * Factory pour créer des instances WebDriver configurées pour local et CI/CD.
- */
+import java.net.URL;
+
 public class WebDriverFactory {
 
     public static WebDriver createChromeDriver() {
 
         ChromeOptions options = new ChromeOptions();
+        boolean isCI = "true".equalsIgnoreCase(System.getenv("CI"));
 
-        // Détecter l'environnement CI (GitLab)
-        String ci = System.getenv("CI");
-        boolean isCI = ci != null && (ci.equalsIgnoreCase("true") || ci.equals("1"));
+        options.addArguments(
+                "--headless=new",
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--window-size=1920,1080"
+        );
+        options.setAcceptInsecureCerts(true);
 
         if (isCI) {
-            // Configuration CI stable
-            options.addArguments(
-                    "--headless=new",
-                    "--no-sandbox",
-                    "--disable-dev-shm-usage",
-                    "--window-size=1920,1080"
-            );
-            options.setAcceptInsecureCerts(true);
-            System.out.println("[WebDriverFactory] CI mode (headless)");
-        } else {
-            System.out.println("[WebDriverFactory] Local mode");
+            try {
+                System.out.println("[WebDriver] CI → RemoteWebDriver");
+                return new RemoteWebDriver(
+                        new URL("http://selenium:4444/wd/hub"),
+                        options
+                );
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
 
+        System.out.println("[WebDriver] Local → ChromeDriver");
         WebDriverManager.chromedriver().setup();
         return new ChromeDriver(options);
     }
