@@ -437,4 +437,11 @@ class ColumnRepoMemTest {
 
         Mockito.verify(storyRepo).moveToColumn(10L, 2L);
     }
+
+    @Test
+    void find_onUnknownId_returnsNull() {
+        ColumnRepoMem repo = new ColumnRepoMem();
+        Column result = repo.find(999L);
+        assertNull(result);
+    }
 }
