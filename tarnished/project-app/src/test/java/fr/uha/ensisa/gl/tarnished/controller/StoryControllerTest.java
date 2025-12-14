@@ -43,6 +43,9 @@ public class StoryControllerTest {
     @Mock
     private UserRepo userRepo;
 
+    @Mock
+    private SwimlaneRepo swimlaneRepo;
+
     private StoryController sut; // System Under Test
     
     @BeforeEach
@@ -54,6 +57,7 @@ public class StoryControllerTest {
         when(repoFactory.getProjectRepo()).thenReturn(projectRepo);
         when(repoFactory.getColumnRepo()).thenReturn(columnRepo);
         when(repoFactory.getUserRepo()).thenReturn(userRepo);
+        when(repoFactory.getSwimlaneRepo()).thenReturn(swimlaneRepo);
 
         // Crée le controller et injecte le mock
         sut = new StoryController();
@@ -89,7 +93,7 @@ public class StoryControllerTest {
         when(columnRepo.findByProject(projectId)).thenReturn(Arrays.asList());
 
         // Appelle la méthode
-        String redirect = sut.createStory(testTitle, testDescription, projectId, null);
+        String redirect = sut.createStory(testTitle, testDescription, projectId, null, 0L);
 
         // Vérifie la redirection vers le board du projet
         assertEquals("redirect:/board/" + projectId, redirect,
@@ -110,7 +114,7 @@ public class StoryControllerTest {
     @Test
     @DisplayName("createStory should redirect with error when title is null")
     public void testCreateStoryWithNullTitle() throws IOException {
-        String redirect = sut.createStory(null, "Description", 1L, null);
+        String redirect = sut.createStory(null, "Description", 1L, null, 0L);
         
         assertTrue(redirect.contains("error"), "Should redirect with error parameter");
         verify(storyRepo, never()).persist(any(Story.class));
@@ -119,7 +123,7 @@ public class StoryControllerTest {
     @Test
     @DisplayName("createStory should redirect with error when title is empty")
     public void testCreateStoryWithEmptyTitle() throws IOException {
-        String redirect = sut.createStory("   ", "Description", 1L, null);
+        String redirect = sut.createStory("   ", "Description", 1L, null, 0L);
         
         assertTrue(redirect.contains("error"), "Should redirect with error parameter");
         verify(storyRepo, never()).persist(any(Story.class));
@@ -130,7 +134,7 @@ public class StoryControllerTest {
     public void testCreateStoryWithNullDescription() throws IOException {
         String testTitle = "Test Story";
         
-        String redirect = sut.createStory(testTitle, null, null, null);
+        String redirect = sut.createStory(testTitle, null, null, null, 0L);
 
         // Controller now allows creating a story without a project and redirects to the story list
         assertEquals("redirect:/story/list", redirect);
@@ -207,7 +211,7 @@ public class StoryControllerTest {
         when(repoFactory.getColumnRepo()).thenReturn(columnRepo);
         when(columnRepo.findByProject(projectId)).thenReturn(Arrays.asList());
 
-        sut.createStory(testTitle, "Description", projectId, null);
+        sut.createStory(testTitle, "Description", projectId, null, 0L);
         
         ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
         verify(storyRepo).persist(storyCaptor.capture());
@@ -228,7 +232,7 @@ public class StoryControllerTest {
         when(repoFactory.getColumnRepo()).thenReturn(columnRepo);
         when(columnRepo.findByProject(projectId)).thenReturn(Arrays.asList());
 
-        sut.createStory(testTitle, "Description", projectId, null);
+        sut.createStory(testTitle, "Description", projectId, null, 0L);
         
         ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
         verify(storyRepo).persist(storyCaptor.capture());
@@ -533,7 +537,7 @@ public class StoryControllerTest {
         String longTitle = "This is a very long title that definitely exceeds fifty-nine characters limit";
         Long projectId = 1L;
 
-        String result = sut.createStory(longTitle, "Description", projectId, null);
+        String result = sut.createStory(longTitle, "Description", projectId, null, 0L);
 
         assertTrue(result.contains("error"));
         verify(storyRepo, never()).persist(any(Story.class));
@@ -615,7 +619,7 @@ public class StoryControllerTest {
 
         when(columnRepo.find(columnId)).thenReturn(column);
 
-        String result = sut.createStory(title, description, projectId, columnId);
+        String result = sut.createStory(title, description, projectId, columnId, 0L);
 
         assertTrue(result.contains("redirect:/board/"));
 
@@ -642,7 +646,7 @@ public class StoryControllerTest {
 
         when(columnRepo.findByProject(projectId)).thenReturn(List.of(backlogColumn, otherColumn));
 
-        String result = sut.createStory(title, null, projectId, null);
+        String result = sut.createStory(title, null, projectId, null, 0L);
 
         assertTrue(result.contains("redirect:/board/"));
 

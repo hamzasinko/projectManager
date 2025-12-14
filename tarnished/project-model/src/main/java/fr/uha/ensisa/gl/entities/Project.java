@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -19,4 +20,5 @@ public class Project {
     private User owner;
     private List<User> members;
     private List<Column> workFlow;
+    private List<Swimlane> swimlanes = new ArrayList<>();
 }

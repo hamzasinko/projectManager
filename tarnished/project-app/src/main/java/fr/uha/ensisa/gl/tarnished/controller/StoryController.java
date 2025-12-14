@@ -41,6 +41,7 @@ public class StoryController {
         // Pass projectId and columnId if provided
         if (projectId != null) {
             mav.addObject("projectId", projectId);
+            mav.addObject("swimlanes", repoFactory.getSwimlaneRepo().findByProject(projectId.intValue()));
         }
         if (columnId != null) {
             mav.addObject("columnId", columnId);
@@ -56,10 +57,11 @@ public class StoryController {
         @RequestParam(required=true) String title,
         @RequestParam(required=false) String description,
         @RequestParam(required=false) Long projectId,
-        @RequestParam(required=false) Long columnId
+        @RequestParam(required=false) Long columnId, // Re-added columnId
+        @RequestParam(required=false, defaultValue = "0") long swimlaneId // swimlaneId is long
     ) throws IOException {
         
-        System.out.println("[DEBUG] createStory called - projectId: " + projectId + ", columnId: " + columnId);
+        System.out.println("[DEBUG] createStory called - projectId: " + projectId + ", columnId: " + columnId + ", swimlaneId: " + swimlaneId); // Updated debug
         
         // Validate title
         if (title == null || title.trim().isEmpty()) {
@@ -71,20 +73,24 @@ public class StoryController {
             return "redirect:/story/new?error=Title must be less than 59 characters&projectId=" + projectId;
         }
         
-        // projectId is optional for stories; if absent we create a global story
-        
         Story story = new Story();
         story.setTitle(title.trim());
         story.setDescription(description);
         story.setDateCreated(new Date());
-        story.setProjectId(projectId);
+        if (projectId != null) {
+            story.setProjectId(projectId);
+        }
+        if (columnId != null) { // Set columnId if present
+            story.setColumnId(columnId);
+        }
+        if (swimlaneId != 0) { // Set swimlaneId if not default (0)
+            story.setSwimlaneId(swimlaneId);
+        }
         
         // Définir le status et columnId en fonction de la colonne
         StoryStatus initialStatus = StoryStatus.BACKLOG;
-        if (columnId != null) {
-            // Assigner la story à la colonne spécifiée
-            story.setColumnId(columnId);
-            fr.uha.ensisa.gl.entities.Column column = repoFactory.getColumnRepo().find(columnId);
+        if (story.getColumnId() != null) { // Use story.getColumnId() instead of columnId parameter
+            fr.uha.ensisa.gl.entities.Column column = repoFactory.getColumnRepo().find(story.getColumnId());
             if (column != null) {
                 StoryStatus columnStatus = mapColumnNameToStatus(column.getName());
                 if (columnStatus != null) {
