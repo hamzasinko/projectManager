@@ -13,6 +13,7 @@ stages:
   - build
   - unit-test
   - integration-test
+  - test
   - deploy
 
 # ============================
