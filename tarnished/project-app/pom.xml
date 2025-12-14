@@ -227,6 +227,10 @@
                     <argLine>${jacocoItArgLine}</argLine>
                     <forkCount>1</forkCount>
                     <reuseForks>false</reuseForks>
+                    <includes>
+                        <include>**/*IT.java</include>
+                        <include>**/*ITCase.java</include>
+                    </includes>
                 </configuration>
             </plugin>
 
@@ -304,7 +308,7 @@
                                         <limit>
                                             <counter>INSTRUCTION</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.85</minimum>
+                                            <minimum>0.90</minimum>
                                         </limit>
                                     </limits>
                                 </rule>

@@ -199,4 +199,116 @@ class ColumnControllerTest {
         assertEquals("redirect:/stories", result);
         verify(columnRepo).moveStoryBetweenColumns(1L, null, 2L);
     }
+
+    @Test
+    void testCreateColumnWithLongName() {
+        when(projectRepo.find(1L)).thenReturn(project);
+        String longName = "This is a very long column name that exceeds 25 characters";
+
+        String result = controller.createColumn(longName, 1, 5, false, 1L);
+
+        assertEquals("redirect:/columns", result);
+        verify(columnRepo).persist(argThat(col -> 
+            col.getName().length() <= 25
+        ));
+    }
+
+    @Test
+    void testCreateColumnWithDuplicateName() {
+        when(projectRepo.find(1L)).thenReturn(project);
+        Column existingColumn = new Column();
+        existingColumn.setId(2);
+        existingColumn.setName("To Do");
+        existingColumn.setProject(project);
+        when(columnRepo.findAll()).thenReturn(Arrays.asList(existingColumn));
+
+        String result = controller.createColumn("To Do", 1, 5, false, 1L);
+
+        assertEquals("redirect:/columns?error=Column already exists", result);
+        verify(columnRepo, never()).persist(any(Column.class));
+    }
+
+    @Test
+    void testCreateColumnWithDuplicateNameCaseInsensitive() {
+        when(projectRepo.find(1L)).thenReturn(project);
+        Column existingColumn = new Column();
+        existingColumn.setId(2);
+        existingColumn.setName("To Do");
+        existingColumn.setProject(project);
+        when(columnRepo.findAll()).thenReturn(Arrays.asList(existingColumn));
+
+        String result = controller.createColumn("  to do  ", 1, 5, false, 1L);
+
+        assertEquals("redirect:/columns?error=Column already exists", result);
+        verify(columnRepo, never()).persist(any(Column.class));
+    }
+
+    @Test
+    void testCreateColumnWithDuplicateNameDifferentProject() {
+        when(projectRepo.find(1L)).thenReturn(project);
+        Project otherProject = new Project();
+        otherProject.setId(2);
+        Column existingColumn = new Column();
+        existingColumn.setId(2);
+        existingColumn.setName("To Do");
+        existingColumn.setProject(otherProject);
+        when(columnRepo.findAll()).thenReturn(Arrays.asList(existingColumn));
+
+        String result = controller.createColumn("To Do", 1, 5, false, 1L);
+
+        assertEquals("redirect:/columns", result);
+        verify(columnRepo).persist(any(Column.class));
+    }
+
+    @Test
+    void testCreateColumnWithEmptyName() {
+        when(projectRepo.find(1L)).thenReturn(project);
+
+        String result = controller.createColumn("", 1, 5, false, 1L);
+
+        assertEquals("redirect:/columns", result);
+        verify(columnRepo).persist(any(Column.class));
+    }
+
+    @Test
+    void testShowCreateFormWithoutProjectId() {
+        String viewName = controller.showCreateForm(null, model);
+
+        assertEquals("column-create", viewName);
+        verify(model).addAttribute("projectId", null);
+    }
+
+    @Test
+    void testEditColumnWithLongName() {
+        when(columnRepo.find(1L)).thenReturn(column);
+        String longName = "This is a very long column name that exceeds 25 characters";
+
+        String result = controller.editColumn(1L, longName, 2, 10);
+
+        assertEquals("redirect:/columns", result);
+        assertTrue(column.getName().length() <= 25);
+        verify(columnRepo).persist(column);
+    }
+
+    @Test
+    void testEditColumnWithEmptyName() {
+        when(columnRepo.find(1L)).thenReturn(column);
+
+        String result = controller.editColumn(1L, "", 2, 10);
+
+        assertEquals("redirect:/columns", result);
+        verify(columnRepo).persist(column);
+    }
+
+    @Test
+    void testCreateColumnTrimsName() {
+        when(projectRepo.find(1L)).thenReturn(project);
+
+        String result = controller.createColumn("  Trimmed Name  ", 1, 5, false, 1L);
+
+        assertEquals("redirect:/columns", result);
+        verify(columnRepo).persist(argThat(col -> 
+            col.getName().equals("Trimmed Name")
+        ));
+    }
 }
