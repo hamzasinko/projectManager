@@ -69,18 +69,6 @@
                     This story will be added to the selected project and column
                 </div>
             </div>
-
-            <!-- Swimlane selector -->
-            <div class="mb-3" th:if="${swimlanes != null and not #lists.isEmpty(swimlanes)}">
-                <label for="swimlaneId" class="form-label">Swimlane</label>
-                <select class="form-select" id="swimlaneId" name="swimlaneId">
-                    <option value="">Select a swimlane...</option>
-                    <option th:each="swimlane : ${swimlanes}"
-                            th:value="${swimlane.id}"
-                            th:text="${swimlane.name}">Swimlane Name</option>
-                </select>
-                <div class="form-text">Assign this story to a swimlane</div>
-            </div>
             
             <button type="submit" class="btn btn-primary" id="createStoryBtn">
                 Create Story

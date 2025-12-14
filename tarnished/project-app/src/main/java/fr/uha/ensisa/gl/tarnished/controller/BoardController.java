@@ -3,19 +3,14 @@ package fr.uha.ensisa.gl.tarnished.controller;
 import fr.uha.ensisa.gl.entities.Column;
 import fr.uha.ensisa.gl.entities.Project;
 import fr.uha.ensisa.gl.entities.Story;
-import fr.uha.ensisa.gl.entities.Swimlane;
 import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 @Controller
 @RequestMapping("/board")
@@ -43,38 +38,25 @@ public class BoardController {
 
         // Get all columns for this project
         Collection<Column> columns = repoFactory.getColumnRepo().findByProject(projectId);
-        // Get all swimlanes for this project
-        Collection<Swimlane> swimlanes = repoFactory.getSwimlaneRepo().findByProject(projectId.intValue());
         
-        // Get all stories for the project
-        Collection<Story> stories = repoFactory.getStoryRepo().findByProject(projectId);
-
-        // Organize stories by swimlane and column
-        Map<Long, Map<Long, List<Story>>> storiesBySwimlaneAndColumn = new HashMap<>();
-        for (Swimlane swimlane : swimlanes) {
-            storiesBySwimlaneAndColumn.put(swimlane.getId(), new HashMap<>());
-            for (Column column : columns) {
-                storiesBySwimlaneAndColumn.get(swimlane.getId()).put((long)column.getId(), new ArrayList<>());
+        // For each column, get its stories
+        for (Column column : columns) {
+            // Initialiser hasSubColumns=true pour les colonnes par défaut (sauf BACKLOG et DONE)
+            String columnName = column.getName().toUpperCase(Locale.ROOT);
+            if (!column.isHasSubColumns() && 
+                (columnName.equals("IN PROGRESS") || 
+                 columnName.equals("REVIEW") || 
+                 columnName.equals("BLOCKED"))) {
+                column.setHasSubColumns(true);
+                repoFactory.getColumnRepo().persist(column);
             }
+            
+            Collection<Story> stories = repoFactory.getStoryRepo().findByColumn((long) column.getId());
+            column.setStories(new java.util.ArrayList<>(stories));
         }
-
-        for (Story story : stories) {
-            if (story.getSwimlaneId() != 0 && story.getColumnId() != null) {
-                Map<Long, List<Story>> storiesByColumn = storiesBySwimlaneAndColumn.get(story.getSwimlaneId());
-                if (storiesByColumn != null) {
-                    List<Story> storiesInCell = storiesByColumn.get(story.getColumnId());
-                    if (storiesInCell != null) {
-                        storiesInCell.add(story);
-                    }
-                }
-            }
-        }
-
 
         mav.addObject("project", project);
         mav.addObject("columns", columns);
-        mav.addObject("swimlanes", swimlanes);
-        mav.addObject("storiesBySwimlaneAndColumn", storiesBySwimlaneAndColumn);
 
         return mav;
     }
@@ -251,21 +233,6 @@ public class BoardController {
         }
 
         repoFactory.getColumnRepo().persist(column);
-
-        return "redirect:/board/" + projectId;
-    }
-
-    @PostMapping("/{projectId}/add-swimlane")
-    public String addSwimlane(@PathVariable Long projectId, @RequestParam String swimlaneName) {
-        Project project = repoFactory.getProjectRepo().find(projectId);
-        if (project == null) {
-            return "redirect:/project/list";
-        }
-
-        Swimlane swimlane = new Swimlane();
-        swimlane.setName(swimlaneName);
-        swimlane.setProjectId(projectId.intValue());
-        repoFactory.getSwimlaneRepo().persist(swimlane);
 
         return "redirect:/board/" + projectId;
     }
