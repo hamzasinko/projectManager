@@ -253,4 +253,10 @@ class ProjectRepoMemTest {
         assertNotNull(projectRepo.find(2L));
         assertEquals(2, projectRepo.count());
     }
+
+    @Test
+    void find_onUnknownId_returnsNull() {
+        ProjectRepoMem repo = new ProjectRepoMem();
+        assertNull(repo.find(999L));
+    }
 }
