@@ -444,4 +444,10 @@ class ColumnRepoMemTest {
         Column result = repo.find(999L);
         assertNull(result);
     }
+
+    @Test
+    void remove_onUnknownId_doesNotThrow() {
+        ColumnRepoMem repo = new ColumnRepoMem();
+        assertDoesNotThrow(() -> repo.remove(999L));
+    }
 }
