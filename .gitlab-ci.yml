@@ -55,15 +55,9 @@ integration-test:
   script:
     - cd tarnished
     - mvn clean install -DskipTests
-    - mvn -pl project-app jetty:run \
-        -Djetty.host=0.0.0.0 \
-        -Djetty.port=8080 &
+    - mvn -pl project-app jetty:run -Djetty.host=0.0.0.0 -Djetty.port=8080 &
     - sleep 15
-    - mvn verify \
-        -Dselenium.remote.browser=true \
-        -Dsurefire.skip=true \
-        -Dhost=docker \
-        -Dservlet.port=8080
+    - mvn verify -Dselenium.remote.browser=true -Dsurefire.skip=true -Dhost=docker -Dservlet.port=8080
 
 # ============================
 # 4️⃣ DEPLOY (Docker via Kaniko)
