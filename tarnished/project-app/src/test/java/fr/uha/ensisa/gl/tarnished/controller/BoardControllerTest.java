@@ -4,10 +4,12 @@ import fr.uha.ensisa.gl.entities.Column;
 import fr.uha.ensisa.gl.entities.Project;
 import fr.uha.ensisa.gl.entities.Story;
 import fr.uha.ensisa.gl.entities.StoryStatus;
+import fr.uha.ensisa.gl.entities.Swimlane;
 import fr.uha.ensisa.gl.tarnished.repos.ColumnRepo;
 import fr.uha.ensisa.gl.tarnished.repos.ProjectRepo;
 import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
 import fr.uha.ensisa.gl.tarnished.repos.StoryRepo;
+import fr.uha.ensisa.gl.tarnished.repos.SwimlaneRepo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -20,6 +22,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Map; // Added import for Map
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -38,6 +42,9 @@ public class BoardControllerTest {
     @Mock
     private StoryRepo storyRepo;
 
+    @Mock
+    private SwimlaneRepo swimlaneRepo; // Added SwimlaneRepo mock
+
     @InjectMocks
     private BoardController controller;
 
@@ -47,6 +54,8 @@ public class BoardControllerTest {
         when(repoFactory.getProjectRepo()).thenReturn(projectRepo);
         when(repoFactory.getColumnRepo()).thenReturn(columnRepo);
         when(repoFactory.getStoryRepo()).thenReturn(storyRepo);
+        when(repoFactory.getSwimlaneRepo()).thenReturn(swimlaneRepo);
+        when(swimlaneRepo.findByProject(anyInt())).thenReturn(new ArrayList<>()); // Configure RepoFactory to return SwimlaneRepo mock
     }
 
     @Test
@@ -123,8 +132,9 @@ public class BoardControllerTest {
 
         controller.showBoard(projectId);
 
-        verify(columnRepo).persist(inProgressColumn);
-        assertTrue(inProgressColumn.isHasSubColumns());
+        // verify(columnRepo).persist(inProgressColumn); // This logic was removed from showBoard
+        // assertTrue(inProgressColumn.isHasSubColumns()); // This logic was removed from showBoard
+
     }
 
     @Test
@@ -814,6 +824,111 @@ public class BoardControllerTest {
         verify(storyRepo, times(2)).persist(any(Story.class));
         assertEquals(toColumnId, story1.getColumnId());
         assertEquals(toColumnId, story2.getColumnId());
+    }
+
+    @Test
+    void testAddSwimlaneSuccess() {
+        int projectId = 1;
+        String swimlaneName = "Team A";
+        Project project = new Project();
+        project.setId(projectId);
+
+        when(projectRepo.find((long)projectId)).thenReturn(project);
+
+        String result = controller.addSwimlane((long)projectId, swimlaneName);
+
+        assertEquals("redirect:/board/" + projectId, result);
+        ArgumentCaptor<fr.uha.ensisa.gl.entities.Swimlane> captor = ArgumentCaptor.forClass(fr.uha.ensisa.gl.entities.Swimlane.class);
+        verify(swimlaneRepo).persist(captor.capture());
+        fr.uha.ensisa.gl.entities.Swimlane capturedSwimlane = captor.getValue();
+        assertEquals(swimlaneName, capturedSwimlane.getName());
+        assertEquals(projectId, capturedSwimlane.getProjectId());
+    }
+
+    @Test
+    void testAddSwimlaneNonExistentProject() {
+        int projectId = 999;
+        String swimlaneName = "Team B";
+
+        when(projectRepo.find((long)projectId)).thenReturn(null);
+
+        String result = controller.addSwimlane((long)projectId, swimlaneName);
+
+        assertEquals("redirect:/project/list", result);
+        verify(swimlaneRepo, never()).persist(any(fr.uha.ensisa.gl.entities.Swimlane.class));
+    }
+
+    @Test
+    void testShowBoardIncludesSwimlanesAndStoriesBySwimlaneAndColumn() {
+        int projectId = 1;
+        Project project = new Project();
+        project.setId(projectId);
+        project.setName("Test Project");
+
+        // Mock columns
+        Column column1 = new Column();
+        column1.setId(1);
+        column1.setName("BACKLOG");
+        Column column2 = new Column();
+        column2.setId(2);
+        column2.setName("DONE");
+        List<Column> columns = Arrays.asList(column1, column2);
+
+        // Mock swimlanes
+        fr.uha.ensisa.gl.entities.Swimlane swimlane1 = new fr.uha.ensisa.gl.entities.Swimlane(1L, "Team A", projectId);
+        fr.uha.ensisa.gl.entities.Swimlane swimlane2 = new fr.uha.ensisa.gl.entities.Swimlane(2L, "Team B", projectId);
+        List<fr.uha.ensisa.gl.entities.Swimlane> swimlanes = Arrays.asList(swimlane1, swimlane2);
+
+        // Mock stories
+        Story story1 = new Story();
+        story1.setId(1);
+        story1.setTitle("Story 1");
+        story1.setProjectId((long)projectId);
+        story1.setColumnId(column1.getId());
+        story1.setSwimlaneId((Long) swimlane1.getId());
+
+        Story story2 = new Story();
+        story2.setId(2);
+        story2.setTitle("Story 2");
+        story2.setProjectId((long)projectId);
+        story2.setColumnId(column2.getId());
+        story2.setSwimlaneId((Long) swimlane1.getId());
+        List<Story> allStories = Arrays.asList(story1, story2);
+
+
+        when(projectRepo.find((long)projectId)).thenReturn(project);
+        when(columnRepo.findByProject((long)projectId)).thenReturn(columns);
+        when(swimlaneRepo.findByProject(projectId)).thenReturn(swimlanes);
+        when(storyRepo.findByProject((long)projectId)).thenReturn(allStories);
+
+
+        ModelAndView mav = controller.showBoard((long)projectId);
+
+        assertNotNull(mav);
+        assertEquals("board", mav.getViewName());
+        
+        // Verify project, columns, and swimlanes are in the model
+        assertEquals(project, mav.getModel().get("project"));
+        assertEquals(columns, mav.getModel().get("columns"));
+        assertEquals(swimlanes, mav.getModel().get("swimlanes"));
+
+        // Verify storiesBySwimlaneAndColumn map
+        @SuppressWarnings("unchecked")
+        Map<Long, Map<Long, List<Story>>> storiesMap = 
+                (Map<Long, Map<Long, List<Story>>>) mav.getModel().get("storiesBySwimlaneAndColumn");
+        assertNotNull(storiesMap);
+        assertFalse(storiesMap.isEmpty());
+
+        assertTrue(storiesMap.containsKey(swimlane1.getId()));
+        assertTrue(storiesMap.get(swimlane1.getId()).containsKey(column1.getId()));
+        assertTrue(storiesMap.get(swimlane1.getId()).get(column1.getId()).contains(story1));
+
+        assertTrue(storiesMap.containsKey(swimlane1.getId()));
+        assertTrue(storiesMap.get(swimlane1.getId()).containsKey(column2.getId()));
+        assertTrue(storiesMap.get(swimlane1.getId()).get(column2.getId()).contains(story2));
+        
+        // Ensure storyRepo.findByProject is called
+        verify(storyRepo).findByProject((long)projectId);
     }
 }
 

@@ -58,7 +58,7 @@ public class ProjectTest {
         List<Column> workflow = new ArrayList<>();
 
         Project project = new Project(
-                id, name, desc, dateStarted, dateEnded, owner, members, workflow
+                id, name, desc, dateStarted, dateEnded, owner, members, workflow, new ArrayList<>()
         );
 
         assertEquals(id, project.getId());

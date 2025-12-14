@@ -5,6 +5,7 @@ import fr.uha.ensisa.gl.tarnished.repos.ProjectRepo;
 import fr.uha.ensisa.gl.tarnished.repos.StoryRepo;
 import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
 import fr.uha.ensisa.gl.tarnished.repos.UserRepo;
+import fr.uha.ensisa.gl.tarnished.repos.SwimlaneRepo;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -13,6 +14,7 @@ public class RepoFactoryMem implements RepoFactory {
     public final ColumnRepo columnRepo = new ColumnRepoMem();
     public final ProjectRepo projectRepo = new ProjectRepoMem();
     public final UserRepo userRepo = new UserRepoMem();
+    public final SwimlaneRepo swimlaneRepo = new SwimlaneRepoMem();
 
     @Override
     public ColumnRepo getColumnRepo() {
@@ -34,5 +36,10 @@ public class RepoFactoryMem implements RepoFactory {
     @Override
     public UserRepo getUserRepo() {
         return this.userRepo;
+    }
+
+    @Override
+    public SwimlaneRepo getSwimlaneRepo() {
+        return this.swimlaneRepo;
     }
 }
