@@ -2,6 +2,7 @@ image: maven:3-eclipse-temurin-21-alpine
 
 variables:
   MAVEN_CLI_OPTS: "--batch-mode -Dmaven.repo.local=libs"
+  CI_REGISTRY: gitlab.cluster.ensisa.uha.fr:4567
 
 cache:
   key: default-cache
@@ -16,7 +17,7 @@ stages:
   - deploy
 
 # ============================
-# 1️⃣ BUILD
+# BUILD
 # ============================
 build:
   stage: build
@@ -25,12 +26,12 @@ build:
     - mvn clean install -DskipTests -DskipITs
   artifacts:
     paths:
-      - project-app/target/*.war
-      - project-model/target/*.jar
-      - project-repomem/target/*.jar
+      - tarnished/project-app/target/*.war
+      - tarnished/project-model/target/*.jar
+      - tarnished/project-repomem/target/*.jar
 
 # ============================
-# 2️⃣ UNIT TESTS (Mockito)
+# UNIT TESTS
 # ============================
 unit-test:
   stage: unit-test
@@ -43,51 +44,47 @@ unit-test:
         - "**/target/surefire-reports/TEST-*.xml"
 
 # ============================
-# 3️⃣ INTEGRATION TESTS (Selenium)
+# INTEGRATION TESTS (Selenium local)
 # ============================
 integration-test:
   stage: integration-test
-
-  services:
-    - name: selenium/standalone-chrome
-      alias: selenium
-
   script:
     - cd tarnished
-    # Build complet sans tests
     - mvn $MAVEN_CLI_OPTS clean install -DskipTests
-    # Démarrer Jetty sur le conteneur Maven
     - mvn $MAVEN_CLI_OPTS -pl project-app jetty:start
-    # Lancer tests d'intégration avec Selenium remote
-    - mvn $MAVEN_CLI_OPTS verify -Dselenium.remote.browser=true -Dsurefire.skip=true -Dhost=selenium -Dservlet.port=8080
+        -Djetty.host=0.0.0.0
+        -Djetty.port=8080
+    - sleep 10
+    - curl http://localhost:8080 || exit 1
+    - mvn $MAVEN_CLI_OPTS verify
 
   artifacts:
     reports:
       junit:
         - "tarnished/**/target/failsafe-reports/*.xml"
-    paths:
-      - "tarnished/**/target/*.jar"
-      - "tarnished/**/target/*.war"
     expire_in: 1 hour
 
 # ============================
-# 4️⃣ DEPLOY (Docker via Kaniko)
+# DOCKER BUILD (KANIKO)
 # ============================
 deploy-docker:
   stage: deploy
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
+
   needs:
     - job: integration-test
       artifacts: true
+
   rules:
     - if: '$CI_COMMIT_REF_NAME == "main"'
     - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'
+
   script:
     - cd tarnished
     - WARFILE=$(find project-app/target -name "*.war" | head -n 1)
-    - if [ -z "$WARFILE" ]; then echo "❌ Aucun WAR trouvé !"; exit 1; fi
+    - if [ -z "$WARFILE" ]; then echo "❌ Aucun WAR trouvé"; exit 1; fi
 
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_DEPLOY_USER\",\"password\":\"$CI_DEPLOY_PASSWORD\"}}}" > /kaniko/.docker/config.json
 
@@ -96,4 +93,7 @@ deploy-docker:
       EXPOSE 8080
       ADD $WARFILE /var/lib/jetty/webapps/tarnished.war" > Dockerfile
 
-    - /kaniko/executor --cleanup --context $CI_PROJECT_DIR --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - /kaniko/executor \
+        --cleanup \
+        --context $CI_PROJECT_DIR \
+        --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
