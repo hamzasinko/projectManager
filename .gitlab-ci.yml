@@ -47,28 +47,31 @@ unit-test:
 # ============================
 integration-test:
   stage: integration-test
-
+  image: maven:3-eclipse-temurin-21-alpine
   services:
     - name: selenium/standalone-chrome
       alias: selenium
-
   script:
-    - cd tarnished
-    # Build complet sans tests
     - mvn $MAVEN_CLI_OPTS clean install -DskipTests
-    # Démarrer Jetty sur le conteneur Maven
-    - mvn $MAVEN_CLI_OPTS -pl project-app jetty:start
-    # Lancer tests d'intégration avec Selenium remote
-    - mvn $MAVEN_CLI_OPTS verify -Dselenium.remote.browser=true -Dsurefire.skip=true -Dhost=selenium -Dservlet.port=8080
-
+    - mvn $MAVEN_CLI_OPTS verify -f projest-app/ -Dselenium.remote.browser=true -Dsurefire.skip=true
   artifacts:
     reports:
       junit:
-        - "tarnished/**/target/failsafe-reports/*.xml"
+        - "**/target/failsafe-reports/TEST-*.xml"
+    # On sauvegarde le binaire pour le stage suivant
     paths:
-      - "tarnished/**/target/*.jar"
-      - "tarnished/**/target/*.war"
+      - "**/target/*.jar"
+      - "**/target/*.war"
     expire_in: 1 hour
+
+
+static-analysis:
+  stage: test
+  script:
+    - mvn $MAVEN_CLI_OPTS install -DskipTests -Djacoco.skip=true spotbugs:spotbugs
+  artifacts:
+    paths:
+      - "**/target/spotbugsXml.xml"
 
 # ============================
 # 4️⃣ DEPLOY (Docker via Kaniko)
