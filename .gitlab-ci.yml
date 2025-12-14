@@ -48,23 +48,23 @@ unit-test:
 # ============================
 integration-test:
   stage: integration-test
-  image: maven:3-eclipse-temurin-21-alpine
-  services:
-    - name: selenium/standalone-chrome
-      alias: selenium
+
   script:
     - cd tarnished
     - mvn $MAVEN_CLI_OPTS clean install -DskipTests
-    - mvn $MAVEN_CLI_OPTS verify -f project-app/ -Dselenium.remote.browser=true -Dsurefire.skip=true
-  artifacts:
-    reports:
-      junit:
-        - "**/target/failsafe-reports/TEST-*.xml"
-    # On sauvegarde le binaire pour le stage suivant
-    paths:
-      - "**/target/*.jar"
-      - "**/target/*.war"
-    expire_in: 1 hour
+
+    # Lancer Jetty en arrière-plan (BLOQUANT normalement)
+    - mvn $MAVEN_CLI_OPTS -pl project-app jetty:run -Djetty.host=0.0.0.0 -Djetty.port=8080 &
+
+    # Attente ACTIVE jusqu'à ce que le serveur réponde
+    - echo "⏳ Waiting for Jetty..."
+    - for i in {1..30}; do curl -s http://localhost:8080 && break || sleep 2; done
+
+    # Échec si toujours inaccessible
+    - curl -f http://localhost:8080
+
+    # Lancer les tests Selenium
+    - mvn $MAVEN_CLI_OPTS verify
 
 
 static-analysis:
