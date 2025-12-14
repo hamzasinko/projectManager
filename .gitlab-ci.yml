@@ -54,10 +54,21 @@ integration-test:
 
   script:
     - cd tarnished
-    - mvn clean install -DskipTests
-    - mvn -pl project-app jetty:run -Djetty.host=0.0.0.0 -Djetty.port=8080 &
-    - sleep 15
-    - mvn verify -Dselenium.remote.browser=true -Dsurefire.skip=true -Dhost=docker -Dservlet.port=8080
+    # Build complet sans tests
+    - mvn $MAVEN_CLI_OPTS clean install -DskipTests
+    # Démarrer Jetty sur le conteneur Maven
+    - mvn $MAVEN_CLI_OPTS -pl project-app jetty:start
+    # Lancer tests d'intégration avec Selenium remote
+    - mvn $MAVEN_CLI_OPTS verify -Dselenium.remote.browser=true -Dsurefire.skip=true -Dhost=selenium -Dservlet.port=8080
+
+  artifacts:
+    reports:
+      junit:
+        - "tarnished/**/target/failsafe-reports/*.xml"
+    paths:
+      - "tarnished/**/target/*.jar"
+      - "tarnished/**/target/*.war"
+    expire_in: 1 hour
 
 # ============================
 # 4️⃣ DEPLOY (Docker via Kaniko)
