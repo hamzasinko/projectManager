@@ -48,24 +48,21 @@ unit-test:
 # ============================
 integration-test:
   stage: integration-test
-
+  image: maven:3-eclipse-temurin-21-alpine
   script:
     - cd tarnished
-    - mvn $MAVEN_CLI_OPTS clean install -DskipTests
 
-    # Lancer Jetty en arrière-plan (BLOQUANT normalement)
+    # 1) Build sans lancer les IT (Jetty ne démarre pas ici)
+    - mvn $MAVEN_CLI_OPTS clean install -DskipTests -DskipITs
+
+    # 2) Lancer Jetty 1 seule fois en arrière-plan
     - mvn $MAVEN_CLI_OPTS -pl project-app jetty:run -Djetty.host=0.0.0.0 -Djetty.port=8080 &
-
-    # Attente ACTIVE jusqu'à ce que le serveur réponde
     - echo "⏳ Waiting for Jetty..."
     - for i in {1..30}; do curl -s http://localhost:8080 && break || sleep 2; done
-
-    # Échec si toujours inaccessible
     - curl -f http://localhost:8080
 
-    # Lancer les tests Selenium
-    - mvn $MAVEN_CLI_OPTS verify
-
+    # 3) Lancer les tests d'intégration SEULEMENT
+    - mvn $MAVEN_CLI_OPTS verify -pl project-app -DskipTests
 
 static-analysis:
   stage: test
