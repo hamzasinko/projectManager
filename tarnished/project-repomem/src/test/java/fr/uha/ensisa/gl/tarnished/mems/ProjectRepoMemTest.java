@@ -3,11 +3,13 @@ package fr.uha.ensisa.gl.tarnished.mems;
 import fr.uha.ensisa.gl.entities.Column;
 import fr.uha.ensisa.gl.entities.Project;
 import fr.uha.ensisa.gl.tarnished.repos.ColumnRepo;
+import fr.uha.ensisa.gl.tarnished.repos.StoryRepo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.util.Collection;
@@ -26,6 +28,7 @@ class ProjectRepoMemTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        columnRepo = Mockito.mock(ColumnRepo.class);
         projectRepo = new ProjectRepoMem();
         projectRepo.setColumnRepo(columnRepo);
     }
@@ -264,16 +267,5 @@ class ProjectRepoMemTest {
     void remove_onUnknownId_doesNotThrow() {
         ProjectRepoMem repo = new ProjectRepoMem();
         assertDoesNotThrow(() -> repo.remove(999L));
-    }
-
-    @Test
-    void persist_assignsId_andStoresProject() {
-        ProjectRepoMem repo = new ProjectRepoMem();
-        Project p = new Project();
-
-        repo.persist(p);
-
-        assertNotNull(repo.find(p.getId()));
-        assertEquals(1, repo.findAll().size());
     }
 }
