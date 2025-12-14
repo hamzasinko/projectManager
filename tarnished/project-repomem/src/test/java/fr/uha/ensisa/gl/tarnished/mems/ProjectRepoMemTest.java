@@ -265,4 +265,15 @@ class ProjectRepoMemTest {
         ProjectRepoMem repo = new ProjectRepoMem();
         assertDoesNotThrow(() -> repo.remove(999L));
     }
+
+    @Test
+    void persist_assignsId_andStoresProject() {
+        ProjectRepoMem repo = new ProjectRepoMem();
+        Project p = new Project();
+
+        repo.persist(p);
+
+        assertNotNull(repo.find(p.getId()));
+        assertEquals(1, repo.findAll().size());
+    }
 }
