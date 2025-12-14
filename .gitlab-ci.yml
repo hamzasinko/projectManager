@@ -55,7 +55,7 @@ integration-test:
   script:
     - cd tarnished
     - mvn $MAVEN_CLI_OPTS clean install -DskipTests
-    - mvn $MAVEN_CLI_OPTS verify -f projest-app/ -Dselenium.remote.browser=true -Dsurefire.skip=true
+    - mvn $MAVEN_CLI_OPTS verify -f project-app/ -Dselenium.remote.browser=true -Dsurefire.skip=true
   artifacts:
     reports:
       junit:
