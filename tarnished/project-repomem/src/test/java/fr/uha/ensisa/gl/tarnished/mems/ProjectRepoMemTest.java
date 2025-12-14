@@ -259,4 +259,10 @@ class ProjectRepoMemTest {
         ProjectRepoMem repo = new ProjectRepoMem();
         assertNull(repo.find(999L));
     }
+
+    @Test
+    void remove_onUnknownId_doesNotThrow() {
+        ProjectRepoMem repo = new ProjectRepoMem();
+        assertDoesNotThrow(() -> repo.remove(999L));
+    }
 }
