@@ -32,6 +32,10 @@ public class WebDriverFactory {
         );
         options.setAcceptInsecureCerts(true);
 
+        // Détection explicite de la CI GitLab
+        String ciEnv = System.getenv("CI");
+        boolean isCI = ciEnv != null && (ciEnv.equalsIgnoreCase("true") || ciEnv.equals("1"));
+
         // On active le RemoteWebDriver UNIQUEMENT si selenium.remote.browser=true
         String remoteFlag = System.getProperty("selenium.remote.browser", "false");
         boolean useRemote = remoteFlag.equalsIgnoreCase("true") || remoteFlag.equals("1");
@@ -49,8 +53,22 @@ public class WebDriverFactory {
             }
         }
 
-        // Sinon : ChromeDriver local (dev et CI sans service Selenium)
-        System.out.println("[WebDriverFactory] Local mode → ChromeDriver");
+        // Si on est en CI SANS Selenium distant, on utilise le chromedriver système installé via apk
+        if (isCI) {
+            String chromeBin = System.getenv("CHROME_BIN");
+            if (chromeBin != null && !chromeBin.isBlank()) {
+                System.out.println("[WebDriverFactory] CI local mode → ChromeDriver with binary " + chromeBin);
+                options.setBinary(chromeBin);
+            } else {
+                System.out.println("[WebDriverFactory] CI local mode → ChromeDriver (binary from PATH)");
+            }
+            // Chemin standard du paquet alpine chromium-chromedriver
+            System.setProperty("webdriver.chrome.driver", "/usr/bin/chromedriver");
+            return new ChromeDriver(options);
+        }
+
+        // Sinon : ChromeDriver local (développement, hors CI)
+        System.out.println("[WebDriverFactory] Local mode → ChromeDriver (WebDriverManager)");
         WebDriverManager.chromedriver().setup();
         return new ChromeDriver(options);
     }

@@ -49,6 +49,11 @@ integration-test:
   stage: integration-test
   image: maven:3-eclipse-temurin-21-alpine
   script:
+    # Installer Chrome + ChromeDriver pour l'exécution locale des tests Selenium
+    - apk add --no-cache chromium chromium-chromedriver
+    # Exporter le chemin du binaire Chrome pour WebDriverFactory (CHROME_BIN)
+    - export CHROME_BIN="$(command -v chromium-browser || command -v chromium || true)"
+    - echo "Using CHROME_BIN=${CHROME_BIN}"
     - cd tarnished
     # Build sans tests unitaires
     - mvn $MAVEN_CLI_OPTS clean install -DskipTests
