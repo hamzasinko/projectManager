@@ -57,7 +57,7 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Servlet API -->
+        <!-- Servlet API (Jetty 9 compatible) -->
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
@@ -129,6 +129,8 @@
                 <version>${maven.compiler.plugin.version}</version>
                 <configuration>
                     <parameters>true</parameters>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
                 </configuration>
             </plugin>
 
@@ -179,7 +181,6 @@
                         </goals>
                         <configuration>
                             <scanIntervalSeconds>0</scanIntervalSeconds>
-                            <!-- daemon supprimé pour CI -->
                         </configuration>
                     </execution>
                     <execution>
