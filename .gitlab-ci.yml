@@ -115,7 +115,7 @@ deploy-docker:
     # Variables et Environnement
     - APP_NAME=$(echo "${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}" | tr '[:upper:]' '[:lower:]')
     - NAMESPACE="gitlab-cd-${ENV}"
-    - echo "DYNAMIC_URL=https://${ENV}.cluster.ensisa.uha.fr/${APP_NAME}/boards" > deploy.env
+    - echo "DYNAMIC_URL=https://${ENV}.cluster.ensisa.uha.fr/${APP_NAME}" > deploy.env
 
     # Secret pour tirer l'image Docker
     - kubectl -n ${NAMESPACE} create secret docker-registry $APP_NAME-registry-secret --docker-server=${CI_REGISTRY} --docker-username=${CI_DEPLOY_USER} --docker-password=${CI_DEPLOY_PASSWORD} --dry-run=client -o yaml | kubectl -n ${NAMESPACE} apply -f -
