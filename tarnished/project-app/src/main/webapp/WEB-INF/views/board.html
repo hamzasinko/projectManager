@@ -5,10 +5,44 @@
     <title th:text="'Kanban Board - ' + ${project.name}">Kanban Board</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/libs/bootstrap/bootstrap.min.css}">
     <style>
         * { font-family: 'Space Grotesk', system-ui, sans-serif !important; }
+        .swimlane-actions i {
+            font-size: 1.2rem; /* adjust size */
+            color: #333;       /* adjust color */
+            vertical-align: middle;
+        }
+
+        .swimlane-board {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .swimlane-row {
+            display: flex;
+            align-items: stretch;
+        }
+
+        .swimlane-label {
+            flex: 0 0 200px;
+            background: #f1f3f5;
+            border-radius: 8px;
+            padding: 15px;
+            margin-right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            font-weight: 600;
+        }
+
+        .swimlane-row .kanban-container {
+            flex: 1;
+        }
+
         .kanban-container {
             display: flex;
             overflow-x: auto;
@@ -132,341 +166,14 @@
         </div>
     </div>
 
-    <div class="container-fluid">
-        <div class="kanban-container" id="kanban-container">
-            <!-- Column for each workflow column -->
-            <div th:each="column : ${columns}" 
-                 class="kanban-column" 
-                 th:id="'column-' + ${column.id}"
-                 th:data-column-id="${column.id}"
-                 ondrop="drop(event)" 
-                 ondragover="allowDrop(event)"
-                 ondragleave="dragLeave(event)">
-                
-                <div class="column-header">
-                    <span th:text="${#strings.replace(column.name, '_', ' ')}" 
-                          th:id="'column-name-' + ${column.id}"
-                          th:attr="draggable=${column.name != 'BACKLOG'}"
-                          ondragstart="dragColumn(event)" 
-                          th:style="${column.name == 'BACKLOG'} ? 'flex-grow: 1; cursor: default;' : 'cursor: move; flex-grow: 1;'">Column Name</span>
-                    <div style="display: flex; align-items: center; gap: 5px;">
-                        <span class="column-capacity" th:if="${column.maxCapacity > 0}">
-                            <span th:text="${column.stories != null ? column.stories.size() : 0}">0</span>/<span th:text="${column.maxCapacity}">5</span>
-                        </span>
-                        <!-- Bouton Edit pour TOUTES les colonnes -->
-                        <button onclick="editColumn(this)" 
-                                th:attr="data-column-id=${column.id},data-column-name=${column.name},data-column-capacity=${column.maxCapacity}"
-                                class="btn btn-sm btn-outline-secondary" 
-                                style="padding: 2px 8px; font-size: 0.8em;" 
-                                draggable="false"
-                                title="Edit column">
-                            Edit
-                        </button>
-                        <!-- Bouton Delete uniquement pour les colonnes non-BACKLOG/DONE -->
-                        <button th:if="${column.name != 'BACKLOG' and column.name != 'DONE'}"
-                                type="button"
-                                th:attr="data-column-id=${column.id},data-story-count=${column.stories.size()}"
-                                onclick="deleteColumn(this)" 
-                                class="btn btn-sm btn-outline-danger" 
-                                style="padding: 2px 8px; font-size: 0.8em;" 
-                                draggable="false"
-                                title="Delete column">
-                            X
-                        </button>
-                    </div>
-                </div>
+    <!-- BOARD WITH SWIMLANES -->
+    <div th:if="${hasSwimlanes}">
+        <div th:replace="~{fragments/board-swimlanes :: swimlaneBoard}"></div>
+    </div>
 
-                <!-- Pour BACKLOG et DONE de base : structure simple -->
-                <div th:if="${column.name == 'BACKLOG' or column.name == 'DONE'}" style="flex-grow: 1; display: flex; flex-direction: column;">
-                    <button class="btn btn-outline-secondary btn-sm add-story-btn"
-                            th:onclick="'addStoryToColumn(' + ${project.id} + ', ' + ${column.id} + ')'"
-                            style="margin-bottom: 10px;">
-                        + Add Story
-                    </button>
-
-                    <!-- Stories in this column -->
-                    <div class="column-stories" style="flex-grow: 1;"
-                         ondrop="drop(event)" 
-                         ondragover="allowDrop(event)"
-                         ondragleave="dragLeave(event)">
-                        <div th:each="story : ${column.stories}" 
-                             class="story-card"
-                             th:id="'story-' + ${story.id}"
-                             th:data-story-id="${story.id}"
-                             draggable="true"
-                             ondragstart="drag(event)"
-                             ondragover="storyDragOver(event)"
-                             ondrop="storyDrop(event)">
-                            
-                            <div class="story-title" th:text="${story.title}">Story Title</div>
-                            
-                            <div class="story-meta">
-                                <span class="badge status-badge"
-                                      th:classappend="${'status-' + story.status}"
-                                      th:text="${#strings.replace(story.status.toString(), '_', ' ')}">BACKLOG</span>
-                                
-                                <div class="mt-2" th:if="${story.totalTimeSpent > 0}">
-                                    <i class="bi bi-clock"></i> 
-                                    <span class="duration-display" th:attr="data-minutes=${story.totalTimeSpent}" th:text="${story.totalTimeSpent + ' min'}">0 min</span>
-                                </div>
-                            </div>
-
-                            <div class="story-actions">
-                                <a th:href="@{'/story/' + ${story.id}}" 
-                                   class="btn btn-sm btn-outline-primary">
-                                    Details
-                                </a>
-                                <a th:href="@{'/story/' + ${story.id} + '/edit'}" 
-                                   class="btn btn-sm btn-outline-warning">
-                                    Edit
-                                </a>
-                                <form th:if="${story.getRunningWorkLog() == null}" 
-                                      th:action="@{'/story/' + ${story.id} + '/timer/start'}" 
-                                      method="post" 
-                                      style="display: inline; margin: 0;">
-                                    <button type="submit" class="btn btn-sm btn-success" title="Start Timer">Start</button>
-                                </form>
-                                <form th:if="${story.getRunningWorkLog() != null}" 
-                                      th:action="@{'/story/' + ${story.id} + '/timer/stop'}" 
-                                      method="post" 
-                                      style="display: inline; margin: 0;">
-                                    <input type="hidden" name="workLogId" th:value="${story.getRunningWorkLog().id}"/>
-                                    <button type="submit" class="btn btn-sm btn-danger" title="Stop Timer">Stop</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Pour les colonnes personnalisées SANS sous-colonnes -->
-                <div th:if="${column.name != 'BACKLOG' and column.name != 'DONE' and !column.hasSubColumns}" 
-                     style="flex-grow: 1; display: flex; flex-direction: column;">
-                    <button class="btn btn-outline-secondary btn-sm add-story-btn"
-                            th:onclick="'addStoryToColumn(' + ${project.id} + ', ' + ${column.id} + ')'"
-                            style="margin-bottom: 10px;">
-                        + Add Story
-                    </button>
-
-                    <!-- Stories in this column -->
-                    <div class="column-stories" style="flex-grow: 1;"
-                         ondrop="drop(event)" 
-                         ondragover="allowDrop(event)"
-                         ondragleave="dragLeave(event)">
-                        <div th:each="story : ${column.stories}" 
-                             class="story-card"
-                             th:id="'story-' + ${story.id}"
-                             th:data-story-id="${story.id}"
-                             draggable="true"
-                             ondragstart="drag(event)"
-                             ondragover="storyDragOver(event)"
-                             ondrop="storyDrop(event)">
-                            
-                            <div class="story-title" th:text="${story.title}">Story Title</div>
-                            
-                            <div class="story-meta">
-                                <span class="badge status-badge"
-                                      th:classappend="${'status-' + story.status}"
-                                      th:text="${#strings.replace(story.status.toString(), '_', ' ')}">STATUS</span>
-                                
-                                <div class="mt-2" th:if="${story.totalTimeSpent > 0}">
-                                    <i class="bi bi-clock"></i> 
-                                    <span class="duration-display" th:attr="data-minutes=${story.totalTimeSpent}" th:text="${story.totalTimeSpent + ' min'}">0 min</span>
-                                </div>
-                            </div>
-
-                            <div class="story-actions">
-                                <a th:href="@{'/story/' + ${story.id}}" 
-                                   class="btn btn-sm btn-outline-primary">
-                                    Details
-                                </a>
-                                <a th:href="@{'/story/' + ${story.id} + '/edit'}" 
-                                   class="btn btn-sm btn-outline-warning">
-                                    Edit
-                                </a>
-                                <form th:if="${story.getRunningWorkLog() == null}" 
-                                      th:action="@{'/story/' + ${story.id} + '/timer/start'}" 
-                                      method="post" 
-                                      style="display: inline; margin: 0;">
-                                    <button type="submit" class="btn btn-sm btn-success" title="Start Timer">Start</button>
-                                </form>
-                                <form th:if="${story.getRunningWorkLog() != null}" 
-                                      th:action="@{'/story/' + ${story.id} + '/timer/stop'}" 
-                                      method="post" 
-                                      style="display: inline; margin: 0;">
-                                    <input type="hidden" name="workLogId" th:value="${story.getRunningWorkLog().id}"/>
-                                    <button type="submit" class="btn btn-sm btn-danger" title="Stop Timer">Stop</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Pour les colonnes avec sous-colonnes : Backlog/Done -->
-                <div th:if="${column.hasSubColumns}" 
-                     style="display: flex; flex-direction: row; gap: 10px; flex-grow: 1;">
-                    
-                    <!-- Sous-colonne BACKLOG -->
-                    <div class="subcolumn-backlog" style="background: #e9ecef; border-radius: 6px; padding: 10px; flex: 1; display: flex; flex-direction: column;">
-                        <div style="font-weight: 600; font-size: 0.9em; margin-bottom: 8px; color: #495057;">Backlog</div>
-                        <div class="column-stories" 
-                             style="flex-grow: 1; min-height: 150px;">
-                            <div th:each="story : ${column.stories}" 
-                                 th:if="${story.subColumn == null or story.subColumn != 'DONE'}"
-                                 class="story-card"
-                                 th:id="'story-' + ${story.id}"
-                                 th:data-story-id="${story.id}"
-                                 draggable="true"
-                                 ondragstart="drag(event)"
-                                 ondragover="storyDragOver(event)"
-                                 ondrop="storyDrop(event)">
-                                
-                                <div class="story-title" th:text="${story.title}">Story Title</div>
-                                
-                                <div class="story-meta">
-                                    <span class="badge status-badge"
-                                          th:classappend="${'status-' + story.status}"
-                                          th:text="${#strings.replace(story.status.toString(), '_', ' ')}">STATUS</span>
-                                    
-                                    <div class="mt-2" th:if="${story.totalTimeSpent > 0}">
-                                        <i class="bi bi-clock"></i> 
-                                        <span class="duration-display" th:attr="data-minutes=${story.totalTimeSpent}" th:text="${story.totalTimeSpent + ' min'}">0 min</span>
-                                    </div>
-                                </div>
-
-                                <div class="story-actions">
-                                    <a th:href="@{'/story/' + ${story.id}}" 
-                                       class="btn btn-sm btn-outline-primary">
-                                        Details
-                                    </a>
-                                    <a th:href="@{'/story/' + ${story.id} + '/edit'}" 
-                                       class="btn btn-sm btn-outline-warning">
-                                        Edit
-                                    </a>
-                                    <form th:if="${story.getRunningWorkLog() == null}" 
-                                          th:action="@{'/story/' + ${story.id} + '/timer/start'}" 
-                                          method="post" 
-                                          style="display: inline; margin: 0;">
-                                        <button type="submit" class="btn btn-sm btn-success" title="Start Timer">Start</button>
-                                    </form>
-                                    <form th:if="${story.getRunningWorkLog() != null}" 
-                                          th:action="@{'/story/' + ${story.id} + '/timer/stop'}" 
-                                          method="post" 
-                                          style="display: inline; margin: 0;">
-                                        <input type="hidden" name="workLogId" th:value="${story.getRunningWorkLog().id}"/>
-                                        <button type="submit" class="btn btn-sm btn-danger" title="Stop Timer">Stop</button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                        <button class="btn btn-outline-secondary btn-sm"
-                                th:onclick="'addStoryToColumn(' + ${project.id} + ', ' + ${column.id} + ')'"
-                                style="margin-top: 8px; width: 100%; font-size: 0.85em;">
-                            + Add Story
-                        </button>
-                    </div>
-
-                    <!-- Sous-colonne DONE -->
-                    <div class="subcolumn-done" style="background: #d1e7dd; border-radius: 6px; padding: 10px; flex: 1; display: flex; flex-direction: column;">
-                        <div style="font-weight: 600; font-size: 0.9em; margin-bottom: 8px; color: #0f5132;">Done</div>
-                        <div class="column-stories" 
-                             style="flex-grow: 1; min-height: 150px;"
-                             ondrop="storyDrop(event)" 
-                             ondragover="allowDrop(event)">
-                            <div th:each="story : ${column.stories}" 
-                                 th:if="${story.subColumn == 'DONE'}"
-                                 class="story-card"
-                                 th:id="'story-' + ${story.id}"
-                                 th:data-story-id="${story.id}"
-                                 draggable="true"
-                                 ondragstart="drag(event)"
-                                 ondragover="storyDragOver(event)"
-                                 ondrop="storyDrop(event)">
-                                
-                                <div class="story-title" th:text="${story.title}">Story Title</div>
-
-                                <div class="story-meta">
-                                    <span class="badge status-badge"
-                                          th:classappend="${'status-' + story.status}"
-                                          th:text="${#strings.replace(story.status.toString(), '_', ' ')}">STATUS</span>
-                                    
-                                    <div class="mt-2" th:if="${story.totalTimeSpent > 0}">
-                                        <i class="bi bi-clock"></i> 
-                                        <span class="duration-display" th:attr="data-minutes=${story.totalTimeSpent}" th:text="${story.totalTimeSpent + ' min'}">0 min</span>
-                                    </div>
-                                </div>
-
-                                <div class="story-actions">
-                                    <a th:href="@{'/story/' + ${story.id}}" 
-                                       class="btn btn-sm btn-outline-primary">
-                                        Details
-                                    </a>
-                                    <a th:href="@{'/story/' + ${story.id} + '/edit'}" 
-                                       class="btn btn-sm btn-outline-warning">
-                                        Edit
-                                    </a>
-                                    <form th:if="${story.getRunningWorkLog() == null}" 
-                                          th:action="@{'/story/' + ${story.id} + '/timer/start'}" 
-                                          method="post" 
-                                          style="display: inline; margin: 0;">
-                                        <button type="submit" class="btn btn-sm btn-success" title="Start Timer">Start</button>
-                                    </form>
-                                    <form th:if="${story.getRunningWorkLog() != null}" 
-                                          th:action="@{'/story/' + ${story.id} + '/timer/stop'}" 
-                                          method="post" 
-                                          style="display: inline; margin: 0;">
-                                        <input type="hidden" name="workLogId" th:value="${story.getRunningWorkLog().id}"/>
-                                        <button type="submit" class="btn btn-sm btn-danger" title="Stop Timer">Stop</button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Add new column button -->
-            <div class="kanban-column" style="background: transparent; border: 2px dashed #dee2e6;">
-                <button class="btn btn-outline-secondary" onclick="showAddColumnForm()">
-                    + Add Column
-                </button>
-                
-                <form th:action="@{'/board/' + ${project.id} + '/add-column'}" 
-                      method="post" 
-                      id="addColumnForm" 
-                      accept-charset="UTF-8"
-                      style="display:none; margin-top: 15px;">
-                    <div class="mb-2">
-                        <input type="text" 
-                               name="name" 
-                               class="form-control form-control-sm" 
-                               placeholder="Column Name" 
-                               maxlength="25"
-                               required>
-                        <small class="form-text text-muted">Max 25 characters</small>
-                    </div>
-                    <div class="mb-2">
-                        <input type="number" 
-                               name="maxCapacity" 
-                               class="form-control form-control-sm" 
-                               placeholder="Max Capacity (0 = unlimited)" 
-                               min="0">
-                    </div>
-                    <div class="mb-2 form-check">
-                        <input type="checkbox" 
-                               id="hasSubColumns" 
-                               name="hasSubColumns" 
-                               class="form-check-input" 
-                               value="true" 
-                               checked>
-                        <label class="form-check-label" for="hasSubColumns">
-                            Has Sub-Columns (Backlog / Done)
-                        </label>
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-sm">Create</button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="hideAddColumnForm()">Cancel</button>
-                </form>
-            </div>
-        </div>
+    <!-- BOARD WITHOUT SWIMLANES -->
+    <div th:unless="${hasSwimlanes}">
+        <div th:replace="~{fragments/board-classic :: classicBoard}"></div>
     </div>
 
     <!-- Modal for column deletion with stories -->
@@ -625,6 +332,8 @@
                 const storyId = ev.dataTransfer.getData("storyId");
                 const fromColumnId = ev.dataTransfer.getData("fromColumnId");
                 const toColumnId = columnElement.dataset.columnId;
+                const swimlaneElement = ev.currentTarget.closest('.swimlane-row');
+                const swimlaneId = swimlaneElement ? swimlaneElement.dataset.swimlaneId : null;
 
                 const movedStoryElement = draggedStory;
                 console.log('[DROP] movedStoryElement captured:', movedStoryElement);
@@ -640,7 +349,7 @@
 
                 // Toujours appeler moveStoryToColumn, même si même colonne
                 // car il faut repositionner en haut
-                moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement);
+                moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, null,swimlaneId);
             }
         }
         
@@ -675,6 +384,8 @@
                 const toColumnId = columnElement.dataset.columnId;
                 const fromColumnElement = draggedStory.closest('.kanban-column');
                 const fromColumnId = fromColumnElement ? fromColumnElement.dataset.columnId : null;
+                const swimlaneElement = ev.currentTarget.closest('.swimlane-row');
+                const swimlaneId = swimlaneElement ? swimlaneElement.dataset.swimlaneId : null;
                 
                 // If same column but different subcolumn
                 if (fromColumnId === toColumnId && targetSubColumn && fromSubColumn !== targetSubColumn) {
@@ -684,7 +395,7 @@
                     draggedStory = null;
                     
                     console.log('[DEBUG] Subcolumn change detected (empty area) - from:', fromSubColumn, 'to:', targetSubColumn);
-                    moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn);
+                    moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn, swimlaneId);
                     return;
                 }
                 
@@ -694,7 +405,7 @@
                     clearInterval(autoScrollInterval);
                     const movedStoryElement = draggedStory;
                     draggedStory = null;
-                    moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn);
+                    moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn, swimlaneId);
                     return;
                 }
                 
@@ -726,6 +437,8 @@
             const toColumnId = columnElement.dataset.columnId;
             const fromColumnElement = draggedStory.closest('.kanban-column');
             const fromColumnId = fromColumnElement ? fromColumnElement.dataset.columnId : null;
+            const swimlaneElement = ev.currentTarget.closest('.swimlane-row');
+            const swimlaneId = swimlaneElement ? swimlaneElement.dataset.swimlaneId : null;
             
             // Detect if dropped in a subcolumn
             const targetSubColumn = targetStory.closest('.subcolumn-done') ? 'DONE' : 
@@ -741,7 +454,7 @@
                 draggedStory = null;
                 
                 console.log('[DEBUG] Subcolumn change detected (on story) - from:', fromSubColumn, 'to:', targetSubColumn);
-                moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn);
+                moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn, swimlaneId);
                 return;
             }
             
@@ -790,10 +503,10 @@
             clearInterval(autoScrollInterval);
             draggedStory = null;
             
-            moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn);
+            moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn, swimlaneId);
         }
         
-        function moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn) {
+        function moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn = null, swimlaneId = null) {
             // Vérifier que l'élément existe
             if (!movedStoryElement) {
                 console.error('movedStoryElement is null');
@@ -809,6 +522,9 @@
                 const formData = new URLSearchParams();
                 formData.append('storyId', storyId);
                 formData.append('subColumn', targetSubColumn);
+                if (swimlaneId) {
+                    formData.append('swimlaneId', swimlaneId);
+                }
                 
                 fetch('/board/' + projectId + '/update-subcolumn', {
                     method: 'POST',
@@ -833,6 +549,7 @@
             if (targetSubColumn) {
                 formData.append('subColumn', targetSubColumn);
             }
+            if (swimlaneId) formData.append('swimlaneId', swimlaneId);
 
             fetch('/board/' + projectId + '/move-story', {
                 method: 'POST',
@@ -860,8 +577,15 @@
                     }
                     
                     // Move the story element in DOM AFTER server confirms
-                    const targetColumnStories = document.querySelector(`[data-column-id="${toColumnId}"] .column-stories`);
-                    
+                    let targetColumnStories;
+                    if (swimlaneId) {
+                        targetColumnStories = document.querySelector(
+                            `.swimlane-row[data-swimlane-id="${swimlaneId}"] [data-column-id="${toColumnId}"] .column-stories`
+                        );
+                    } else {
+                        targetColumnStories = document.querySelector(`[data-column-id="${toColumnId}"] .column-stories`);
+                    }
+
                     if (targetColumnStories && movedStoryElement) {
                         // Vérifier que la story n'est pas déjà dans la colonne cible (éviter les duplications)
                         const existingStory = targetColumnStories.querySelector(`[data-story-id="${storyId}"]`);
@@ -1073,9 +797,16 @@
             });
         }
 
-        function addStoryToColumn(projectIdParam, columnId) {
-            console.log('[DEBUG] addStoryToColumn called - projectId:', projectIdParam, 'columnId:', columnId);
-            window.location.href = '/story/new?projectId=' + projectIdParam + '&columnId=' + columnId;
+        function addStoryToColumn(projectIdParam, columnId, swimlaneId = null) {
+            console.log('[DEBUG] addStoryToColumn called - projectId:', projectIdParam, 'columnId:', columnId, 'swimlaneId:', swimlaneId);
+
+            let url = '/story/new?projectId=' + projectIdParam + '&columnId=' + columnId;
+
+            if (swimlaneId !== null) {
+                url += '&swimlaneId=' + swimlaneId;
+            }
+
+            window.location.href = url;
         }
 
         let columnToEdit = null;

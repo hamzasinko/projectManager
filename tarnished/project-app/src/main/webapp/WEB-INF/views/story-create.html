@@ -27,7 +27,8 @@
             <!-- Hidden fields for projectId and columnId if provided -->
             <input type="hidden" name="projectId" th:value="${projectId}" th:if="${projectId != null}">
             <input type="hidden" name="columnId" th:value="${columnId}" th:if="${columnId != null}">
-            
+            <input type="hidden" name="swimlaneId" th:value="${swimlaneId}" th:if="${swimlaneId != null}">
+
             <div class="mb-3">
                 <label for="storyTitle" class="form-label">Story Title *</label>
                   <input type="text" 

@@ -32,22 +32,29 @@ public class StoryController {
      */
     @GetMapping("/new")
     public ModelAndView showCreateForm(
-        @RequestParam(required=false) Long projectId,
-        @RequestParam(required=false) Long columnId
-    ) {
+            @RequestParam(required = false) Long projectId,
+            @RequestParam(required = false) Long columnId,
+            @RequestParam(required = false) Long swimlaneId) {
+
         ModelAndView mav = new ModelAndView("story-create");
+
         // Add all projects to select from
         mav.addObject("projects", repoFactory.getProjectRepo().findAll());
-        // Pass projectId and columnId if provided
+
+        // Pass projectId, columnId, and swimlaneId if provided
         if (projectId != null) {
             mav.addObject("projectId", projectId);
         }
         if (columnId != null) {
             mav.addObject("columnId", columnId);
         }
+        if (swimlaneId != null) {
+            mav.addObject("swimlaneId", swimlaneId);
+        }
+
         return mav;
     }
-    
+
     /**
      * Traite la création d'une nouvelle story
      */
@@ -56,7 +63,8 @@ public class StoryController {
         @RequestParam(required=true) String title,
         @RequestParam(required=false) String description,
         @RequestParam(required=false) Long projectId,
-        @RequestParam(required=false) Long columnId
+        @RequestParam(required=false) Long columnId,
+        @RequestParam(required = false) Long swimlaneId
     ) throws IOException {
         
         System.out.println("[DEBUG] createStory called - projectId: " + projectId + ", columnId: " + columnId);
@@ -131,6 +139,10 @@ public class StoryController {
             }
         }
 
+        if (swimlaneId != null) {
+            story.setSwimlaneId(swimlaneId);
+            System.out.println("[DEBUG] Story assigned to swimlane: " + swimlaneId);
+        }
 
         repoFactory.getStoryRepo().persist(story);
         

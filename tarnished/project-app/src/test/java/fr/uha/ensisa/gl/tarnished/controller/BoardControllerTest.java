@@ -148,7 +148,7 @@ public class BoardControllerTest {
         when(storyRepo.find(storyId)).thenReturn(story);
         when(storyRepo.findByColumn(toColumnId)).thenReturn(new ArrayList<>());
 
-        String result = controller.moveStory(projectId, storyId, toColumnId, fromColumnId, null, null);
+        String result = controller.moveStory(projectId, storyId, toColumnId, fromColumnId, null, null, null);
 
         assertTrue(result.contains("success"));
         verify(columnRepo).moveStoryBetweenColumns(storyId, fromColumnId, toColumnId);
@@ -174,7 +174,7 @@ public class BoardControllerTest {
         when(columnRepo.find(toColumnId)).thenReturn(targetColumn);
         when(storyRepo.findByColumn(toColumnId)).thenReturn(stories);
 
-        String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null);
+        String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null, null);
 
         assertTrue(result.contains("success\":false"));
         assertTrue(result.contains("Column is full"));
@@ -201,7 +201,7 @@ public class BoardControllerTest {
         when(storyRepo.find(storyId)).thenReturn(story);
         when(storyRepo.findByColumn(toColumnId)).thenReturn(new ArrayList<>());
 
-        String result = controller.moveStory(projectId, storyId, toColumnId, null, null, subColumn);
+        String result = controller.moveStory(projectId, storyId, toColumnId, null, null, subColumn, null);
 
         assertTrue(result.contains("success"));
         assertEquals(subColumn, story.getSubColumn());
@@ -614,7 +614,7 @@ public class BoardControllerTest {
         when(storyRepo.find(storyId)).thenReturn(story);
         when(storyRepo.findByColumn(toColumnId)).thenReturn(new ArrayList<>());
 
-        String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null);
+        String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null, null);
 
         assertTrue(result.contains("success"));
         assertEquals(0, story.getPosition());
@@ -641,7 +641,7 @@ public class BoardControllerTest {
         when(storyRepo.find(storyId)).thenReturn(story);
         when(storyRepo.findByColumn(toColumnId)).thenReturn(new ArrayList<>());
 
-        String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null);
+        String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null, null);
 
         assertTrue(result.contains("success"));
         assertEquals(StoryStatus.DONE, story.getStatus());
@@ -765,7 +765,7 @@ public class BoardControllerTest {
         when(storyRepo.find(storyId)).thenReturn(story);
         when(storyRepo.findByColumn(blockedColumnId)).thenReturn(new ArrayList<>());
 
-        String result = controller.moveStory(projectId, storyId, blockedColumnId, null, null, null);
+        String result = controller.moveStory(projectId, storyId, blockedColumnId, null, null, null, null);
 
         assertTrue(result.contains("success"));
         assertEquals(StoryStatus.BLOCKED, story.getStatus());
@@ -836,7 +836,7 @@ public class BoardControllerTest {
         when(storyRepo.find(storyId)).thenReturn(story);
         when(storyRepo.findByColumn(toColumnId)).thenReturn(new ArrayList<>());
 
-        String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null);
+        String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null, null);
 
         assertTrue(result.contains("success"));
         // Status should remain unchanged for custom columns
@@ -864,7 +864,7 @@ public class BoardControllerTest {
         when(storyRepo.find(storyId)).thenReturn(story);
         when(storyRepo.findByColumn(toColumnId)).thenReturn(new ArrayList<>());
 
-        String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null);
+        String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null, null);
 
         assertTrue(result.contains("success"));
         assertEquals(StoryStatus.REVIEW, story.getStatus());
@@ -887,7 +887,7 @@ public class BoardControllerTest {
         doThrow(new IllegalStateException("Test error"))
                 .when(columnRepo).moveStoryBetweenColumns(storyId, null, toColumnId);
 
-        String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null);
+        String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null, null);
 
         assertTrue(result.contains("success\":false"));
         assertTrue(result.contains("Test error"));

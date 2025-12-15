@@ -66,7 +66,7 @@ public class StoryControllerTest {
         // Mock projects
         when(projectRepo.findAll()).thenReturn(Arrays.asList(new Project()));
         
-        ModelAndView result = sut.showCreateForm(null, null);
+        ModelAndView result = sut.showCreateForm(null, null, null);
         
         assertNotNull(result);
         assertEquals("story-create", result.getViewName(), 
@@ -89,7 +89,7 @@ public class StoryControllerTest {
         when(columnRepo.findByProject(projectId)).thenReturn(Arrays.asList());
 
         // Appelle la méthode
-        String redirect = sut.createStory(testTitle, testDescription, projectId, null);
+        String redirect = sut.createStory(testTitle, testDescription, projectId, null, null);
 
         // Vérifie la redirection vers le board du projet
         assertEquals("redirect:/board/" + projectId, redirect,
@@ -110,7 +110,7 @@ public class StoryControllerTest {
     @Test
     @DisplayName("createStory should redirect with error when title is null")
     public void testCreateStoryWithNullTitle() throws IOException {
-        String redirect = sut.createStory(null, "Description", 1L, null);
+        String redirect = sut.createStory(null, "Description", 1L, null, null);
         
         assertTrue(redirect.contains("error"), "Should redirect with error parameter");
         verify(storyRepo, never()).persist(any(Story.class));
@@ -119,7 +119,7 @@ public class StoryControllerTest {
     @Test
     @DisplayName("createStory should redirect with error when title is empty")
     public void testCreateStoryWithEmptyTitle() throws IOException {
-        String redirect = sut.createStory("   ", "Description", 1L, null);
+        String redirect = sut.createStory("   ", "Description", 1L, null, null);
         
         assertTrue(redirect.contains("error"), "Should redirect with error parameter");
         verify(storyRepo, never()).persist(any(Story.class));
@@ -130,7 +130,7 @@ public class StoryControllerTest {
     public void testCreateStoryWithNullDescription() throws IOException {
         String testTitle = "Test Story";
         
-        String redirect = sut.createStory(testTitle, null, null, null);
+        String redirect = sut.createStory(testTitle, null, null, null, null);
 
         // Controller now allows creating a story without a project and redirects to the story list
         assertEquals("redirect:/story/list", redirect);
@@ -207,7 +207,7 @@ public class StoryControllerTest {
         when(repoFactory.getColumnRepo()).thenReturn(columnRepo);
         when(columnRepo.findByProject(projectId)).thenReturn(Arrays.asList());
 
-        sut.createStory(testTitle, "Description", projectId, null);
+        sut.createStory(testTitle, "Description", projectId, null, null);
         
         ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
         verify(storyRepo).persist(storyCaptor.capture());
@@ -228,7 +228,7 @@ public class StoryControllerTest {
         when(repoFactory.getColumnRepo()).thenReturn(columnRepo);
         when(columnRepo.findByProject(projectId)).thenReturn(Arrays.asList());
 
-        sut.createStory(testTitle, "Description", projectId, null);
+        sut.createStory(testTitle, "Description", projectId, null, null);
         
         ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
         verify(storyRepo).persist(storyCaptor.capture());
@@ -508,7 +508,7 @@ public class StoryControllerTest {
 
         when(projectRepo.findAll()).thenReturn(Arrays.asList());
 
-        ModelAndView mav = sut.showCreateForm(projectId, null);
+        ModelAndView mav = sut.showCreateForm(projectId, null, null);
 
         assertEquals("story-create", mav.getViewName());
         assertEquals(projectId, mav.getModel().get("projectId"));
@@ -521,7 +521,7 @@ public class StoryControllerTest {
 
         when(projectRepo.findAll()).thenReturn(Arrays.asList());
 
-        ModelAndView mav = sut.showCreateForm(null, columnId);
+        ModelAndView mav = sut.showCreateForm(null, columnId, null);
 
         assertEquals("story-create", mav.getViewName());
         assertEquals(columnId, mav.getModel().get("columnId"));
@@ -533,7 +533,7 @@ public class StoryControllerTest {
         String longTitle = "This is a very long title that definitely exceeds fifty-nine characters limit";
         Long projectId = 1L;
 
-        String result = sut.createStory(longTitle, "Description", projectId, null);
+        String result = sut.createStory(longTitle, "Description", projectId, null, null);
 
         assertTrue(result.contains("error"));
         verify(storyRepo, never()).persist(any(Story.class));
@@ -615,7 +615,7 @@ public class StoryControllerTest {
 
         when(columnRepo.find(columnId)).thenReturn(column);
 
-        String result = sut.createStory(title, description, projectId, columnId);
+        String result = sut.createStory(title, description, projectId, columnId, null);
 
         assertTrue(result.contains("redirect:/board/"));
 
@@ -642,7 +642,7 @@ public class StoryControllerTest {
 
         when(columnRepo.findByProject(projectId)).thenReturn(List.of(backlogColumn, otherColumn));
 
-        String result = sut.createStory(title, null, projectId, null);
+        String result = sut.createStory(title, null, projectId, null, null);
 
         assertTrue(result.contains("redirect:/board/"));
 

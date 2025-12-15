@@ -3,13 +3,16 @@ package fr.uha.ensisa.gl.tarnished.controller;
 import fr.uha.ensisa.gl.entities.Column;
 import fr.uha.ensisa.gl.entities.Project;
 import fr.uha.ensisa.gl.entities.Story;
+import fr.uha.ensisa.gl.entities.Swimlane;
 import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
+import fr.uha.ensisa.gl.tarnished.repos.SwimlaneRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 
 @Controller
@@ -31,6 +34,7 @@ public class BoardController {
     public ModelAndView showBoard(@PathVariable Long projectId) {
         ModelAndView mav = new ModelAndView("board");
 
+        SwimlaneRepo swimlaneRepo = repoFactory.getSwimlaneRepo();
         Project project = repoFactory.getProjectRepo().find(projectId);
         if (project == null) {
             return new ModelAndView("redirect:/project/list");
@@ -55,6 +59,14 @@ public class BoardController {
             column.setStories(new java.util.ArrayList<>(stories));
         }
 
+        List<Swimlane> swimlanes = swimlaneRepo.findAll().stream()
+                .filter(s -> s.getProjectId() == projectId.intValue())
+                .toList();
+
+        boolean hasSwimlanes = (swimlanes != null && !swimlanes.isEmpty());
+
+        mav.addObject("swimlanes", swimlanes);
+        mav.addObject("hasSwimlanes", hasSwimlanes);
         mav.addObject("project", project);
         mav.addObject("columns", columns);
 
@@ -72,7 +84,8 @@ public class BoardController {
             @RequestParam Long toColumnId,
             @RequestParam(required = false) Long fromColumnId,
             @RequestParam(required = false) String newStatus,
-            @RequestParam(required = false) String subColumn) {
+            @RequestParam(required = false) String subColumn,
+            @RequestParam(required = false) Long swimlaneId) {
         
         try {
             // Check if target column is full before moving
@@ -127,8 +140,11 @@ public class BoardController {
                         System.out.println("[DEBUG] Custom column detected, status unchanged: " + columnName);
                     }
                 }
-                
                 // MUST persist to save position and status changes
+                if (swimlaneId != null) {
+                    story.setSwimlaneId(swimlaneId);
+                    System.out.println("[DEBUG] Swimlane updated to: " + swimlaneId);
+                }
                 repoFactory.getStoryRepo().persist(story);
             }
             

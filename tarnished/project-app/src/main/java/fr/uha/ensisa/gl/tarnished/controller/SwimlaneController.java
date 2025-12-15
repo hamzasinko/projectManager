@@ -124,7 +124,7 @@ public class SwimlaneController {
             return new ModelAndView("redirect:/");
         }
 
-        ModelAndView mav = new ModelAndView("swimlane/edit");
+        ModelAndView mav = new ModelAndView("swimlane-edit");
         mav.addObject("swimlane", swimlane);
         return mav;
     }
