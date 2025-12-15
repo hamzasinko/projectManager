@@ -101,3 +101,132 @@ deploy-docker:
       ADD $WARFILE /var/lib/jetty/webapps/tarnished.war" > Dockerfile
 
     - /kaniko/executor --cleanup --context $CI_PROJECT_DIR --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME"
+.kubernetes: &kubernetes
+  stage: deploy
+  image: docker-private.cluster.ensisa.uha.fr/docker/kubectl
+  script:
+    # Setup kubectl
+    - kubectl config set-cluster k8s --server="${K8S_SERVER}" --certificate-authority=${K8S_CERTIFICATE_AUTHORITY}
+    - kubectl config set-credentials gitlab-ci --token="${K8S_USER_TOKEN}"
+    - kubectl config set-context default --cluster=k8s --user=gitlab-ci
+    - kubectl config use-context default
+
+    # Kubernetes deployment + service + ingress
+    - APP_NAME="${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}"
+    - NAMESPACE="gitlab-cd-${ENV}"
+    - kubectl -n ${NAMESPACE} create secret docker-registry $APP_NAME-registry-secret --docker-server=${CI_REGISTRY} --docker-username=${CI_DEPLOY_USER} --docker-password=${CI_DEPLOY_PASSWORD} --dry-run -o yaml | kubectl -n ${NAMESPACE} apply -f -
+    - |
+      echo "
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        labels:
+          app: $APP_NAME
+        name: $APP_NAME
+        namespace: $NAMESPACE
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: $APP_NAME
+        template:
+          metadata:
+            labels:
+              app: $APP_NAME
+          spec:
+            containers:
+              - image: \"$CI_REGISTRY_IMAGE:${CI_COMMIT_TAG:-latest}\"
+                imagePullPolicy: Always
+                name: $APP_NAME
+                ports:
+                  - name: http
+                    containerPort: 8080
+            imagePullSecrets:
+              - name: $APP_NAME-registry-secret
+      ---
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: $APP_NAME-service
+        namespace: $NAMESPACE
+      spec:
+        type: ClusterIP
+        selector:
+          app: $APP_NAME
+        ports:
+          - name: http
+            protocol: TCP
+            port: 80
+            targetPort: 8080
+      ---
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: $APP_NAME-ingress
+        namespace: $NAMESPACE
+        annotations:
+          traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      spec:
+        rules:
+        - host: ${ENV}.cluster.ensisa.uha.fr
+          http:
+            paths:
+            - path: /$APP_NAME
+              pathType: Prefix
+              backend:
+                service:
+                  name: $APP_NAME-service
+                  port:
+                    number: 80
+      " > app.yml
+    - cat app.yml
+
+    # Deploy the yml
+    - kubectl ${ACTION} -f app.yml
+    - kubectl -n $NAMESPACE rollout restart deployment $APP_NAME 2>/dev/null || /bin/true
+
+deploy-staging:
+  <<: *kubernetes
+  variables:
+    ENV: staging
+    ACTION: apply
+  rules:
+    - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'
+  environment:
+    name: staging
+    url: https://staging.cluster.ensisa.uha.fr/${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}
+    on_stop: stop-staging
+
+deploy-prod:
+  <<: *kubernetes
+  variables:
+    ENV: prod
+    ACTION: apply
+  when: manual
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+  environment:
+    name: production
+    url: https://prod.cluster.ensisa.uha.fr/${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}
+    on_stop: stop-prod
+
+stop-staging:
+  <<: *kubernetes
+  variables:
+    ENV: staging
+    ACTION: delete
+  when: manual
+  environment:
+    name: staging
+    action: stop
+
+stop-prod:
+  <<: *kubernetes
+  variables:
+    ENV: prod
+    ACTION: delete
+  when: manual
+  environment:
+    name: production
+    action: stop
+
