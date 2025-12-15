@@ -49,6 +49,8 @@ integration-test:
   stage: integration-test
   rules:
     - when: never
+  script:
+    - echo "Integration tests are disabled in CI (run locally only)"
 
 # ============================
 # 4️⃣ DEPLOY (Docker via Kaniko)
