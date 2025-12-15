@@ -114,7 +114,7 @@ deploy-docker:
     # Variables et Environnement
     - APP_NAME=$(echo "${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}" | tr '[:upper:]' '[:lower:]')
     - NAMESPACE="gitlab-cd-${ENV}"
-    - echo "DYNAMIC_URL=https://${ENV}.cluster.ensisa.uha.fr/${APP_NAME}" > deploy.env
+    - echo "DYNAMIC_URL=https://${ENV}.cluster.ensisa.uha.fr/${APP_NAME}/boards" > deploy.env
 
     # Secret pour tirer l'image Docker
     - kubectl -n ${NAMESPACE} create secret docker-registry $APP_NAME-registry-secret --docker-server=${CI_REGISTRY} --docker-username=${CI_DEPLOY_USER} --docker-password=${CI_DEPLOY_PASSWORD} --dry-run=client -o yaml | kubectl -n ${NAMESPACE} apply -f -
@@ -147,7 +147,7 @@ deploy-docker:
                   - name: SERVER_SERVLET_CONTEXT_PATH
                     value: \"/$APP_NAME\"
                   - name: SERVER_PORT
-                    value: '8080'
+                    value: '  8080'
                 ports:
                   - name: http
                     containerPort: 8080
@@ -167,7 +167,7 @@ deploy-docker:
           - name: http
             protocol: TCP
             port: 80
-            targetPort: 8080
+            targetPort: 9091
       ---
       apiVersion: networking.k8s.io/v1
       kind: Ingress
@@ -213,45 +213,5 @@ deploy-staging:
   environment:
     name: staging
     url: $DYNAMIC_URL
-    on_stop: stop-staging
   rules:
     - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'
-
-deploy-prod:
-  <<: *kubernetes
-  variables:
-    ENV: prod
-    ACTION: apply
-  environment:
-    name: production
-    url: $DYNAMIC_URL
-    on_stop: stop-prod
-  rules:
-    - if: '$CI_COMMIT_REF_NAME == "main"'
-      when: manual
-
-stop-staging:
-  <<: *kubernetes
-  variables:
-    ENV: staging
-    ACTION: delete
-  when: manual
-  environment:
-    name: staging
-    action: stop
-  rules:
-    - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'
-      when: manual
-
-stop-prod:
-  <<: *kubernetes
-  variables:
-    ENV: prod
-    ACTION: delete
-  when: manual
-  environment:
-    name: production
-    action: stop
-  rules:
-    - if: '$CI_COMMIT_REF_NAME == "main"'
-      when: manual
