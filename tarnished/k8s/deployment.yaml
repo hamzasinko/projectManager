@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gestiondetaches
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gestiondetaches
+  template:
+    metadata:
+      labels:
+        app: gestiondetaches
+    spec:
+      containers:
+        - name: gestiondetaches
+          image: registry.cluster.ensisa.uha.fr/gl2526-tarnished/gestiondetaches:latest
+          ports:
+            - containerPort: 8080
