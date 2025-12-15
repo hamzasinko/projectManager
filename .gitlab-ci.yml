@@ -43,21 +43,17 @@ unit-test:
         - "**/target/surefire-reports/TEST-*.xml"
 
 # ============================
-# 3️⃣ INTEGRATION TESTS (Selenium - ChromeDriver local en CI)
+# 3️⃣ INTEGRATION TESTS (Selenium)
 # ============================
 integration-test:
   stage: integration-test
   image: maven:3-eclipse-temurin-21-alpine
   script:
-    # Installer Chrome + ChromeDriver pour l'exécution locale des tests Selenium
     - apk add --no-cache chromium chromium-chromedriver
-    # Exporter le chemin du binaire Chrome pour WebDriverFactory (CHROME_BIN)
     - export CHROME_BIN="$(command -v chromium-browser || command -v chromium || true)"
     - echo "Using CHROME_BIN=${CHROME_BIN}"
     - cd tarnished
-    # Build sans tests unitaires
     - mvn $MAVEN_CLI_OPTS clean install -DskipTests
-    # Exécute les tests d'intégration avec ChromeDriver local (pas de service Selenium en CI)
     - mvn $MAVEN_CLI_OPTS verify -f project-app/ -Dsurefire.skip=true -Dselenium.remote.browser=false -Dservlet.port=8080
   artifacts:
     reports:
@@ -78,7 +74,6 @@ deploy-docker:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
 
-  # On dépend maintenant du build (qui produit le WAR), pas des tests Selenium
   needs:
     - job: build
       artifacts: true
@@ -88,8 +83,6 @@ deploy-docker:
     - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'
 
   script:
-    # On reste à la racine du projet pour que le chemin du WAR soit valable
-    # dans le contexte Kaniko ($CI_PROJECT_DIR)
     - WARFILE=$(find tarnished/project-app/target -name "*.war" | head -n 1)
     - if [ -z "$WARFILE" ]; then echo "❌ Aucun WAR trouvé !"; exit 1; fi
 
@@ -102,6 +95,9 @@ deploy-docker:
 
     - /kaniko/executor --cleanup --context $CI_PROJECT_DIR --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME"
 
+# ============================
+# 5️⃣ DEPLOY STAGING (Kubernetes)
+# ============================
 .kubernetes: &kubernetes
   stage: deploy
   image: docker-private.cluster.ensisa.uha.fr/docker/kubectl
@@ -115,7 +111,7 @@ deploy-docker:
     # Variables et Environnement
     - APP_NAME=$(echo "${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}" | tr '[:upper:]' '[:lower:]')
     - NAMESPACE="gitlab-cd-${ENV}"
-    - echo "DYNAMIC_URL=https://${ENV}.cluster.ensisa.uha.fr/${APP_NAME}" > deploy.env
+    - echo "DYNAMIC_URL=https://${ENV}.cluster.ensisa.uha.fr/tarnished" > deploy.env
 
     # Secret pour tirer l'image Docker
     - kubectl -n ${NAMESPACE} create secret docker-registry $APP_NAME-registry-secret --docker-server=${CI_REGISTRY} --docker-username=${CI_DEPLOY_USER} --docker-password=${CI_DEPLOY_PASSWORD} --dry-run=client -o yaml | kubectl -n ${NAMESPACE} apply -f -
@@ -146,7 +142,7 @@ deploy-docker:
                 name: $APP_NAME
                 env:
                   - name: SERVER_SERVLET_CONTEXT_PATH
-                    value: \"/$APP_NAME\"
+                    value: \"/tarnished\"
                   - name: SERVER_PORT
                     value: '8080'
                 ports:
@@ -182,7 +178,7 @@ deploy-docker:
         - host: ${ENV}.cluster.ensisa.uha.fr
           http:
             paths:
-            - path: /$APP_NAME
+            - path: /tarnished
               pathType: Prefix
               backend:
                 service:
