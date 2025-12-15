@@ -23,11 +23,7 @@ public class WebDriverFactory {
 
         ChromeOptions options = new ChromeOptions();
 
-        // Détecter l'environnement CI (GitLab)
-        String ci = System.getenv("CI");
-        boolean isCI = ci != null && (ci.equalsIgnoreCase("true") || ci.equals("1"));
-
-        // Options communes (local + CI)
+        // Options communes
         options.addArguments(
                 "--headless=new",
                 "--no-sandbox",
@@ -36,21 +32,24 @@ public class WebDriverFactory {
         );
         options.setAcceptInsecureCerts(true);
 
-        if (isCI) {
-            // En CI : toujours utiliser RemoteWebDriver vers le service Selenium
+        // On active le RemoteWebDriver UNIQUEMENT si selenium.remote.browser=true
+        String remoteFlag = System.getProperty("selenium.remote.browser", "false");
+        boolean useRemote = remoteFlag.equalsIgnoreCase("true") || remoteFlag.equals("1");
+
+        if (useRemote) {
             String seleniumUrl = System.getProperty(
                     "selenium.remote.url",
                     "http://selenium:4444/wd/hub"
             );
             try {
-                System.out.println("[WebDriverFactory] CI mode → RemoteWebDriver @ " + seleniumUrl);
+                System.out.println("[WebDriverFactory] Remote mode → " + seleniumUrl);
                 return new RemoteWebDriver(new URI(seleniumUrl).toURL(), options);
             } catch (MalformedURLException | URISyntaxException e) {
                 throw new RuntimeException("Invalid Selenium Grid URL: " + seleniumUrl, e);
             }
         }
 
-        // En local : ChromeDriver classique géré par WebDriverManager
+        // Sinon : ChromeDriver local (dev et CI sans service Selenium)
         System.out.println("[WebDriverFactory] Local mode → ChromeDriver");
         WebDriverManager.chromedriver().setup();
         return new ChromeDriver(options);

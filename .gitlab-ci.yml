@@ -43,14 +43,25 @@ unit-test:
         - "**/target/surefire-reports/TEST-*.xml"
 
 # ============================
-# 3️⃣ INTEGRATION TESTS (Selenium) — IGNORÉ
+# 3️⃣ INTEGRATION TESTS (Selenium - ChromeDriver local en CI)
 # ============================
 integration-test:
   stage: integration-test
-  rules:
-    - when: never
+  image: maven:3-eclipse-temurin-21-alpine
   script:
-    - echo "Integration tests are disabled in CI (run locally only)"
+    - cd tarnished
+    # Build sans tests unitaires
+    - mvn $MAVEN_CLI_OPTS clean install -DskipTests
+    # Exécute les tests d'intégration avec ChromeDriver local (pas de service Selenium en CI)
+    - mvn $MAVEN_CLI_OPTS verify -f project-app/ -Dsurefire.skip=true -Dselenium.remote.browser=false -Dservlet.port=8080
+  artifacts:
+    reports:
+      junit:
+        - "**/target/failsafe-reports/TEST-*.xml"
+    paths:
+      - "**/target/*.jar"
+      - "**/target/*.war"
+    expire_in: 1 hour
 
 # ============================
 # 4️⃣ DEPLOY (Docker via Kaniko)
