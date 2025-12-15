@@ -85,9 +85,8 @@ deploy-docker:
     - WARFILE=$(find tarnished/project-app/target -name "*.war" | head -n 1)
     - if [ -z "$WARFILE" ]; then echo "❌ Aucun WAR trouvé !"; exit 1; fi
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - echo "FROM jetty:9.4-jre11
-      EXPOSE 8080
-      ADD $WARFILE /var/lib/jetty/webapps/tarnished.war" > Dockerfile
+    - WARNAME=$(basename $WARFILE)
+    - echo -e "FROM jetty:9.4-jre11\nEXPOSE 8080\nADD $WARFILE /var/lib/jetty/webapps/$WARNAME" > Dockerfile
     - /kaniko/executor --cleanup --context $CI_PROJECT_DIR --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME"
 
 # ============================
@@ -101,17 +100,12 @@ deploy-docker:
     - kubectl config set-credentials gitlab-ci --token="${K8S_USER_TOKEN}"
     - kubectl config set-context default --cluster=k8s --user=gitlab-ci
     - kubectl config use-context default
-
     - APP_NAME=$(echo "${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}" | tr '[:upper:]' '[:lower:]')
     - NAMESPACE="gitlab-cd-${ENV}"
     - echo "DYNAMIC_URL=https://${ENV}.cluster.ensisa.uha.fr/tarnished" > deploy.env
-
-    # ✅ SECRET SUR UNE LIGNE
     - kubectl -n ${NAMESPACE} create secret docker-registry $APP_NAME-registry-secret --docker-server=${CI_REGISTRY} --docker-username=${CI_DEPLOY_USER} --docker-password=${CI_DEPLOY_PASSWORD} --dry-run=client -o yaml | kubectl -n ${NAMESPACE} apply -f -
-
     - |
-      echo "
-      apiVersion: apps/v1
+      echo "apiVersion: apps/v1
       kind: Deployment
       metadata:
         labels:
@@ -176,9 +170,7 @@ deploy-docker:
                 service:
                   name: $APP_NAME-service
                   port:
-                    number: 80
-      " > app.yml
-
+                    number: 80" > app.yml
     - cat app.yml
     - kubectl ${ACTION} -f app.yml
     - kubectl -n $NAMESPACE rollout restart deployment $APP_NAME 2>/dev/null || /bin/true
@@ -195,11 +187,6 @@ deploy-docker:
 
 deploy-staging:
   <<: *kubernetes
-  variables:
-    ENV: staging
-    ACTION: apply
-  environment:
-    name: staging
-    url: $DYNAMIC_URL
-  rules:
-    - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'
+  variables: { ENV: staging, ACTION: apply }
+  environment: { name: staging, url: $DYNAMIC_URL }
+  rules: [ { if: '$CI_COMMIT_REF_NAME =~ /^release.*$/' } ]
