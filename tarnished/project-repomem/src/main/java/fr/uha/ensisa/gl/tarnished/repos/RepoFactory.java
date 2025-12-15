@@ -8,4 +8,5 @@ public interface RepoFactory {
     public ProjectRepo getProjectRepo();
     public UserRepo getUserRepo();
     public StoryRepo getStoryRepo();
+    public SwimlaneRepo getSwimlaneRepo();
 }
