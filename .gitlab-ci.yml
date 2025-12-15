@@ -101,6 +101,7 @@ deploy-docker:
       ADD $WARFILE /var/lib/jetty/webapps/tarnished.war" > Dockerfile
 
     - /kaniko/executor --cleanup --context $CI_PROJECT_DIR --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME"
+
 .kubernetes: &kubernetes
   stage: deploy
   image: docker-private.cluster.ensisa.uha.fr/docker/kubectl
@@ -147,7 +148,7 @@ deploy-docker:
                   - name: SERVER_SERVLET_CONTEXT_PATH
                     value: \"/$APP_NAME\"
                   - name: SERVER_PORT
-                    value: '  8080'
+                    value: '8080'
                 ports:
                   - name: http
                     containerPort: 8080
@@ -167,7 +168,7 @@ deploy-docker:
           - name: http
             protocol: TCP
             port: 80
-            targetPort: 9091
+            targetPort: 8080
       ---
       apiVersion: networking.k8s.io/v1
       kind: Ingress
