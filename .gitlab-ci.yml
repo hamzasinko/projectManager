@@ -135,7 +135,7 @@ deploy-docker:
               app: $APP_NAME
           spec:
             containers:
-              - image: \"$CI_REGISTRY_IMAGE:${CI_COMMIT_TAG:-latest}\"
+              - image: \"$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG:-latest\"
                 imagePullPolicy: Always
                 name: $APP_NAME
                 ports:
