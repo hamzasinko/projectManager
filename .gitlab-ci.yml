@@ -72,8 +72,9 @@ deploy-docker:
     - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'
 
   script:
-    - cd tarnished
-    - WARFILE=$(find project-app/target -name "*.war" | head -n 1)
+    # On reste à la racine du projet pour que le chemin du WAR soit valable
+    # dans le contexte Kaniko ($CI_PROJECT_DIR)
+    - WARFILE=$(find tarnished/project-app/target -name "*.war" | head -n 1)
     - if [ -z "$WARFILE" ]; then echo "❌ Aucun WAR trouvé !"; exit 1; fi
 
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
