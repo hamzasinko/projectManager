@@ -4,10 +4,7 @@ import fr.uha.ensisa.gl.entities.Column;
 import fr.uha.ensisa.gl.entities.Project;
 import fr.uha.ensisa.gl.entities.Story;
 import fr.uha.ensisa.gl.entities.StoryStatus;
-import fr.uha.ensisa.gl.tarnished.repos.ColumnRepo;
-import fr.uha.ensisa.gl.tarnished.repos.ProjectRepo;
-import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
-import fr.uha.ensisa.gl.tarnished.repos.StoryRepo;
+import fr.uha.ensisa.gl.tarnished.repos.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -38,6 +35,9 @@ public class BoardControllerTest {
     @Mock
     private StoryRepo storyRepo;
 
+    @Mock
+    private SwimlaneRepo swimlaneRepo;
+
     @InjectMocks
     private BoardController controller;
 
@@ -47,6 +47,7 @@ public class BoardControllerTest {
         when(repoFactory.getProjectRepo()).thenReturn(projectRepo);
         when(repoFactory.getColumnRepo()).thenReturn(columnRepo);
         when(repoFactory.getStoryRepo()).thenReturn(storyRepo);
+        when(repoFactory.getSwimlaneRepo()).thenReturn(swimlaneRepo);
     }
 
     @Test
