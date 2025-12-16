@@ -501,4 +501,90 @@ public class ProjectControllerTest {
         assertNotNull(captured.getOwner());
     }
 
+    @Test
+    @DisplayName("createProject should handle null name")
+    void testCreateProjectWithNullName() throws IOException {
+        String result = sut.createProject(null, "Description");
+        
+        assertTrue(result.contains("error") || result.contains("redirect"));
+        verify(projectRepo, never()).persist(any(Project.class));
+    }
+
+    @Test
+    @DisplayName("createProject should handle name too long")
+    void testCreateProjectWithNameTooLong() throws IOException {
+        String longName = "This is a very long project name that exceeds 29 characters";
+        String result = sut.createProject(longName, "Description");
+        
+        assertTrue(result.contains("error"));
+        verify(projectRepo, never()).persist(any(Project.class));
+    }
+
+    @Test
+    @DisplayName("createProject should create default user when userRepo is empty")
+    void testCreateProjectWithEmptyUserRepo() throws IOException {
+        User defaultUser = new User();
+        defaultUser.setId(1);
+        defaultUser.setName("user1");
+        defaultUser.setEmail("email1@gmail.com");
+        defaultUser.setPassword("password1");
+        
+        // First call (isEmpty check) returns empty list
+        // Second call (get(0)) returns list with the added user
+        when(userRepo.getAll())
+            .thenReturn(new ArrayList<>())  // First call - empty for isEmpty()
+            .thenReturn(List.of(defaultUser)); // Second call - with user for get(0)
+        
+        String result = sut.createProject("Test Project", "Description");
+        
+        assertEquals("redirect:/project/list", result);
+        verify(userRepo).add(any(User.class));
+        verify(projectRepo).persist(any(Project.class));
+    }
+
+    @Test
+    @DisplayName("editProject should create default user when userRepo is empty")
+    void testEditProjectWithEmptyUserRepo() {
+        Project project = new Project();
+        project.setId(1);
+        project.setMembers(new ArrayList<>());
+        
+        User defaultUser = new User();
+        defaultUser.setId(1);
+        defaultUser.setName("user1");
+        defaultUser.setEmail("email1@gmail.com");
+        defaultUser.setPassword("password1");
+        
+        when(projectRepo.find(1L)).thenReturn(project);
+        // First call (isEmpty check) returns empty, second call (addObject) returns user after add
+        when(userRepo.getAll())
+            .thenReturn(new ArrayList<>())  // First call - empty for isEmpty()
+            .thenReturn(List.of(defaultUser)); // Second call - with user for addObject
+        
+        ModelAndView mav = sut.editProject(1L);
+        
+        assertEquals("project-edit", mav.getViewName());
+        verify(userRepo).add(any(User.class));
+    }
+
+    @Test
+    @DisplayName("editProject should handle project with null members")
+    void testEditProjectWithNullMembers() {
+        Project project = new Project();
+        project.setId(1);
+        project.setMembers(null);
+        
+        User user = new User();
+        user.setId(10);
+        
+        when(projectRepo.find(1L)).thenReturn(project);
+        when(userRepo.getAll()).thenReturn(List.of(user));
+        
+        ModelAndView mav = sut.editProject(1L);
+        
+        assertEquals("project-edit", mav.getViewName());
+        List<Integer> memberIds = (List<Integer>) mav.getModel().get("memberIds");
+        assertTrue(memberIds.isEmpty());
+    }
+
 }

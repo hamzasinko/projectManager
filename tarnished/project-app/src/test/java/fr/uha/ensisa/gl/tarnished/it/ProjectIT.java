@@ -122,6 +122,60 @@ public class ProjectIT {
     }
 
     @Test
+    @DisplayName("Should update project via edit form")
+    public void testUpdateProject() throws InterruptedException {
+        // 1. Create a project
+        driver.get(getBaseUrl() + "project/new");
+        String projectName = "Update Test " + System.currentTimeMillis();
+        driver.findElement(By.id("projectName")).sendKeys(projectName);
+        driver.findElement(By.id("projectDescription")).sendKeys("Original description");
+        driver.findElement(By.id("createProjectBtn")).click();
+        
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        wait.until(ExpectedConditions.urlContains("/project/list"));
+        sleep(2000);
+        
+        // 2. Find the project and click Edit
+        WebElement card = wait.until(ExpectedConditions.presenceOfElementLocated(
+            By.xpath("//h5[contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'card')]")
+        ));
+        String projectIdStr = card.getAttribute("data-id");
+        assertNotNull(projectIdStr, "Card should have a data-id attribute");
+        
+        WebElement editBtn = card.findElement(By.xpath(".//a[contains(text(),'Edit')]"));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", editBtn);
+        sleep(500);
+        // Use JavaScript click to avoid ElementClickInterceptedException
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", editBtn);
+        
+        // 3. Wait for edit form
+        wait.until(ExpectedConditions.urlContains("/project/edit/"));
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.id("projectName")));
+        
+        // 4. Update project name and description
+        WebElement nameInput = driver.findElement(By.id("projectName"));
+        nameInput.clear();
+        String updatedName = "Updated " + System.currentTimeMillis();
+        nameInput.sendKeys(updatedName);
+        
+        WebElement descInput = driver.findElement(By.id("projectDescription"));
+        descInput.clear();
+        descInput.sendKeys("Updated description");
+        
+        // 5. Submit the form
+        WebElement updateBtn = wait.until(ExpectedConditions.elementToBeClickable(By.id("updateProjectBtn")));
+        updateBtn.click();
+        
+        // 6. Verify redirect to project info
+        wait.until(ExpectedConditions.urlContains("/project/info/"));
+        
+        // 7. Verify updated name is displayed
+        WebElement nameInfo = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("projectNameInfo")));
+        assertTrue(nameInfo.getText().contains(updatedName) || nameInfo.getText().equals(updatedName),
+                  "Project name should be updated");
+    }
+
+    @Test
     @DisplayName("Should display edit form and prechecked members")
     public void testEditProjectCheckboxes() {
         // Précondition : créer un nouveau projet
@@ -199,7 +253,7 @@ public class ProjectIT {
 
         // 3. Navigate to project list explicitly
         driver.get(getBaseUrl() + "project/list");
-        Thread.sleep(2000); // Give time for page to load
+        sleep(2000); // Give time for page to load
 
         // 4. Wait for the project card to appear with explicit wait
         WebElement card = wait.until(ExpectedConditions.presenceOfElementLocated(
@@ -214,7 +268,7 @@ public class ProjectIT {
         // 6. Click the Delete button
         WebElement deleteBtn = card.findElement(By.xpath(".//button[contains(text(),'Delete')]"));
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", deleteBtn);
-        Thread.sleep(500);
+        sleep(500);
         deleteBtn.click();
 
         // 7. Wait for confirmation card to appear
@@ -228,9 +282,9 @@ public class ProjectIT {
 
         // 9. Wait for page to reload after deletion
         wait.until(ExpectedConditions.urlContains("/project/list"));
-        Thread.sleep(2000);
+        sleep(2000);
         driver.navigate().refresh();
-        Thread.sleep(2000);
+        sleep(2000);
 
         // 10. Verify project is gone from UI (with retry)
         boolean deleted = false;
@@ -240,9 +294,9 @@ public class ProjectIT {
                 deleted = true;
                 break;
             }
-            Thread.sleep(1000);
+            sleep(1000);
             driver.navigate().refresh();
-            Thread.sleep(1000);
+            sleep(1000);
         }
 
         assertTrue(deleted, "Project should be deleted from the list");
@@ -276,7 +330,7 @@ public class ProjectIT {
         // 4. Wait for page to load and project list to be visible
         WebDriverWait longWait = new WebDriverWait(driver, Duration.ofSeconds(30));
         longWait.until(ExpectedConditions.presenceOfElementLocated(By.id("projectsList")));
-        Thread.sleep(1000); // Give time for the list to render
+        sleep(1000); // Give time for the list to render
         
         // 5. Wait for the specific project card to appear (with unique name)
         WebElement card = longWait.until(ExpectedConditions.presenceOfElementLocated(
@@ -290,7 +344,7 @@ public class ProjectIT {
 
         // 6. Scroll to element and click Details link
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", card);
-        Thread.sleep(500);
+        sleep(500);
 
         WebElement detailsLink = wait.until(ExpectedConditions.elementToBeClickable(
             card.findElement(By.xpath(".//a[contains(text(),'Details')]"))
@@ -302,7 +356,7 @@ public class ProjectIT {
             ExpectedConditions.presenceOfElementLocated(By.id("projectNameInfo")),
             ExpectedConditions.urlContains("/project/")
         ));
-        Thread.sleep(1000);
+        sleep(1000);
 
         // 8. Verify project info page displays the correct data
         WebElement nameElem = driver.findElement(By.id("projectNameInfo"));
