@@ -45,6 +45,7 @@ unit-test:
 static-analysis:
   stage: static-analysis
   script:
+    - cd tarnished
     - mvn $MAVEN_CLI_OPTS install -DskipTests -Djacoco.skip=true spotbugs:spotbugs
   artifacts:
     paths:
