@@ -20,12 +20,12 @@ class ColumnIT {
 
     private static WebDriver driver;
     private static WebDriverWait wait;
-    private static final String BASE_URL = "http://localhost:8080";
+    private static final String BASE_URL = "http://localhost:8090";
 
     @BeforeAll
     static void setUpClass() {
         driver = WebDriverFactory.createChromeDriver();
-        wait = new WebDriverWait(driver, Duration.ofSeconds(2));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
     }
 
     @AfterAll
@@ -122,7 +122,7 @@ class ColumnIT {
         WebElement editButton = driver.findElement(By.cssSelector("[id^='column_edit_']"));
         editButton.click();
 
-        WebElement nameInput = driver.findElement(By.id("column_name_edit"));
+        WebElement nameInput = driver.findElement(By.id("columnNameEdit"));
         nameInput.clear();
         nameInput.sendKeys("In Progress");
 
@@ -227,8 +227,9 @@ class ColumnIT {
     @DisplayName("Should move story between columns")
     void testMoveStory() {
         // Créer un projet d'abord
+        // Forcer la navigation en utilisant get() qui force toujours la navigation
         driver.get(BASE_URL + "/project/new");
-        // Attendre que le formulaire soit chargé
+        // Attendre que le formulaire soit présent (get() force la navigation)
         wait.until(ExpectedConditions.presenceOfElementLocated(By.id("projectName")));
         String projectName = "Move Story Project " + System.currentTimeMillis();
         driver.findElement(By.id("projectName")).sendKeys(projectName);
