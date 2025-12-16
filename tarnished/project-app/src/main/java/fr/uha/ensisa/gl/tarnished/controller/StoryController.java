@@ -32,22 +32,29 @@ public class StoryController {
      */
     @GetMapping("/new")
     public ModelAndView showCreateForm(
-        @RequestParam(required=false) Long projectId,
-        @RequestParam(required=false) Long columnId
-    ) {
+            @RequestParam(required = false) Long projectId,
+            @RequestParam(required = false) Long columnId,
+            @RequestParam(required = false) Long swimlaneId) {
+
         ModelAndView mav = new ModelAndView("story-create");
+
         // Add all projects to select from
         mav.addObject("projects", repoFactory.getProjectRepo().findAll());
-        // Pass projectId and columnId if provided
+
+        // Pass projectId, columnId, and swimlaneId if provided
         if (projectId != null) {
             mav.addObject("projectId", projectId);
         }
         if (columnId != null) {
             mav.addObject("columnId", columnId);
         }
+        if (swimlaneId != null) {
+            mav.addObject("swimlaneId", swimlaneId);
+        }
+
         return mav;
     }
-    
+
     /**
      * Traite la création d'une nouvelle story
      */
@@ -56,7 +63,8 @@ public class StoryController {
         @RequestParam(required=true) String title,
         @RequestParam(required=false) String description,
         @RequestParam(required=false) Long projectId,
-        @RequestParam(required=false) Long columnId
+        @RequestParam(required=false) Long columnId,
+        @RequestParam(required = false) Long swimlaneId
     ) throws IOException {
         
         System.out.println("[DEBUG] createStory called - projectId: " + projectId + ", columnId: " + columnId);
@@ -123,12 +131,19 @@ public class StoryController {
         // Initialiser subColumn pour les colonnes personnalisées (ni BACKLOG ni DONE)
         if (story.getColumnId() != null) {
             fr.uha.ensisa.gl.entities.Column column = repoFactory.getColumnRepo().find(story.getColumnId());
-            if (column != null && !"BACKLOG".equals(column.getName()) && !"DONE".equals(column.getName())) {
+            if (column != null && !isDefaultColumn(column.getName())) {
                 story.setSubColumn("BACKLOG");
                 System.out.println("[DEBUG] Story subColumn initialized to BACKLOG for custom column: " + column.getName());
+            } else {
+                story.setSubColumn(null); // colonnes système => pas de sous-colonne
             }
         }
-        
+
+        if (swimlaneId != null) {
+            story.setSwimlaneId(swimlaneId);
+            System.out.println("[DEBUG] Story assigned to swimlane: " + swimlaneId);
+        }
+
         repoFactory.getStoryRepo().persist(story);
         
         System.out.println("[DEBUG] Story created - ID: " + story.getId() + ", ProjectID: " + story.getProjectId() + ", ColumnID: " + story.getColumnId() + ", Position: " + story.getPosition() + ", SubColumn: " + story.getSubColumn());

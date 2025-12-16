@@ -74,12 +74,12 @@ public class UserMemTest {
 
         int id = user.getId();
         
-        // Delete should not throw even if not implemented
+        // Delete the user
         userMem.delete(id);
 
-        // Verify user still exists (since delete is not implemented)
+        // Verify user no longer exists
         User found = userMem.find(id);
-        assertNotNull(found);
+        assertNull(found);
     }
 
     @Test

@@ -437,4 +437,29 @@ class ColumnRepoMemTest {
 
         Mockito.verify(storyRepo).moveToColumn(10L, 2L);
     }
+
+    @Test
+    void find_onUnknownId_returnsNull() {
+        ColumnRepoMem repo = new ColumnRepoMem();
+        Column result = repo.find(999L);
+        assertNull(result);
+    }
+
+    @Test
+    void remove_onUnknownId_doesNotThrow() {
+        ColumnRepoMem repo = new ColumnRepoMem();
+        assertDoesNotThrow(() -> repo.remove(999L));
+    }
+
+    @Test
+    void persist_thenFindAll_containsColumn() {
+        ColumnRepoMem repo = new ColumnRepoMem();
+        Column c = new Column();
+        c.setId(1);
+
+        repo.persist(c);
+
+        assertEquals(1, repo.findAll().size());
+        assertTrue(repo.findAll().contains(c));
+    }
 }

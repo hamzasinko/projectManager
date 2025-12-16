@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-
+import java.util.Locale;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,8 +36,8 @@ public class ColumnController {
 
     @PostMapping("/columns/create")
     public String createColumn(@RequestParam String name,
-                               @RequestParam int order,
-                               @RequestParam int limit,
+                               @RequestParam(required = false, defaultValue = "0") int order,
+                               @RequestParam(required = false, defaultValue = "0") int limit,
                                @RequestParam(required = false, defaultValue = "false") boolean hasSubColumns,
                                @RequestParam(required = false) Long projectId) {
         ColumnRepo columnRepo = repoFactory.getColumnRepo();
@@ -46,8 +46,25 @@ public class ColumnController {
         if (name != null && name.length() > 25) {
             name = name.substring(0, 25);
         }
-        
+        // --- Anti-duplication (même nom dans le même projet) ---
+        String normalizedName = (name == null) ? "" : name.trim().toLowerCase(Locale.ROOT);
+
+        boolean alreadyExists = columnRepo.findAll().stream().anyMatch(c ->
+                c.getName() != null
+                        && c.getName().trim().toLowerCase(Locale.ROOT).equals(normalizedName)
+                        && (
+                        (projectId == null && c.getProject() == null) ||
+                                (projectId != null && c.getProject() != null && c.getProject().getId() == projectId)
+                )
+        );
+
+        if (alreadyExists) {
+            return "redirect:/columns?error=Column already exists";
+        }
+
+
         Column column = new Column();
+        name = name.trim();
         column.setName(name);
         column.setPosition(order);
         column.setMaxCapacity(limit);
@@ -75,7 +92,7 @@ public class ColumnController {
     @PostMapping("/columns/{id}/edit")
     public String editColumn(@PathVariable Long id,
                              @RequestParam String name,
-                             @RequestParam int order,
+                             @RequestParam(required = false, defaultValue = "0") int order,
                              @RequestParam(required = false, defaultValue = "0") int limit) {
         ColumnRepo columnRepo = repoFactory.getColumnRepo();
         Column column = columnRepo.find(id);
@@ -103,7 +120,7 @@ public class ColumnController {
     }
 
     @PostMapping("/columns/{id}/reorder")
-    public String reorderColumn(@PathVariable Long id, @RequestParam int newOrder) {
+    public String reorderColumn(@PathVariable Long id, @RequestParam(required = false, defaultValue = "0") int newOrder) {
         ColumnRepo columnRepo = repoFactory.getColumnRepo();
         columnRepo.reorder(id, newOrder);
         return "redirect:/columns";

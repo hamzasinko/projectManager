@@ -40,3 +40,6 @@ tarnished/**/.DS_Store
 
 # Fichiers .ml
 tarnished/**/*.ml
+
+# Documents
+

@@ -3,13 +3,16 @@ package fr.uha.ensisa.gl.tarnished.controller;
 import fr.uha.ensisa.gl.entities.Column;
 import fr.uha.ensisa.gl.entities.Project;
 import fr.uha.ensisa.gl.entities.Story;
+import fr.uha.ensisa.gl.entities.Swimlane;
 import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
+import fr.uha.ensisa.gl.tarnished.repos.SwimlaneRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 
 @Controller
@@ -19,6 +22,11 @@ public class BoardController {
     @Autowired
     private RepoFactory repoFactory;
 
+    // Package-private setter for testing
+    void setRepoFactory(RepoFactory repoFactory) {
+        this.repoFactory = repoFactory;
+    }
+
     /**
      * Affiche le Kanban board d'un projet
      */
@@ -26,6 +34,7 @@ public class BoardController {
     public ModelAndView showBoard(@PathVariable Long projectId) {
         ModelAndView mav = new ModelAndView("board");
 
+        SwimlaneRepo swimlaneRepo = repoFactory.getSwimlaneRepo();
         Project project = repoFactory.getProjectRepo().find(projectId);
         if (project == null) {
             return new ModelAndView("redirect:/project/list");
@@ -50,6 +59,14 @@ public class BoardController {
             column.setStories(new java.util.ArrayList<>(stories));
         }
 
+        List<Swimlane> swimlanes = swimlaneRepo.findAll().stream()
+                .filter(s -> s.getProjectId() == projectId.intValue())
+                .toList();
+
+        boolean hasSwimlanes = (swimlanes != null && !swimlanes.isEmpty());
+
+        mav.addObject("swimlanes", swimlanes);
+        mav.addObject("hasSwimlanes", hasSwimlanes);
         mav.addObject("project", project);
         mav.addObject("columns", columns);
 
@@ -67,7 +84,8 @@ public class BoardController {
             @RequestParam Long toColumnId,
             @RequestParam(required = false) Long fromColumnId,
             @RequestParam(required = false) String newStatus,
-            @RequestParam(required = false) String subColumn) {
+            @RequestParam(required = false) String subColumn,
+            @RequestParam(required = false) Long swimlaneId) {
         
         try {
             // Check if target column is full before moving
@@ -122,8 +140,11 @@ public class BoardController {
                         System.out.println("[DEBUG] Custom column detected, status unchanged: " + columnName);
                     }
                 }
-                
                 // MUST persist to save position and status changes
+                if (swimlaneId != null) {
+                    story.setSwimlaneId(swimlaneId);
+                    System.out.println("[DEBUG] Swimlane updated to: " + swimlaneId);
+                }
                 repoFactory.getStoryRepo().persist(story);
             }
             
@@ -168,9 +189,13 @@ public class BoardController {
     @GetMapping("/{projectId}/add-column")
     public String addColumnGet(
             @PathVariable Long projectId,
-            @RequestParam String name,
+            @RequestParam(required = false) String name,
             @RequestParam(required = false, defaultValue = "0") int maxCapacity,
             @RequestParam(required = false, defaultValue = "false") boolean hasSubColumns) {
+        // Si name n'est pas fourni, rediriger vers le board avec un paramètre pour afficher le formulaire
+        if (name == null || name.trim().isEmpty()) {
+            return "redirect:/board/" + projectId + "?showAddColumn=true";
+        }
         return addColumn(projectId, name, maxCapacity, hasSubColumns);
     }
 
@@ -200,9 +225,32 @@ public class BoardController {
         column.setMaxCapacity(maxCapacity);
         column.setHasSubColumns(hasSubColumns);
         
-        // Set position as last
+        // Trouver la colonne DONE et placer la nouvelle colonne juste avant
         Collection<Column> existingColumns = repoFactory.getColumnRepo().findByProject(projectId);
-        column.setPosition(existingColumns.size() + 1);
+        Column doneColumn = null;
+        for (Column col : existingColumns) {
+            if (col != null && col.getName() != null && "DONE".equalsIgnoreCase(col.getName().trim())) {
+                doneColumn = col;
+                break;
+            }
+        }
+        
+        if (doneColumn != null) {
+            // Placer la nouvelle colonne juste avant DONE
+            int donePosition = doneColumn.getPosition();
+            column.setPosition(donePosition);
+            
+            // Décaler toutes les colonnes à partir de DONE (incluant DONE) vers la droite
+            for (Column col : existingColumns) {
+                if (col != null && col.getPosition() >= donePosition) {
+                    col.setPosition(col.getPosition() + 1);
+                    repoFactory.getColumnRepo().persist(col);
+                }
+            }
+        } else {
+            // Si pas de DONE, placer à la fin
+            column.setPosition(existingColumns.size() + 1);
+        }
 
         repoFactory.getColumnRepo().persist(column);
 

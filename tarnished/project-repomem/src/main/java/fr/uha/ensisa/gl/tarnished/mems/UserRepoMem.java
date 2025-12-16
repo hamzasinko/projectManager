@@ -35,13 +35,18 @@ public class UserRepoMem implements UserRepo {
     }
 
     @Override
-    public void update(User user) { /* ... */ }
+    public void update(User user) {
+        users.removeIf(u -> u.getId() == user.getId());
+        users.add(user);
+    }
 
     @Override
-    public void delete(int id) { /* ... */ }
+    public void delete(int id) {
+        users.removeIf(u -> u.getId() == id);
+    }
 
     @Override
     public List<User> getAll() {
-        return users;
+        return new ArrayList<>(users);
     }
 }
