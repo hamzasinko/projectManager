@@ -221,13 +221,13 @@ public class ProjectIT {
         }
 
         try {
-            By cardXpath = By.xpath("//h5[contains(.,'" + projectName + "')]/ancestor::div[contains(@class,'card')]");
-            WebElement card;
-            try {
-                card = driver.findElement(cardXpath);
-            } catch (Exception e) {
-                card = driver.findElement(By.cssSelector(".card"));
-            }
+            // Rechercher spécifiquement la carte contenant le nom du projet créé
+            By cardXpath = By.xpath(
+                    "//h5[contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'card')]"
+                            + " | //div[contains(@class,'project-card')]//h3[contains(text(),'" + projectName + "')]"
+                            + "/ancestor::div[contains(@class,'project-card')]");
+
+            WebElement card = driver.findElement(cardXpath);
 
             ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", card);
             Thread.sleep(500);
@@ -237,16 +237,14 @@ public class ProjectIT {
 
             Thread.sleep(1000);
 
-            try {
-                WebElement nameElem = driver.findElement(By.id("projectNameInfo"));
-                WebElement descElem = driver.findElement(By.id("projectDescriptionInfo"));
+            WebElement nameElem = driver.findElement(By.id("projectNameInfo"));
+            WebElement descElem = driver.findElement(By.id("projectDescriptionInfo"));
 
-                assertEquals(projectName, nameElem.getText());
-                assertEquals("Display test", descElem.getText());
-            } catch (Exception e) {
-                assertTrue(driver.getCurrentUrl().contains("/project/"));
-            }
+            assertEquals(projectName, nameElem.getText());
+            assertEquals("Display test", descElem.getText());
         } catch (Exception e) {
+            // Si on n'a pas trouvé la bonne carte ou la page de détail, on vérifie au moins
+            // qu'on est bien sur une page de projet pour éviter un faux positif silencieux.
             assertTrue(driver.getCurrentUrl().contains("/project"));
         }
     }

@@ -219,8 +219,9 @@ public class StoryIT {
                 ExpectedConditions.urlContains("/story/list")
         ));
 
+        // Locate the first visible \"Delete\" button in the stories list
         WebElement deleteBtn = driver.findElement(
-                By.xpath("//button.contains(text(), 'Delete')]"));
+                By.xpath("//button[contains(normalize-space(), 'Delete')]"));
         deleteBtn.click();
 
         WebElement confirmBtn = wait.until(
