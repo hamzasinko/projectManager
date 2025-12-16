@@ -920,6 +920,14 @@
             document.getElementById('addColumnForm').style.display = 'none';
         }
 
+        // Afficher automatiquement le formulaire si le paramètre showAddColumn est présent
+        window.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('showAddColumn') === 'true') {
+                showAddColumnForm();
+            }
+        });
+
         // Validation for add column form
         document.getElementById('addColumnForm').addEventListener('submit', function(e) {
             const nameInput = this.querySelector('input[name="name"]');
