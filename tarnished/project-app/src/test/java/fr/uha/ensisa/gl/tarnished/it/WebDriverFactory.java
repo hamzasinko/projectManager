@@ -7,71 +7,69 @@ import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.remote.RemoteWebDriver;
 
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 /**
  * Factory pour créer des instances WebDriver configurées pour local et CI/CD.
+ *
+ * En CI, lorsque le service Selenium est utilisé (alias "selenium"),
+ * on DOIT utiliser un RemoteWebDriver connecté à http://selenium:4444/wd/hub
+ * comme recommandé dans la documentation officielle.
  */
 public class WebDriverFactory {
 
-    /**
-     * Crée un WebDriver Chrome configuré pour l'environnement (local ou CI/CD).
-     * - Local : ChromeDriver classique.
-     * - CI avec -Dselenium.remote.browser=true : RemoteWebDriver vers le service selenium.
-     */
     public static WebDriver createChromeDriver() {
-        // Flag pour décider local vs remote
-        boolean remote = Boolean.getBoolean("selenium.remote.browser");
 
         ChromeOptions options = new ChromeOptions();
 
-        // Détecter l'environnement CI (GitLab, Jenkins, etc.)
-        String ci = System.getenv("CI");
-        boolean isCI = ci != null && (ci.equalsIgnoreCase("true") || ci.equals("1"));
+        // Options communes
+        options.addArguments(
+                "--headless=new",
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--window-size=1920,1080"
+        );
+        options.setAcceptInsecureCerts(true);
 
-        if (isCI) {
-            // Configuration pour environnement CI/CD (headless)
-            options.addArguments(
-                    "--headless=new",
-                    "--no-sandbox",
-                    "--disable-dev-shm-usage",
-                    "--disable-gpu",
-                    "--window-size=1920,1080",
-                    "--disable-extensions",
-                    "--disable-software-rasterizer",
-                    "--disable-setuid-sandbox",
-                    "--remote-debugging-port=9222",
-                    "--disable-background-timer-throttling",
-                    "--disable-backgrounding-occluded-windows",
-                    "--disable-breakpad",
-                    "--disable-component-extensions-with-background-pages",
-                    "--disable-features=TranslateUI,BlinkGenPropertyTrees",
-                    "--disable-ipc-flooding-protection",
-                    "--disable-renderer-backgrounding",
-                    "--enable-features=NetworkService,NetworkServiceInProcess",
-                    "--force-color-profile=srgb",
-                    "--hide-scrollbars",
-                    "--metrics-recording-only",
-                    "--mute-audio"
+        // Détection explicite de la CI GitLab
+        String ciEnv = System.getenv("CI");
+        boolean isCI = ciEnv != null && (ciEnv.equalsIgnoreCase("true") || ciEnv.equals("1"));
+
+        // On active le RemoteWebDriver UNIQUEMENT si selenium.remote.browser=true
+        String remoteFlag = System.getProperty("selenium.remote.browser", "false");
+        boolean useRemote = remoteFlag.equalsIgnoreCase("true") || remoteFlag.equals("1");
+
+        if (useRemote) {
+            String seleniumUrl = System.getProperty(
+                    "selenium.remote.url",
+                    "http://selenium:4444/wd/hub"
             );
-            options.setAcceptInsecureCerts(true);
-            System.out.println("[WebDriverFactory] Running in CI/CD mode (headless)");
-        } else {
-            System.out.println("[WebDriverFactory] Running in local mode (with display)");
+            try {
+                System.out.println("[WebDriverFactory] Remote mode → " + seleniumUrl);
+                return new RemoteWebDriver(new URI(seleniumUrl).toURL(), options);
+            } catch (MalformedURLException | URISyntaxException e) {
+                throw new RuntimeException("Invalid Selenium Grid URL: " + seleniumUrl, e);
+            }
         }
 
-        if (remote) {
-            System.out.println("[WebDriverFactory] Using REMOTE WebDriver (selenium:4444)");
-            try {
-                URL gridUrl = new URL("http://selenium:4444/wd/hub");
-                return new RemoteWebDriver(gridUrl, options);
-            } catch (MalformedURLException e) {
-                throw new RuntimeException("Invalid Selenium Grid URL", e);
+        // Si on est en CI SANS Selenium distant, on utilise le chromedriver système installé via apk
+        if (isCI) {
+            String chromeBin = System.getenv("CHROME_BIN");
+            if (chromeBin != null && !chromeBin.isBlank()) {
+                System.out.println("[WebDriverFactory] CI local mode → ChromeDriver with binary " + chromeBin);
+                options.setBinary(chromeBin);
+            } else {
+                System.out.println("[WebDriverFactory] CI local mode → ChromeDriver (binary from PATH)");
             }
-        } else {
-            System.out.println("[WebDriverFactory] Using LOCAL ChromeDriver");
-            WebDriverManager.chromedriver().setup();
+            // Chemin standard du paquet alpine chromium-chromedriver
+            System.setProperty("webdriver.chrome.driver", "/usr/bin/chromedriver");
             return new ChromeDriver(options);
         }
+
+        // Sinon : ChromeDriver local (développement, hors CI)
+        System.out.println("[WebDriverFactory] Local mode → ChromeDriver (WebDriverManager)");
+        WebDriverManager.chromedriver().setup();
+        return new ChromeDriver(options);
     }
 }
