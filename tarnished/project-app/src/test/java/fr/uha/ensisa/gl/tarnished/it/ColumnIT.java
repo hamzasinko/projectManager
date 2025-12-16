@@ -35,6 +35,18 @@ class ColumnIT {
         }
     }
 
+    @BeforeEach
+    void setUp() {
+        // S'assurer que le navigateur est toujours actif
+        try {
+            driver.getCurrentUrl();
+        } catch (Exception e) {
+            // Si le navigateur est fermé, le recréer
+            driver = WebDriverFactory.createChromeDriver();
+            wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        }
+    }
+
     @Test
     @Order(1)
     void testCreateColumnViaForm() {
@@ -227,10 +239,32 @@ class ColumnIT {
     @DisplayName("Should move story between columns")
     void testMoveStory() {
         // Créer un projet d'abord
-        // Forcer la navigation en utilisant get() qui force toujours la navigation
-        driver.get(BASE_URL + "/project/new");
-        // Attendre que le formulaire soit présent (get() force la navigation)
-        wait.until(ExpectedConditions.presenceOfElementLocated(By.id("projectName")));
+        // S'assurer que le navigateur est dans un état valide
+        try {
+            String currentUrl = driver.getCurrentUrl();
+            // Si on est déjà sur une autre page, forcer la navigation
+            if (!currentUrl.contains("/project/new")) {
+                // Naviguer vers une page neutre d'abord pour réinitialiser l'état
+                driver.get(BASE_URL + "/");
+                wait.until(ExpectedConditions.urlContains(BASE_URL));
+            }
+        } catch (Exception e) {
+            // Si le navigateur est dans un état invalide, le recréer
+            driver = WebDriverFactory.createChromeDriver();
+            wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        }
+        
+        // Forcer une navigation complète vers la page de création de projet
+        String projectNewUrl = BASE_URL + "/project/new";
+        driver.get(projectNewUrl);
+        
+        // Attendre que la page soit complètement chargée avec timeout plus long
+        WebDriverWait longWait = new WebDriverWait(driver, Duration.ofSeconds(15));
+        longWait.until(ExpectedConditions.urlContains("/project/new"));
+        
+        // Attendre que le formulaire soit présent et visible
+        longWait.until(ExpectedConditions.presenceOfElementLocated(By.id("projectName")));
+        longWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("projectName")));
         String projectName = "Move Story Project " + System.currentTimeMillis();
         driver.findElement(By.id("projectName")).sendKeys(projectName);
         driver.findElement(By.id("projectDescription")).sendKeys("For move test");
