@@ -189,9 +189,13 @@ public class BoardController {
     @GetMapping("/{projectId}/add-column")
     public String addColumnGet(
             @PathVariable Long projectId,
-            @RequestParam String name,
+            @RequestParam(required = false) String name,
             @RequestParam(required = false, defaultValue = "0") int maxCapacity,
             @RequestParam(required = false, defaultValue = "false") boolean hasSubColumns) {
+        // Si name n'est pas fourni, rediriger vers le board avec un paramètre pour afficher le formulaire
+        if (name == null || name.trim().isEmpty()) {
+            return "redirect:/board/" + projectId + "?showAddColumn=true";
+        }
         return addColumn(projectId, name, maxCapacity, hasSubColumns);
     }
 
