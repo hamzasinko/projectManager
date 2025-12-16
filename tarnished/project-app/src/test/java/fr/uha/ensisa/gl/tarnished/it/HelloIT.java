@@ -19,7 +19,7 @@ public class HelloIT{
 	
 	@BeforeAll
 	public static void findPort() {
-		port = System.getProperty("servlet.port", "8090");
+		port = System.getProperty("servlet.port", "8080");
 	}
 
 	@Test
