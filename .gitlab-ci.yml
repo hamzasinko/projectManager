@@ -12,6 +12,7 @@ cache:
 stages:
   - build
   - unit-test
+  - static-analysis
   - integration-test
   - deploy
 
@@ -41,6 +42,13 @@ unit-test:
     reports:
       junit:
         - "**/target/surefire-reports/TEST-*.xml"
+static-analysis:
+  stage: static-analysis
+  script:
+    - mvn $MAVEN_CLI_OPTS install -DskipTests -Djacoco.skip=true spotbugs:spotbugs
+  artifacts:
+    paths:
+      - "**/target/spotbugsXml.xml"
 
 # ============================
 # 3️⃣ INTEGRATION TESTS (Selenium)
