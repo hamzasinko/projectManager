@@ -237,28 +237,44 @@ public class BoardIT {
     @Test
     @DisplayName("Should add a new column via form")
     public void testAddColumn() {
-        // Cherche le bouton ou modal pour ajouter une colonne
-        // Cela peut être dans un modal ou un formulaire
+        // Naviguer vers le board d'abord pour compter les colonnes existantes
+        navigateToBoard();
+        int initialColumnCount = driver.findElements(By.className("kanban-column")).size();
+        
+        // Naviguer vers le board avec le paramètre pour afficher le formulaire
+        driver.get(getBaseUrl() + "board/" + testProjectId + "?showAddColumn=true");
+        
         try {
-            // Cherche un bouton "Add Column" ou similaire
-            List<WebElement> addColumnButtons = driver.findElements(By.xpath("//button[contains(text(), 'Add Column')] | //a[contains(text(), 'Add Column')]"));
-            if (!addColumnButtons.isEmpty()) {
-                addColumnButtons.get(0).click();
-                
-                wait.until(ExpectedConditions.presenceOfElementLocated(By.id("column_name")));
-                String columnName = "Test Column " + System.currentTimeMillis();
-                driver.findElement(By.id("column_name")).sendKeys(columnName);
-                
-                WebElement submitBtn = driver.findElement(By.cssSelector("form button[type='submit'], form input[type='submit']"));
-                submitBtn.click();
-                
-                wait.until(ExpectedConditions.urlContains("/board/" + testProjectId));
-                
-                // Vérifie que la colonne a été ajoutée
-                String pageSource = driver.getPageSource();
-                assertTrue(pageSource.contains(columnName) || driver.findElements(By.className("kanban-column")).size() > 5, 
-                           "Column should be added");
+            // Attendre que le formulaire soit visible
+            wait.until(ExpectedConditions.presenceOfElementLocated(By.id("column_name")));
+            wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("column_name")));
+            
+            String columnName = "Test Column " + System.currentTimeMillis();
+            driver.findElement(By.id("column_name")).sendKeys(columnName);
+            
+            // Utiliser le bouton createColumnBtn que nous avons ajouté
+            WebElement submitBtn = driver.findElement(By.id("createColumnBtn"));
+            // Utiliser JavaScript click pour éviter les problèmes de clic
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", submitBtn);
+            
+            wait.until(ExpectedConditions.urlContains("/board/" + testProjectId));
+            // Attendre un peu pour que la page se charge complètement
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
+            
+            // Vérifie que la colonne a été ajoutée en comptant les colonnes
+            int finalColumnCount = driver.findElements(By.className("kanban-column")).size();
+            String pageSource = driver.getPageSource();
+            
+            // La colonne a été ajoutée si soit le nom apparaît dans la page, soit le nombre de colonnes a augmenté
+            boolean columnAdded = pageSource.contains(columnName) || finalColumnCount > initialColumnCount;
+            assertTrue(columnAdded, 
+                       "Column should be added. Initial columns: " + initialColumnCount + 
+                       ", Final columns: " + finalColumnCount + 
+                       ", Column name in page: " + pageSource.contains(columnName));
         } catch (Exception e) {
             // Le formulaire peut ne pas être disponible, on teste via AJAX direct
             testAddColumnViaAJAX();
@@ -295,9 +311,23 @@ public class BoardIT {
         ((JavascriptExecutor) driver).executeScript(script);
         wait.until(ExpectedConditions.urlContains("/board/" + testProjectId));
         
-        // Vérifie que la redirection s'est bien passée
+        // Attendre un peu pour que la page se charge complètement
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        
+        // Vérifie que la redirection s'est bien passée ET que la colonne a été ajoutée
         assertTrue(driver.getCurrentUrl().contains("/board/" + testProjectId), 
                    "Should redirect to board after adding column");
+        
+        // Vérifie que la colonne a été ajoutée
+        String pageSource = driver.getPageSource();
+        int columnCount = driver.findElements(By.className("kanban-column")).size();
+        assertTrue(pageSource.contains(columnName) || columnCount > 5, 
+                   "Column should be added via AJAX. Column name in page: " + pageSource.contains(columnName) + 
+                   ", Column count: " + columnCount);
     }
     
     @Test
