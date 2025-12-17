@@ -123,11 +123,8 @@ deploy-docker:
     - APP_NAME="${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}"
     - NAMESPACE="gitlab-cd-${ENV}"
 
-    - kubectl -n ${NAMESPACE} create secret docker-registry $APP_NAME-registry-secret \
-      --docker-server=${CI_REGISTRY} \
-      --docker-username=${CI_DEPLOY_USER} \
-      --docker-password=${CI_DEPLOY_PASSWORD} \
-      --dry-run -o yaml | kubectl -n ${NAMESPACE} apply -f -
+    - kubectl -n ${NAMESPACE} create secret docker-registry $APP_NAME-registry-secret --docker-server=${CI_REGISTRY} --docker-username=${CI_DEPLOY_USER} --docker-password=${CI_DEPLOY_PASSWORD} --dry-run=client -o yaml | kubectl -n ${NAMESPACE} apply -f -
+
 
     - |
       echo "
