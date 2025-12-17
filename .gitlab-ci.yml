@@ -246,6 +246,7 @@ pages:
   stage: deploy
   script:
     - cd tarnished
+    - mvn $MAVEN_CLI_OPTS install -DskipTests
     - mvn $MAVEN_CLI_OPTS site
     - mv target/site public
   artifacts:
