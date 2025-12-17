@@ -202,7 +202,7 @@ run-staging:
     ACTION: apply
   environment:
     name: staging
-    url: https://staging.cluster.ensisa.uha.fr/${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}
+    url: https://staging.cluster.ensisa.uha.fr/
 deploy-prod:
   <<: *kubernetes
   variables:
@@ -248,7 +248,8 @@ pages:
     - cd tarnished
     - mvn $MAVEN_CLI_OPTS install -DskipTests
     - mvn $MAVEN_CLI_OPTS site
-    - mv target/site public
+    - cd ..
+    - mv tarnished/target/site public
   artifacts:
     paths:
       - public
