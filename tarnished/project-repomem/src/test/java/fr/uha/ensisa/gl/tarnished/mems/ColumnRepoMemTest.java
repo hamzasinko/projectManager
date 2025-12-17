@@ -462,4 +462,25 @@ class ColumnRepoMemTest {
         assertEquals(1, repo.findAll().size());
         assertTrue(repo.findAll().contains(c));
     }
+
+    @Test
+    void findAll_reflectsPersistAndRemoveOperations() {
+        ColumnRepoMem repo = new ColumnRepoMem();
+
+        assertEquals(0, repo.findAll().size());
+
+        Column c1 = new Column();
+        c1.setId(1);
+        repo.persist(c1);
+        assertEquals(1, repo.findAll().size());
+
+        Column c2 = new Column();
+        c2.setId(2);
+        repo.persist(c2);
+        assertEquals(2, repo.findAll().size());
+
+        repo.remove(1L);
+        assertEquals(1, repo.findAll().size());
+    }
+
 }
