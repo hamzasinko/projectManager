@@ -246,12 +246,13 @@ pages:
   stage: deploy
   script:
     - cd tarnished
-    - mvn $MAVEN_CLI_OPTS site site:stage
-    - mv target/staging public
+    - mvn $MAVEN_CLI_OPTS site
+    - mv target/site public
   artifacts:
     paths:
       - public
   rules:
     - if: '$CI_COMMIT_REF_NAME == "main"'
     - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'
+
 
