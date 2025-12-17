@@ -100,7 +100,7 @@ deploy-docker:
     - if [ -z "$WARFILE" ]; then echo "❌ Aucun WAR trouvé !"; exit 1; fi
 
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-
+    - cp "$WARFILE" myapp.war
     - |
       echo "FROM jetty:9.4-jre17
       EXPOSE 8080
