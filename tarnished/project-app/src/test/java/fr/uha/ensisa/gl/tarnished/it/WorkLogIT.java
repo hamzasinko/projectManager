@@ -29,7 +29,7 @@ class WorkLogIT {
         driver = WebDriverFactory.createChromeDriver();
         wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         
-        // Create test project
+        //créer un projet de test
         driver.get(BASE_URL + "/project/new");
         WebElement projectNameInput = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("projectName")));
         projectNameInput.sendKeys("WorkLog Test Project " + System.currentTimeMillis());
@@ -39,7 +39,7 @@ class WorkLogIT {
         createProjectBtn.click();
         wait.until(ExpectedConditions.urlContains("/project/list"));
         
-        // Get project ID
+        //récupérer l'ID du projet
         try {
             WebElement boardLink = wait.until(ExpectedConditions.presenceOfElementLocated(By.xpath("//a[contains(@href,'/board/')]")));
             String href = boardLink.getAttribute("href");
@@ -48,24 +48,24 @@ class WorkLogIT {
             testProjectId = 1L;
         }
         
-        // Create test story
+        //créer une story de test
         driver.get(BASE_URL + "/story/new?projectId=" + testProjectId);
         WebElement storyTitleInput = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("storyTitle")));
         storyTitleInput.sendKeys("WorkLog Test Story " + System.currentTimeMillis());
         
-        // Try to click the button, use JavaScript if it fails
+        //essayer de cliquer sur le bouton, utiliser JavaScript si ça échoue
         try {
             WebElement createStoryBtn = wait.until(ExpectedConditions.elementToBeClickable(By.id("createStoryBtn")));
             createStoryBtn.click();
         } catch (Exception e) {
-            // Fallback to JavaScript click
+            //fallback vers JavaScript click
             WebElement createStoryBtn = driver.findElement(By.id("createStoryBtn"));
             ((JavascriptExecutor) driver).executeScript("arguments[0].click();", createStoryBtn);
         }
         
         wait.until(ExpectedConditions.urlContains("/board/"));
         
-        // Get story ID from URL or page
+        //récupérer l'ID de la story depuis l'URL ou la page
         try {
             WebElement storyLink = wait.until(ExpectedConditions.presenceOfElementLocated(By.xpath("//a[contains(@href,'/story/') and contains(text(),'Details')]")));
             String href = storyLink.getAttribute("href");
@@ -88,7 +88,7 @@ class WorkLogIT {
     void testStoryDetailPageHasTimeTracking() {
         driver.get(BASE_URL + "/story/" + testStoryId);
         
-        // Verify time tracking section exists
+        //vérifier que la section time tracking existe
         assertTrue(driver.getPageSource().contains("Time Tracking") || 
                    driver.getPageSource().contains("Total Time Spent"));
     }
@@ -100,19 +100,19 @@ class WorkLogIT {
         driver.get(BASE_URL + "/story/" + testStoryId);
         
         try {
-            // Wait for the page to load and the button to be clickable
+            //attendre que la page se charge et que le bouton soit cliquable
             WebElement startButton = wait.until(ExpectedConditions.elementToBeClickable(
                 By.xpath("//button[contains(text(),'Start') or contains(@class,'start')]")));
             startButton.click();
             
-            // Wait for page to reload
+            //attendre que la page se recharge
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
             
-            // Verify timer is running by checking for Stop button or Timer Running text
+            //vérifier que le timer est en cours en cherchant le bouton Stop ou le texte Timer Running
             driver.get(BASE_URL + "/story/" + testStoryId);
             wait.until(ExpectedConditions.or(
                 ExpectedConditions.textToBePresentInElementLocated(By.tagName("body"), "Stop"),
@@ -121,7 +121,7 @@ class WorkLogIT {
             assertTrue(driver.getPageSource().contains("Stop") || 
                        driver.getPageSource().contains("Timer Running"));
         } catch (Exception e) {
-            // Timer might already be running - check for Stop button
+            //le timer est peut-être déjà en cours - vérifier le bouton Stop
             assertTrue(driver.getPageSource().contains("Stop") || 
                        driver.getPageSource().contains("Timer Running") ||
                        driver.getPageSource().contains("work"),
@@ -140,11 +140,11 @@ class WorkLogIT {
             stopButton.click();
             wait.until(ExpectedConditions.urlContains("/story/" + testStoryId));
             
-            // Verify timer is stopped
+            //vérifier que le timer est arrêté
             driver.get(BASE_URL + "/story/" + testStoryId);
             assertTrue(driver.getPageSource().contains("Start"));
         } catch (Exception e) {
-            // Timer might not be running
+            //le timer n'est peut-être pas en cours
             assertTrue(true);
         }
     }
@@ -166,14 +166,14 @@ class WorkLogIT {
             WebElement submitButton = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[contains(text(),'Add Work Log')]")));
             submitButton.click();
             
-            // Wait for redirect - if we get redirected, the form submission worked
+            //attendre la redirection - si on est redirigé, la soumission du formulaire a fonctionné
             wait.until(ExpectedConditions.urlContains("/story/" + testStoryId));
             
-            // The worklog functionality is tested in unit tests
-            // Integration test just verifies the form is accessible and submittable
+            //la fonctionnalité worklog est testée dans les tests unitaires
+            //le test d'intégration vérifie juste que le formulaire est accessible et soumettable
             assertTrue(true, "Work log form is accessible and submittable");
         } catch (Exception e) {
-            // Form might not be available, which is acceptable
+            //le formulaire peut ne pas être disponible, ce qui est acceptable
             assertTrue(true, "Work log form may not be available");
         }
     }
@@ -214,7 +214,7 @@ class WorkLogIT {
     void testTimerButtonsInBoard() {
         driver.get(BASE_URL + "/board/" + testProjectId);
         
-        // Check if Start or Stop buttons are present
+        //vérifier si les boutons Start ou Stop sont présents
         boolean hasTimerButtons = driver.getPageSource().contains("Start Timer") || 
                                   driver.getPageSource().contains("Stop Timer") ||
                                   driver.findElements(By.xpath("//button[contains(text(),'Start')]")).size() > 0 ||
@@ -229,7 +229,7 @@ class WorkLogIT {
     void testTotalTimeSpentUpdate() {
         driver.get(BASE_URL + "/story/" + testStoryId);
         
-        // Verify total time is displayed
+        //vérifier que le temps total est affiché
         assertTrue(driver.getPageSource().contains("Total Time Spent") || 
                    driver.getPageSource().contains("minutes"));
     }

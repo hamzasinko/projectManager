@@ -1,14 +1,14 @@
 <div class="swimlane-board" th:fragment="swimlaneBoard">
-    <!-- swimlane rows will go here -->
+    <!--les lignes de swimlane iront ici-->
     <div th:each="lane : ${swimlanes}"
          class="swimlane-row"
          th:data-swimlane-id="${lane.id}">
 
-        <!-- Swimlane label -->
+        <!--label de swimlane-->
         <div class="swimlane-label">
             <span th:text="${lane.name}">Swimlane</span>
 
-            <!-- optional actions -->
+            <!--actions optionnelles-->
             <div class="swimlane-actions">
                 <button type="button"
                         class="btn btn-sm btn-outline-secondary"
@@ -18,7 +18,7 @@
                     <i class="bi bi-pencil"></i>
                 </button>
 
-                <!-- Delete button -->
+                <!--bouton Delete-->
                 <form th:action="@{/swimlane/delete/{id}(id=${lane.id})}" method="post" style="display:inline;">
                     <button type="submit"
                             class="btn btn-sm btn-outline-danger"
@@ -30,9 +30,9 @@
             </div>
         </div>
 
-        <!-- ⬇ SAME container as before -->
+        <!--même container qu'avant-->
         <div class="kanban-container" id="kanban-container">
-            <!-- Column for each workflow column -->
+            <!--colonne pour chaque colonne de workflow-->
             <div th:each="column : ${columns}"
                  class="kanban-column"
                  th:id="'column-' + ${column.id}"
@@ -51,7 +51,7 @@
                         <span class="column-capacity" th:if="${column.maxCapacity > 0}">
                             <span th:text="${column.stories != null ? column.stories.size() : 0}">0</span>/<span th:text="${column.maxCapacity}">5</span>
                         </span>
-                        <!-- Bouton Edit pour TOUTES les colonnes -->
+                        <!--bouton Edit pour toutes les colonnes-->
                         <button onclick="editColumn(this)"
                                 th:attr="data-column-id=${column.id},data-column-name=${column.name},data-column-capacity=${column.maxCapacity}"
                                 class="btn btn-sm btn-outline-secondary"
@@ -60,7 +60,7 @@
                                 title="Edit column">
                             Edit
                         </button>
-                        <!-- Bouton Delete uniquement pour les colonnes non-BACKLOG/DONE -->
+                        <!--bouton Delete uniquement pour les colonnes non-BACKLOG/DONE-->
                         <button th:if="${column.name != 'BACKLOG' and column.name != 'DONE'}"
                                 type="button"
                                 th:attr="data-column-id=${column.id},data-story-count=${column.stories.size()}"
@@ -74,7 +74,7 @@
                     </div>
                 </div>
 
-                <!-- Pour BACKLOG et DONE de base : structure simple -->
+                <!--pour BACKLOG et DONE de base: structure simple-->
                 <div th:if="${column.name == 'BACKLOG' or column.name == 'DONE'}" style="flex-grow: 1; display: flex; flex-direction: column;">
                     <button class="btn btn-outline-secondary btn-sm add-story-btn"
                             th:onclick="'addStoryToColumn(' + ${project.id} + ', ' + ${column.id} + ', ' + ${lane.id} + ')' "
@@ -83,7 +83,7 @@
                         + Add Story
                     </button>
 
-                    <!-- Stories in this column -->
+                    <!--stories dans cette colonne-->
                     <div class="column-stories" style="flex-grow: 1;"
                          ondrop="drop(event)"
                          ondragover="allowDrop(event)"
@@ -138,7 +138,7 @@
                     </div>
                 </div>
 
-                <!-- Pour les colonnes personnalisées SANS sous-colonnes -->
+                <!--pour les colonnes personnalisées sans sous-colonnes-->
                 <div th:if="${column.name != 'BACKLOG' and column.name != 'DONE' and !column.hasSubColumns}"
                      style="flex-grow: 1; display: flex; flex-direction: column;">
                     <button class="btn btn-outline-secondary btn-sm add-story-btn"
@@ -148,7 +148,7 @@
                         + Add Story
                     </button>
 
-                    <!-- Stories in this column -->
+                    <!--stories dans cette colonne-->
                     <div class="column-stories" style="flex-grow: 1;"
                          ondrop="drop(event)"
                          ondragover="allowDrop(event)"
@@ -203,11 +203,11 @@
                     </div>
                 </div>
 
-                <!-- Pour les colonnes avec sous-colonnes : Backlog/Done -->
+                <!--pour les colonnes avec sous-colonnes: Backlog/Done-->
                 <div th:if="${column.hasSubColumns}"
                      style="display: flex; flex-direction: row; gap: 10px; flex-grow: 1;">
 
-                    <!-- Sous-colonne BACKLOG -->
+                    <!--sous-colonne BACKLOG-->
                     <div class="subcolumn-backlog" style="background: #e9ecef; border-radius: 6px; padding: 10px; flex: 1; display: flex; flex-direction: column;">
                         <div style="font-weight: 600; font-size: 0.9em; margin-bottom: 8px; color: #495057;">Backlog</div>
                         <div class="column-stories"
@@ -268,7 +268,7 @@
                         </button>
                     </div>
 
-                    <!-- Sous-colonne DONE -->
+                    <!--sous-colonne DONE-->
                     <div class="subcolumn-done" style="background: #d1e7dd; border-radius: 6px; padding: 10px; flex: 1; display: flex; flex-direction: column;">
                         <div style="font-weight: 600; font-size: 0.9em; margin-bottom: 8px; color: #0f5132;">Done</div>
                         <div class="column-stories"
@@ -327,7 +327,7 @@
                 </div>
             </div>
 
-            <!-- Add new column button -->
+            <!--bouton pour ajouter une nouvelle colonne-->
             <div class="kanban-column" style="background: transparent; border: 2px dashed #dee2e6;">
                 <button class="btn btn-outline-secondary" onclick="showAddColumnForm()">
                     + Add Column

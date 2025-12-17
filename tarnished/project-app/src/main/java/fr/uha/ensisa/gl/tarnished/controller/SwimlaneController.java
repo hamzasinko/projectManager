@@ -114,7 +114,7 @@ public class SwimlaneController {
         return new ModelAndView("redirect:/board/" + projectId);
     }
 
-    // Optional: Edit swimlane
+    //optionnel: édite une swimlane
     @GetMapping("/edit/{id}")
     public ModelAndView editSwimlaneForm(@PathVariable long id) {
         SwimlaneRepo swimlaneRepo = repoFactory.getSwimlaneRepo();

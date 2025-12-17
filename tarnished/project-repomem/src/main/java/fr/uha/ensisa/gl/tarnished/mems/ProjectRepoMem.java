@@ -30,7 +30,7 @@ public class ProjectRepoMem implements ProjectRepo {
         project.setDateStarted(Calendar.getInstance().getTime());
         store.put((long)project.getId(), project);
         
-        // Create default columns
+        //on crée les colonnes par défaut
         createDefaultColumns(project);
     }
     
@@ -42,9 +42,9 @@ public class ProjectRepoMem implements ProjectRepo {
             column.setName(defaultColumns[i]);
             column.setProject(project);
             column.setPosition(i + 1);
-            column.setMaxCapacity(0); // No limit by default
+            column.setMaxCapacity(0); //pas de limite par défaut
             
-            // Les colonnes par défaut (sauf BACKLOG et DONE) ont des sous-colonnes
+            //les colonnes par défaut sauf BACKLOG et DONE ont des sous-colonnes
             String name = defaultColumns[i];
             column.setHasSubColumns(!name.equals("BACKLOG") && !name.equals("DONE"));
             

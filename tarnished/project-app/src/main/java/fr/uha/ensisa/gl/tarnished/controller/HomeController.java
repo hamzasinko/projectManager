@@ -16,7 +16,7 @@ public class HomeController {
 	@Autowired
 	private RepoFactory repoFactory;
 
-	// Package-private setter for testing
+	//setter pour les tests
 	void setRepoFactory(RepoFactory repoFactory) {
 		this.repoFactory = repoFactory;
 	}
@@ -29,7 +29,7 @@ public class HomeController {
 		Collection<Story> allStories = repoFactory.getStoryRepo().findAll();
 		mav.addObject("recentStories", allStories);
 		
-		// Calculate stories in progress
+		//calcule les stories en cours
 		long inProgressCount = allStories.stream()
 			.filter(s -> s.getStatus() == StoryStatus.IN_PROGRESS)
 			.count();

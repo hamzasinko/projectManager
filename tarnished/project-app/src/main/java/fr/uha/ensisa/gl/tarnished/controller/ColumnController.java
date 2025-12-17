@@ -42,11 +42,11 @@ public class ColumnController {
                                @RequestParam(required = false) Long projectId) {
         ColumnRepo columnRepo = repoFactory.getColumnRepo();
         
-        // Validation: limit name to 25 characters
+        //validation: limite le nom à 25 caractères
         if (name != null && name.length() > 25) {
             name = name.substring(0, 25);
         }
-        // --- Anti-duplication (même nom dans le même projet) ---
+        //anti-duplication (même nom dans le même projet)
         String normalizedName = (name == null) ? "" : name.trim().toLowerCase(Locale.ROOT);
 
         boolean alreadyExists = columnRepo.findAll().stream().anyMatch(c ->
@@ -97,7 +97,7 @@ public class ColumnController {
         ColumnRepo columnRepo = repoFactory.getColumnRepo();
         Column column = columnRepo.find(id);
         
-        // Validation: limit name to 25 characters
+        //validation: limite le nom à 25 caractères
         if (name != null && name.length() > 25) {
             name = name.substring(0, 25);
         }

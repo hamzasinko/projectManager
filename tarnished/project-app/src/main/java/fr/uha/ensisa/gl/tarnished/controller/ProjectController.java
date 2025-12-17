@@ -16,23 +16,19 @@ public class ProjectController {
     @Autowired
     public RepoFactory repoFactory;
     
-    /**
-     * Affiche le formulaire de création de projet
-     */
+    //affiche le formulaire de création de projet
     @GetMapping("/new")
     public ModelAndView showCreateForm() {
         return new ModelAndView("project-create");
     }
     
-    /**
-     * Traite la création d'un nouveau projet
-     */
+    //traite la création d'un nouveau projet
     @PostMapping("/create")
     public String createProject(
         @RequestParam(required=true) String name,
         @RequestParam(required=false) String description
     ) throws IOException {
-        // Validation du nom
+        //validation du nom
         if (name == null || name.trim().isEmpty()) {
             return "redirect:/project/new?error=Project name is required";
         }
@@ -62,7 +58,7 @@ public class ProjectController {
         Project project = repoFactory.getProjectRepo().find(id);
 
         if (project == null) {
-            return new ModelAndView("redirect:/project/list"); // Project not found
+            return new ModelAndView("redirect:/project/list"); //projet non trouvé
         }
 
         ModelAndView mav = new ModelAndView("project-detail");
@@ -70,16 +66,14 @@ public class ProjectController {
         return mav;
     }
 
-    /**
-     * Liste tous les projets existants
-     */
+    //liste tous les projets existants
     @GetMapping("/list")
     public ModelAndView listProjects() throws IOException {
         ModelAndView mav = new ModelAndView("project-list");
 
         mav.addObject("projects", repoFactory.getProjectRepo().findAll());
         
-        // Mock temporaire
+        //mock temporaire
         //mav.addObject("projects", Collections.emptyList());
         
         return mav;
@@ -114,7 +108,7 @@ public class ProjectController {
             @RequestParam(required = true) String description,
             @RequestParam(required = false, defaultValue = "") List<Long> memberIds
     ) {
-        // Validation du nom
+        //validation du nom
         if (name == null || name.trim().isEmpty()) {
             return "redirect:/project/edit/" + id + "?error=Project name is required";
         }
@@ -130,7 +124,7 @@ public class ProjectController {
         project.setName(name);
         project.setDescription(description);
         
-        // Mettre à jour les membres : si memberIds est vide, aucun membre
+        //met à jour les membres: si memberIds est vide, aucun membre
         if (memberIds != null && !memberIds.isEmpty()) {
             project.setMembers(
                 repoFactory.getUserRepo().getAll()
@@ -148,17 +142,17 @@ public class ProjectController {
 
     @PostMapping("/delete/{id}")
     public String deleteProject(@PathVariable Long id) {
-        // Supprimer d'abord toutes les stories du projet
+        //supprime d'abord toutes les stories du projet
         repoFactory.getStoryRepo().findByProject(id).forEach(story -> 
             repoFactory.getStoryRepo().remove(story.getId())
         );
-        // Supprimer ensuite toutes les colonnes du projet
+        //supprime ensuite toutes les colonnes du projet
         repoFactory.getColumnRepo().findByProject(id).forEach(column -> 
             repoFactory.getColumnRepo().remove((long)column.getId())
         );
-        // Enfin supprimer le projet
+        //enfin supprime le projet
         repoFactory.getProjectRepo().remove(id);
-        return "redirect:/project/list"; // page with all projects
+        return "redirect:/project/list"; //page avec tous les projets
     }
 
     @GetMapping("/{id}/stories")

@@ -1,29 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <FindBugsFilter>
-    <!-- Exclude EI_EXPOSE_REP and EI_EXPOSE_REP2 for Lombok @Data classes -->
+    <!--exclut EI_EXPOSE_REP et EI_EXPOSE_REP2 pour les classes Lombok @Data-->
     <Match>
         <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2" />
         <Class name="~fr\.uha\.ensisa\.gl\.entities\..*" />
     </Match>
     
-    <!-- Exclude EI_EXPOSE_REP and EI_EXPOSE_REP2 for repo implementations -->
+    <!--exclut EI_EXPOSE_REP et EI_EXPOSE_REP2 pour les implémentations de repo-->
     <Match>
         <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2" />
         <Class name="~fr\.uha\.ensisa\.gl\.tarnished\.mems\..*" />
     </Match>
     
-    <!-- Exclude EI_EXPOSE_REP2 for service classes -->
+    <!--exclut EI_EXPOSE_REP2 pour les classes service-->
     <Match>
         <Bug pattern="EI_EXPOSE_REP2" />
         <Class name="~fr\.uha\.ensisa\.gl\.tarnished\.services\..*" />
     </Match>
     
-    <!-- Exclude DM_CONVERT_CASE for locale-independent case conversions -->
+    <!--exclut DM_CONVERT_CASE pour les conversions de casse indépendantes de la locale-->
     <Match>
         <Bug pattern="DM_CONVERT_CASE" />
     </Match>
     
-    <!-- Exclude NM_FIELD_NAMING_CONVENTION for fields -->
+    <!--exclut NM_FIELD_NAMING_CONVENTION pour les champs-->
     <Match>
         <Bug pattern="NM_FIELD_NAMING_CONVENTION" />
     </Match>

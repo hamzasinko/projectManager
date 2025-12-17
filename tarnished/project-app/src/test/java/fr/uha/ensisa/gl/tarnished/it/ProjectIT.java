@@ -61,7 +61,7 @@ public class ProjectIT {
     public void testShowCreateForm() {
         driver.get(getBaseUrl() + "project/new");
         
-        //Vérifie la présence du formulaire
+        //vérifie la présence du formulaire
         WebElement nameInput = driver.findElement(By.id("projectName"));
         WebElement descriptionInput = driver.findElement(By.id("projectDescription"));
         WebElement createBtn = driver.findElement(By.id("createProjectBtn"));
@@ -70,7 +70,7 @@ public class ProjectIT {
         assertNotNull(descriptionInput, "Description input should be present");
         assertNotNull(createBtn, "Create button should be present");
         
-        // Vérifie que le champ name est required
+        //vérifie que le champ name est required
         assertEquals("text", nameInput.getAttribute("type"));
         assertTrue(nameInput.getAttribute("required") != null, "Name field should be required");
     }
@@ -80,14 +80,14 @@ public class ProjectIT {
     public void testListProjects() {
         driver.get(getBaseUrl() + "project/list");
         
-        //Vérifie la présence des éléments principaux
+        //vérifie la présence des éléments principaux
         WebElement projectsList = driver.findElement(By.id("projectsList"));
         WebElement newBtn = driver.findElement(By.id("newProjectBtn"));
         
         assertNotNull(projectsList, "Projects list container should be present");
         assertNotNull(newBtn, "New project button should be present");
         
-        //Vérifie que le bouton est cliquable
+        //vérifie que le bouton est cliquable
         assertTrue(newBtn.isDisplayed(), "New project button should be visible");
         assertTrue(newBtn.isEnabled(), "New project button should be enabled");
     }
@@ -97,7 +97,7 @@ public class ProjectIT {
     public void testEmptyProjectsList() {
         driver.get(getBaseUrl() + "project/list");
         
-        // Vérifie le message pour liste vide (tant que mock retourne emptyList)
+        //vérifie le message pour liste vide (tant que mock retourne emptyList)
         String pageSource = driver.getPageSource();
         assertTrue(pageSource.contains("No projects yet") || 
                    pageSource.contains("project-"), 
@@ -107,15 +107,15 @@ public class ProjectIT {
     @Test
     @DisplayName("Should navigate between create form and list")
     public void testNavigation() {
-        //Va sur la liste
+        //va sur la liste
         driver.get(getBaseUrl() + "project/list");
         
-        //Clique sur "New Project"
+        //clique sur "New Project"
         driver.findElement(By.id("newProjectBtn")).click();
         assertTrue(driver.getCurrentUrl().contains("/project/new"), 
                    "Should navigate to create form");
         
-        //Clique sur "Cancel"
+        //clique sur "Cancel"
         driver.findElement(By.linkText("Cancel")).click();
         assertTrue(driver.getCurrentUrl().contains("/project/list"), 
                    "Should navigate back to list");
@@ -124,7 +124,7 @@ public class ProjectIT {
     @Test
     @DisplayName("Should update project via edit form")
     public void testUpdateProject() throws InterruptedException {
-        // 1. Create a project
+        //1. créer un projet
         driver.get(getBaseUrl() + "project/new");
         String projectName = "Update Test " + System.currentTimeMillis();
         driver.findElement(By.id("projectName")).sendKeys(projectName);
@@ -135,7 +135,7 @@ public class ProjectIT {
         wait.until(ExpectedConditions.urlContains("/project/list"));
         sleep(2000);
         
-        // 2. Find the project and click Edit
+        //2. trouver le projet et cliquer Edit
         WebElement card = wait.until(ExpectedConditions.presenceOfElementLocated(
             By.xpath("//h5[contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'card')]")
         ));
@@ -145,14 +145,14 @@ public class ProjectIT {
         WebElement editBtn = card.findElement(By.xpath(".//a[contains(text(),'Edit')]"));
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", editBtn);
         sleep(500);
-        // Use JavaScript click to avoid ElementClickInterceptedException
+        //utiliser JavaScript click pour éviter ElementClickInterceptedException
         ((JavascriptExecutor) driver).executeScript("arguments[0].click();", editBtn);
         
-        // 3. Wait for edit form
+        //3. attendre le formulaire d'édition
         wait.until(ExpectedConditions.urlContains("/project/edit/"));
         wait.until(ExpectedConditions.presenceOfElementLocated(By.id("projectName")));
         
-        // 4. Update project name and description
+        //4. mettre à jour le nom et la description du projet
         WebElement nameInput = driver.findElement(By.id("projectName"));
         nameInput.clear();
         String updatedName = "Updated " + System.currentTimeMillis();
@@ -162,14 +162,14 @@ public class ProjectIT {
         descInput.clear();
         descInput.sendKeys("Updated description");
         
-        // 5. Submit the form
+        //5. soumettre le formulaire
         WebElement updateBtn = wait.until(ExpectedConditions.elementToBeClickable(By.id("updateProjectBtn")));
         updateBtn.click();
         
-        // 6. Verify redirect to project info
+        //6. vérifier la redirection vers project info
         wait.until(ExpectedConditions.urlContains("/project/info/"));
         
-        // 7. Verify updated name is displayed
+        //7. vérifier que le nom mis à jour est affiché
         WebElement nameInfo = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("projectNameInfo")));
         assertTrue(nameInfo.getText().contains(updatedName) || nameInfo.getText().equals(updatedName),
                   "Project name should be updated");
@@ -178,7 +178,7 @@ public class ProjectIT {
     @Test
     @DisplayName("Should display edit form and prechecked members")
     public void testEditProjectCheckboxes() {
-        // Précondition : créer un nouveau projet
+        //précondition: créer un nouveau projet
         driver.get(getBaseUrl() + "project/new");
 
         String name = "Project " + (System.currentTimeMillis() % 10000);
@@ -186,40 +186,40 @@ public class ProjectIT {
         driver.findElement(By.id("projectDescription")).sendKeys("desc");
         driver.findElement(By.id("createProjectBtn")).click();
 
-        // Récupère l’URL générée pour l’édition
+        //récupère l'URL générée pour l'édition
         driver.get(getBaseUrl() + "project/list");
 
-        // Clique premier bouton Edit ou Open Board → adapter si besoin
+        //clique premier bouton Edit ou Open Board, adapter si besoin
         WebElement projectCard = driver.findElement(By.cssSelector(".card"));
         projectCard.findElement(By.linkText("Edit")).click();
 
         assertTrue(driver.getCurrentUrl().contains("/project/edit/"));
 
-        // Ouvre la section members
+        //ouvre la section members
         driver.findElement(By.xpath("//button[contains(text(), 'Members')]")).click();
 
-        // Attends liste users
+        //attend la liste users
         WebElement firstCheckbox = driver.findElement(By.cssSelector("input[type='checkbox']"));
 
-        // Vérifie que la checkbox est décochée initialement
+        //vérifie que la checkbox est décochée initialement
         assertFalse(firstCheckbox.isSelected(), "Initial member checkbox should NOT be checked");
 
-        // Coche
+        //coche
         firstCheckbox.click();
         assertTrue(firstCheckbox.isSelected(), "Checkbox should become checked after click");
 
-        // Sauvegarde
+        //sauvegarde
         driver.findElement(By.cssSelector("button[type='submit']")).click();
 
-        // Recharge page d'édition :
-        // Wait until the "Projects" button is visible and click it
+        //recharge page d'édition:
+        //attendre que le bouton "Projects" soit visible et cliquer
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(2));
         WebElement projectsLink = wait.until(ExpectedConditions.elementToBeClickable(
                 By.xpath("//a[text()='Projects']")
         ));
         projectsLink.click();
 
-// Optionally, wait until the project list page loads
+//optionnellement, attendre que la page de liste de projets se charge
         wait.until(ExpectedConditions.urlContains("/project/list"));
 
         projectCard = driver.findElement(By.cssSelector(".card"));
@@ -227,7 +227,7 @@ public class ProjectIT {
 
         driver.findElement(By.xpath("//button[contains(text(), 'Members')]")).click();
 
-        // Vérifie qu’elle est maintenant pré-cochée
+        //vérifie qu'elle est maintenant pré-cochée
         WebElement prechecked = driver.findElement(By.cssSelector("input[type='checkbox']"));
         assertTrue(prechecked.isSelected(),
                 "Checkbox should be prechecked because user is now a member");
@@ -236,7 +236,7 @@ public class ProjectIT {
     @Test
     @DisplayName("Should delete a project via UI")
     public void testDeleteProjectUI() throws InterruptedException {
-        // 1. Create a new project
+        //1. créer un nouveau projet
         driver.get(getBaseUrl() + "project/new");
 
         String projectName = "Selenium Delete " + System.currentTimeMillis();
@@ -244,49 +244,49 @@ public class ProjectIT {
         driver.findElement(By.id("projectDescription")).sendKeys("To delete");
         driver.findElement(By.id("createProjectBtn")).click();
 
-        // 2. Wait for redirect after creation (could be /project/list or /board/{id})
+        //2. attendre la redirection après création (peut être /project/list ou /board/{id})
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         wait.until(ExpectedConditions.or(
             ExpectedConditions.urlContains("/project/list"),
             ExpectedConditions.urlContains("/board/")
         ));
 
-        // 3. Navigate to project list explicitly
+        //3. naviguer vers la liste de projets explicitement
         driver.get(getBaseUrl() + "project/list");
         sleep(2000); // Give time for page to load
 
-        // 4. Wait for the project card to appear with explicit wait
+        //4. attendre que la carte projet apparaisse avec un wait explicite
         WebElement card = wait.until(ExpectedConditions.presenceOfElementLocated(
             By.xpath("//h5[contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'card')]")
         ));
 
-        // 5. Extract project ID from data-id attribute
+        //5. extraire l'ID du projet depuis l'attribut data-id
         String projectIdStr = card.getAttribute("data-id");
         assertNotNull(projectIdStr, "Card should have a data-id attribute");
         long projectId = Long.parseLong(projectIdStr);
 
-        // 6. Click the Delete button
+        //6. cliquer sur le bouton Delete
         WebElement deleteBtn = card.findElement(By.xpath(".//button[contains(text(),'Delete')]"));
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", deleteBtn);
         sleep(500);
         deleteBtn.click();
 
-        // 7. Wait for confirmation card to appear
+        //7. attendre que la carte de confirmation apparaisse
         WebElement confirmCard = wait.until(ExpectedConditions.presenceOfElementLocated(
             By.id("confirmCard-" + projectId)
         ));
         assertTrue(confirmCard.isDisplayed(), "Confirmation card should appear");
 
-        // 8. Click Yes, delete
+        //8. cliquer Yes, delete
         confirmCard.findElement(By.xpath(".//button[contains(text(),'Yes')]")).click();
 
-        // 9. Wait for page to reload after deletion
+        //9. attendre que la page se recharge après suppression
         wait.until(ExpectedConditions.urlContains("/project/list"));
         sleep(2000);
         driver.navigate().refresh();
         sleep(2000);
 
-        // 10. Verify project is gone from UI (with retry)
+        //10. vérifier que le projet a disparu de l'UI (avec retry)
         boolean deleted = false;
         for (int i = 0; i < 5; i++) {
             String pageSource = driver.getPageSource();
@@ -305,44 +305,44 @@ public class ProjectIT {
     @Test
     @DisplayName("Should display project info correctly in UI")
     public void testProjectInfoUI() throws InterruptedException {
-        // 1. Create a project via UI
+        //1. créer un projet via UI
         driver.get(getBaseUrl() + "/project/new");
-        // Use a shorter name to respect the 29 character limit
+        //utiliser un nom plus court pour respecter la limite de 29 caractères
         String timestamp = String.valueOf(System.currentTimeMillis());
         String projectName = "Test " + timestamp.substring(timestamp.length() - 6); // Last 6 digits
         driver.findElement(By.id("projectName")).sendKeys(projectName);
         driver.findElement(By.id("projectDescription")).sendKeys("Display test");
         driver.findElement(By.id("createProjectBtn")).click();
 
-        // 2. Wait for redirect after creation
+        //2. attendre la redirection après création
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         wait.until(ExpectedConditions.or(
             ExpectedConditions.urlContains("/project/list"),
             ExpectedConditions.urlContains("/board/")
         ));
         
-        // 3. Navigate to project list if we were redirected to board
+        //3. naviguer vers la liste de projets si on a été redirigé vers le board
         String currentUrl = driver.getCurrentUrl();
         if (currentUrl.contains("/board/")) {
             driver.get(getBaseUrl() + "/project/list");
         }
         
-        // 4. Wait for page to load and project list to be visible
+        //4. attendre que la page se charge et que la liste de projets soit visible
         WebDriverWait longWait = new WebDriverWait(driver, Duration.ofSeconds(30));
         longWait.until(ExpectedConditions.presenceOfElementLocated(By.id("projectsList")));
         sleep(1000); // Give time for the list to render
         
-        // 5. Wait for the specific project card to appear (with unique name)
+        //5. attendre que la carte projet spécifique apparaisse (avec nom unique)
         WebElement card = longWait.until(ExpectedConditions.presenceOfElementLocated(
             By.xpath("//h5[contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'card')]")
         ));
 
-        // 5. Verify the card contains the correct project name before clicking
+        //5. vérifier que la carte contient le bon nom de projet avant de cliquer
         String cardText = card.getText();
         assertTrue(cardText.contains(projectName), 
                   "Card should contain the project name: " + projectName);
 
-        // 6. Scroll to element and click Details link
+        //6. scroller vers l'élément et cliquer sur le lien Details
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", card);
         sleep(500);
 
@@ -351,14 +351,14 @@ public class ProjectIT {
         ));
         ((JavascriptExecutor) driver).executeScript("arguments[0].click();", detailsLink);
 
-        // 7. Wait for project info page to load
+        //7. attendre que la page d'info projet se charge
         wait.until(ExpectedConditions.or(
             ExpectedConditions.presenceOfElementLocated(By.id("projectNameInfo")),
             ExpectedConditions.urlContains("/project/")
         ));
         sleep(1000);
 
-        // 8. Verify project info page displays the correct data
+        //8. vérifier que la page d'info projet affiche les bonnes données
         WebElement nameElem = driver.findElement(By.id("projectNameInfo"));
         WebElement descElem = driver.findElement(By.id("projectDescriptionInfo"));
 
@@ -371,7 +371,7 @@ public class ProjectIT {
     @Test
     @DisplayName("Should display project stories page")
     public void testShowProjectStories() {
-        // Créer un projet
+        //créer un projet
         driver.get(getBaseUrl() + "project/new");
         String projectName = "Project Stories Test " + System.currentTimeMillis();
         driver.findElement(By.id("projectName")).sendKeys(projectName);
@@ -381,7 +381,7 @@ public class ProjectIT {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(2));
         wait.until(ExpectedConditions.urlContains("/project/list"));
 
-        // Attendre que la page se charge et trouver le projet créé ou utiliser le premier disponible
+        //attendre que la page se charge et trouver le projet créé ou utiliser le premier disponible
         String projectId = null;
         try {
             WebElement projectCard = wait.until(ExpectedConditions.presenceOfElementLocated(
@@ -394,7 +394,7 @@ public class ProjectIT {
                 projectId = href.split("/board/")[1].split("\\?")[0];
             }
         } catch (Exception e) {
-            // Fallback: utiliser le premier lien board disponible
+            //fallback: utiliser le premier lien board disponible
             try {
                 WebElement firstBoardLink = wait.until(ExpectedConditions.presenceOfElementLocated(By.xpath("//a[contains(@href,'/board/')]")));
                 String href = firstBoardLink.getAttribute("href");
@@ -404,7 +404,7 @@ public class ProjectIT {
             }
         }
 
-        // Créer quelques stories
+        //créer quelques stories
         for (int i = 0; i < 2; i++) {
             driver.get(getBaseUrl() + "story/new?projectId=" + projectId);
             driver.findElement(By.id("storyTitle")).sendKeys("Story " + i + " " + System.currentTimeMillis());
@@ -412,12 +412,12 @@ public class ProjectIT {
             wait.until(ExpectedConditions.urlContains("/board/"));
         }
 
-        // Aller sur la page des stories du projet
+        //aller sur la page des stories du projet
         driver.get(getBaseUrl() + "project/" + projectId + "/stories");
 
         wait.until(ExpectedConditions.urlContains("/project/" + projectId + "/stories"));
 
-        // Vérifie que la page se charge
+        //vérifie que la page se charge
         String pageSource = driver.getPageSource();
         assertTrue(pageSource.contains(projectName) || pageSource.contains("story"),
                    "Should display project stories page");

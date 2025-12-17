@@ -36,7 +36,7 @@ public class HelloIT {
             String output = new BufferedReader(new InputStreamReader(in))
                     .lines()
                     .collect(Collectors.joining("\n"));
-            // on ne teste pas le contenu ici, juste que ça répond 200
+            //on ne teste pas le contenu ici, juste que ça répond 200
         }
     }
 }

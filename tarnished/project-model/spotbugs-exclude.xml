@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <FindBugsFilter>
-  <!-- Entities are simple DTOs; exposing internal state is acceptable here -->
+  <!--les entités sont des DTOs simples, exposer l'état interne est acceptable ici-->
   <Match>
     <Package name="fr.uha.ensisa.gl.entities"/>
     <Bug pattern="EI_EXPOSE_REP"/>
@@ -9,7 +9,7 @@
     <Package name="fr.uha.ensisa.gl.entities"/>
     <Bug pattern="EI_EXPOSE_REP2"/>
   </Match>
-  <!-- Allow legacy naming on this DTO field -->
+  <!--autorise le nommage legacy sur ce champ DTO-->
   <Match>
     <Class name="fr.uha.ensisa.gl.entities.User"/>
     <Bug code="Nm"/>

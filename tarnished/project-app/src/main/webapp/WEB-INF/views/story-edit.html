@@ -21,7 +21,7 @@
 
     <form th:action="@{'/story/' + ${story.id} + '/edit'}" method="post" accept-charset="UTF-8">
 
-        <!-- Title -->
+        <!--titre-->
         <div class="mb-3">
             <label class="form-label">Story Title*</label>
                  <input class="form-control" type="text" name="title"
@@ -29,7 +29,7 @@
                  <div class="form-text">Max 59 characters</div>
         </div>
 
-        <!-- Description -->
+        <!--description-->
         <div class="mb-3">
             <label class="form-label">Description</label>
             <textarea class="form-control" name="description"
@@ -37,7 +37,7 @@
                       th:text="${story.description}"></textarea>
         </div>
 
-        <!-- Status -->
+        <!--status-->
         <div class="mb-3">
             <label class="form-label">Status</label>
             <select class="form-select" name="status" id="storyStatus" 
@@ -53,7 +53,7 @@
             </small>
         </div>
 
-        <!-- Assigned User Section -->
+        <!--section utilisateur assigné-->
         <div class="mb-3">
             <label class="form-label">Assigned User</label>
             <div class="row">
@@ -72,7 +72,7 @@
                 </div>
             </div>
             
-            <!-- Current assigned user display -->
+            <!--affichage de l'utilisateur assigné actuel-->
             <div class="mt-2" th:if="${story.userAssigned != null}">
                 <small class="text-muted">
                     Currently assigned to: <strong th:text="${story.userAssigned.name}">User Name</strong>
@@ -84,7 +84,7 @@
             </div>
         </div>
 
-        <!-- Submit -->
+        <!--soumettre-->
         <button type="submit" class="btn btn-primary mt-3" id="saveStoryBtn">
             Save Changes
         </button>
@@ -99,7 +99,7 @@
 
     </form>
     
-    <!-- Hidden delete form -->
+    <!--formulaire de suppression caché-->
     <form th:id="'deleteForm-' + ${story.id}" th:action="@{'/story/' + ${story.id} + '/delete'}" method="post" style="display:none;">
     </form>
 </div>

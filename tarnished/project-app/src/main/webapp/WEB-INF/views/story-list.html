@@ -33,12 +33,12 @@
         </div>
         
         <div id="storiesList">
-            <!-- Message si aucune story -->
+            <!--message si aucune story-->
             <div th:if="${stories.isEmpty()}" class="alert alert-info">
                 No stories yet. Create your first story!
             </div>
             
-            <!-- Liste des stories -->
+            <!--liste des stories-->
             <div class="row">
                 <div th:each="story : ${stories}" 
                      class="col-md-6 mb-3"

@@ -18,13 +18,13 @@
             <a th:href="@{/}" class="btn btn-outline-secondary">Home</a>
         </div>
         
-        <!-- Error message -->
+        <!--message d'erreur-->
         <div th:if="${param.error}" class="alert alert-danger" role="alert">
             <span th:text="${param.error}">Error message</span>
         </div>
         
         <form th:action="@{/story/create}" method="POST" accept-charset="UTF-8">
-            <!-- Hidden fields for projectId and columnId if provided -->
+            <!--champs cachés pour projectId et columnId si fournis-->
             <input type="hidden" name="projectId" th:value="${projectId}" th:if="${projectId != null}">
             <input type="hidden" name="columnId" th:value="${columnId}" th:if="${columnId != null}">
             <input type="hidden" name="swimlaneId" th:value="${swimlaneId}" th:if="${swimlaneId != null}">
@@ -51,7 +51,7 @@
                 <div class="form-text">Details, acceptance criteria, and any relevant notes</div>
             </div>
             
-            <!-- Show project selector only if projectId is not provided from board -->
+            <!--affiche le sélecteur de projet seulement si projectId n'est pas fourni depuis le board-->
             <div class="mb-3" th:if="${projectId == null}">
                 <label for="projectId" class="form-label">Project</label>
                 <select class="form-select" id="projectId" name="projectId">
@@ -63,7 +63,7 @@
                 <div class="form-text">Selecting a project is optional; leave blank for no project</div>
             </div>
             
-            <!-- Show project info if coming from board -->
+            <!--affiche les infos du projet si on vient du board-->
             <div class="mb-3" th:if="${projectId != null}">
                 <label class="form-label">Project</label>
                 <div class="alert alert-info">

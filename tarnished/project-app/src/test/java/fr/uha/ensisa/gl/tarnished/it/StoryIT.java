@@ -219,7 +219,7 @@ public class StoryIT {
                 ExpectedConditions.urlContains("/story/list")
         ));
 
-        // Locate the first visible \"Delete\" button in the stories list
+        //localiser le premier bouton "Delete" visible dans la liste des stories
         WebElement deleteBtn = driver.findElement(
                 By.xpath("//button[contains(normalize-space(), 'Delete')]"));
         deleteBtn.click();
@@ -501,7 +501,7 @@ public class StoryIT {
     @Test
     @DisplayName("Should unassign story from user")
     public void testUnassignStory() {
-        // Créer un projet et une story
+        //créer un projet et une story
         driver.get(getBaseUrl() + "project/new");
         String projectName = "Unassign Story Project " + System.currentTimeMillis();
         driver.findElement(By.id("projectName")).sendKeys(projectName);
@@ -510,7 +510,7 @@ public class StoryIT {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(1));
         wait.until(ExpectedConditions.urlContains("/project/list"));
 
-        // Trouver le projet
+        //trouver le projet
         String projectId = null;
         try {
             WebElement projectCard = wait.until(ExpectedConditions.presenceOfElementLocated(
@@ -532,27 +532,27 @@ public class StoryIT {
             }
         }
 
-        // Créer une story
+        //créer une story
         driver.get(getBaseUrl() + "story/new?projectId=" + projectId);
         String storyTitle = "Unassign Test Story " + System.currentTimeMillis();
         driver.findElement(By.id("storyTitle")).sendKeys(storyTitle);
         driver.findElement(By.id("createStoryBtn")).click();
         wait.until(ExpectedConditions.urlContains("/board/"));
 
-        // Trouver le lien vers la story
+        //trouver le lien vers la story
         List<WebElement> storyLinks = driver.findElements(By.xpath("//a[contains(@href, '/story/') and not(contains(@href, '/edit'))]"));
         if (!storyLinks.isEmpty()) {
             String href = storyLinks.get(0).getAttribute("href");
             String storyId = href.split("/story/")[1].split("\\?")[0];
             
-            // Naviguer vers la page de détails de la story
+            //naviguer vers la page de détails de la story
             driver.get(getBaseUrl() + "story/" + storyId);
             wait.until(ExpectedConditions.urlContains("/story/" + storyId));
             
-            // Chercher un lien ou bouton d'unassign
+            //chercher un lien ou bouton d'unassign
             String pageSource = driver.getPageSource();
-            // Si unassign est disponible via un lien ou bouton, on le teste
-            // Sinon, on vérifie juste que la page se charge
+            //si unassign est disponible via un lien ou bouton, on le teste
+            //sinon, on vérifie juste que la page se charge
             assertTrue(pageSource.contains("unassign") || pageSource.contains("Unassign") || true,
                        "Story detail page should be accessible for unassign");
         }

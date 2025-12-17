@@ -84,7 +84,7 @@ public class ColumnRepoMem implements ColumnRepo {
             if (storyRepo != null) {
                 storyRepo.moveToColumn(storyId, columnId);
             }
-            // Don't modify column.stories - let BoardController load it fresh
+            //ne modifie pas column.stories - laisse BoardController le charger à nouveau
         }
     }
 
@@ -93,16 +93,16 @@ public class ColumnRepoMem implements ColumnRepo {
         if (storyRepo != null) {
             storyRepo.moveToColumn(storyId, null);
         }
-        // Don't modify column.stories - let BoardController load it fresh
+        //ne modifie pas column.stories - laisse BoardController le charger à nouveau
     }
 
     @Override
     public void moveStoryBetweenColumns(Long storyId, Long fromColumnId, Long toColumnId) {
-        // Check target column capacity BEFORE moving
+        //vérifie la capacité de la colonne cible AVANT de déplacer
         if (toColumnId != null && storyRepo != null) {
             Column targetColumn = find(toColumnId);
             if (targetColumn != null && targetColumn.getMaxCapacity() > 0) {
-                // Count stories currently in target column
+                //compte les stories actuellement dans la colonne cible
                 long currentCount = storyRepo.findByColumn(toColumnId).size();
                 if (currentCount >= targetColumn.getMaxCapacity()) {
                     throw new IllegalStateException("Target column is full");

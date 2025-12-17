@@ -20,7 +20,7 @@
 
     <form th:action="@{'/project/edit/' + ${project.id}}" method="post" accept-charset="UTF-8">
 
-        <!-- Name -->
+        <!--nom-->
         <div class="mb-3">
             <label class="form-label">Project Name*</label>
             <input class="form-control" type="text" id="projectName" name="name"
@@ -28,7 +28,7 @@
             <div class="form-text">Max 29 characters</div>
         </div>
 
-        <!-- Description -->
+        <!--description-->
         <div class="mb-3">
             <label class="form-label">Description*</label>
             <textarea class="form-control" id="projectDescription" name="description"
@@ -37,23 +37,23 @@
             <div class="form-text">Max 120 characters</div>
         </div>
 
-        <!-- Button to show the member form -->
+        <!--bouton pour afficher le formulaire de membres-->
         <button type="button" class="btn btn-secondary mb-3"
                 onclick="toggleMemberForm()">
             Add Members
         </button>
 
-        <!-- Hidden member section -->
+        <!--section membres cachée-->
         <div id="memberForm" style="display:none;" class="border p-3 rounded">
 
             <h5>Select Members</h5>
 
-            <!-- Search Bar -->
+            <!--barre de recherche-->
             <input type="text" class="form-control mb-3"
                    placeholder="Search users..."
                    onkeyup="filterUsers(this)">
 
-            <!-- User list -->
+            <!--liste des utilisateurs-->
             <div id="user-list">
                 <div th:each="user : ${users}" class="form-check mb-2">
                     <input class="form-check-input"
@@ -67,7 +67,7 @@
 
         </div>
 
-        <!-- Submit -->
+        <!--soumettre-->
         <button type="submit" id="updateProjectBtn" class="btn btn-primary mt-3">
             Save Changes
         </button>

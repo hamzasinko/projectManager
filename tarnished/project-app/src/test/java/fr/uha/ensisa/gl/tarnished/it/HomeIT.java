@@ -10,10 +10,8 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import java.time.Duration;
 import java.util.List;
 
-/**
- * Tests d'intégration Selenium pour le HomeController
- * Teste l'application déployée dans Jetty avec un vrai navigateur
- */
+//tests d'intégration selenium pour le HomeController
+//teste l'application déployée dans jetty avec un vrai navigateur
 public class HomeIT {
 
     private static WebDriver driver;

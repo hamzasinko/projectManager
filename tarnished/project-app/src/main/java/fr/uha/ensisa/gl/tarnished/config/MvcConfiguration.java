@@ -57,7 +57,7 @@ public class MvcConfiguration implements WebMvcConfigurer {
 		registry
 			.addResourceHandler("/resources/**")
 			.addResourceLocations("/resources/")
-			.setCachePeriod(0); // for development
+			.setCachePeriod(0); //pour le développement
 		registry
 			.addResourceHandler("/libs/**")
 			.addResourceLocations("/libs/")

@@ -37,11 +37,11 @@ class ColumnIT {
 
     @BeforeEach
     void setUp() {
-        // S'assurer que le navigateur est toujours actif
+        //s'assurer que le navigateur est toujours actif
         try {
             driver.getCurrentUrl();
         } catch (Exception e) {
-            // Si le navigateur est fermé, le recréer
+            //si le navigateur est fermé, le recréer
             driver = WebDriverFactory.createChromeDriver();
             wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         }
@@ -85,7 +85,7 @@ class ColumnIT {
         limitInput.clear();
         limitInput.sendKeys("5");
 
-        // Verify checkbox is checked by default
+        //vérifier que la checkbox est cochée par défaut
         assertTrue(hasSubColumnsCheckbox.isSelected(), "HasSubColumns checkbox should be checked by default");
 
         WebElement form = driver.findElement(By.id("column_create_form"));
@@ -112,7 +112,7 @@ class ColumnIT {
         limitInput.clear();
         limitInput.sendKeys("5");
 
-        // Uncheck the checkbox to create column without sub-columns
+        //décocher la checkbox pour créer une colonne sans sous-colonnes
         if (hasSubColumnsCheckbox.isSelected()) {
             hasSubColumnsCheckbox.click();
         }
@@ -155,7 +155,7 @@ class ColumnIT {
 
             assertTrue(driver.getCurrentUrl().contains("/stories"));
         } catch (Exception e) {
-            // Timer might not be running
+            //le timer n'est peut-être pas en cours
             assertTrue(true);
         }
     }
@@ -188,7 +188,7 @@ class ColumnIT {
     @Order(12)
     @DisplayName("Should delete a column")
     void testDeleteColumn() {
-        // Créer une colonne d'abord
+        //créer une colonne d'abord
         driver.get(BASE_URL + "/columns/create");
         WebElement nameInput = driver.findElement(By.id("column_name"));
         nameInput.sendKeys("Column To Delete " + System.currentTimeMillis());
@@ -200,7 +200,7 @@ class ColumnIT {
         
         wait.until(ExpectedConditions.urlContains("/columns"));
         
-        // Trouver le bouton Delete et cliquer
+        //trouver le bouton Delete et cliquer
         List<WebElement> deleteButtons = driver.findElements(By.cssSelector("form[action*='/delete']"));
         if (!deleteButtons.isEmpty()) {
             deleteButtons.get(deleteButtons.size() - 1).submit();
@@ -213,7 +213,7 @@ class ColumnIT {
     @Order(13)
     @DisplayName("Should reorder a column")
     void testReorderColumn() {
-        // Créer une colonne d'abord
+        //créer une colonne d'abord
         driver.get(BASE_URL + "/columns/create");
         WebElement nameInput = driver.findElement(By.id("column_name"));
         nameInput.sendKeys("Column To Reorder " + System.currentTimeMillis());
@@ -225,7 +225,7 @@ class ColumnIT {
         
         wait.until(ExpectedConditions.urlContains("/columns"));
         
-        // Trouver le bouton Reorder et cliquer
+        //trouver le bouton Reorder et cliquer
         List<WebElement> reorderForms = driver.findElements(By.cssSelector("form[action*='/reorder']"));
         if (!reorderForms.isEmpty()) {
             reorderForms.get(0).submit();
@@ -238,31 +238,31 @@ class ColumnIT {
     @Order(14)
     @DisplayName("Should move story between columns")
     void testMoveStory() {
-        // Créer un projet d'abord
-        // S'assurer que le navigateur est dans un état valide
+        //créer un projet d'abord
+        //s'assurer que le navigateur est dans un état valide
         try {
             String currentUrl = driver.getCurrentUrl();
-            // Si on est déjà sur une autre page, forcer la navigation
+            //si on est déjà sur une autre page, forcer la navigation
             if (!currentUrl.contains("/project/new")) {
-                // Naviguer vers une page neutre d'abord pour réinitialiser l'état
+                //naviguer vers une page neutre d'abord pour réinitialiser l'état
                 driver.get(BASE_URL + "/");
                 wait.until(ExpectedConditions.urlContains(BASE_URL));
             }
         } catch (Exception e) {
-            // Si le navigateur est dans un état invalide, le recréer
+            //si le navigateur est dans un état invalide, le recréer
             driver = WebDriverFactory.createChromeDriver();
             wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         }
         
-        // Forcer une navigation complète vers la page de création de projet
+        //forcer une navigation complète vers la page de création de projet
         String projectNewUrl = BASE_URL + "/project/new";
         driver.get(projectNewUrl);
         
-        // Attendre que la page soit complètement chargée avec timeout plus long
+        //attendre que la page soit complètement chargée avec timeout plus long
         WebDriverWait longWait = new WebDriverWait(driver, Duration.ofSeconds(15));
         longWait.until(ExpectedConditions.urlContains("/project/new"));
         
-        // Attendre que le formulaire soit présent et visible
+        //attendre que le formulaire soit présent et visible
         longWait.until(ExpectedConditions.presenceOfElementLocated(By.id("projectName")));
         longWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("projectName")));
         String projectName = "Move Story Project " + System.currentTimeMillis();
@@ -272,7 +272,7 @@ class ColumnIT {
         
         wait.until(ExpectedConditions.urlContains("/project/list"));
         
-        // Attendre que la page se charge et trouver le projet créé ou utiliser le premier disponible
+        //attendre que la page se charge et trouver le projet créé ou utiliser le premier disponible
         String projectId = null;
         try {
             WebElement projectCard = wait.until(ExpectedConditions.presenceOfElementLocated(
@@ -285,19 +285,19 @@ class ColumnIT {
                 projectId = href.split("/board/")[1].split("\\?")[0];
             }
         } catch (Exception e) {
-            // Fallback: utiliser le premier lien board disponible ou skip
+            //fallback: utiliser le premier lien board disponible ou skip
             try {
                 WebElement firstBoardLink = wait.until(ExpectedConditions.presenceOfElementLocated(By.xpath("//a[contains(@href,'/board/')]")));
                 String href = firstBoardLink.getAttribute("href");
                 projectId = href.split("/board/")[1].split("\\?")[0];
             } catch (Exception e2) {
-                // Le déplacement de story est déjà testé dans BoardIT
+                //le déplacement de story est déjà testé dans BoardIT
                 assertTrue(true, "Story move functionality should be available");
                 return;
             }
         }
         
-        // Créer une story
+        //créer une story
         if (projectId != null && !projectId.isEmpty()) {
             driver.get(BASE_URL + "/story/new?projectId=" + projectId);
         } else {
@@ -305,24 +305,24 @@ class ColumnIT {
         }
         driver.findElement(By.id("storyTitle")).sendKeys("Story To Move " + System.currentTimeMillis());
         
-        // Utiliser JavaScript pour cliquer si le clic normal échoue
+        //utiliser JavaScript pour cliquer si le clic normal échoue
         try {
             driver.findElement(By.id("createStoryBtn")).click();
         } catch (Exception e) {
-            // Si le clic échoue, utiliser JavaScript
+            //si le clic échoue, utiliser JavaScript
             org.openqa.selenium.JavascriptExecutor js = (org.openqa.selenium.JavascriptExecutor) driver;
             js.executeScript("arguments[0].click();", driver.findElement(By.id("createStoryBtn")));
         }
         
         wait.until(ExpectedConditions.urlContains("/board/"));
         
-        // Trouver les colonnes disponibles
+        //trouver les colonnes disponibles
         List<WebElement> columns = driver.findElements(By.className("kanban-column"));
         if (columns.size() >= 2) {
-            // Le déplacement de story est déjà testé dans BoardIT
+            //le déplacement de story est déjà testé dans BoardIT
             assertTrue(true, "Story move functionality should be available");
         } else {
-            // Même si pas assez de colonnes, le test passe car la fonctionnalité existe
+            //même si pas assez de colonnes, le test passe car la fonctionnalité existe
             assertTrue(true, "Story move functionality should be available");
         }
     }

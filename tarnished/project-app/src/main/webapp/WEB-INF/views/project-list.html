@@ -24,12 +24,12 @@
         </div>
         
         <div id="projectsList">
-            <!-- Message si aucun projet -->
+            <!--message si aucun projet-->
             <div th:if="${projects.isEmpty()}" class="alert alert-info">
                 No projects yet. Create your first project!
             </div>
             
-            <!-- Grille de projets -->
+            <!--grille de projets-->
             <div class="row">
                 <div th:each="project : ${projects}" 
                      class="col-md-4 mb-3"

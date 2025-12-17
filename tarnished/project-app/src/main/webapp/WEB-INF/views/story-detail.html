@@ -54,7 +54,7 @@
 <body>
 <div class="container mt-4">
 
-  <!-- Story Info Card -->
+  <!--carte d'info story-->
   <div class="card">
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-start mb-3">
@@ -83,11 +83,11 @@
         </div>
       </div>
       
-      <!-- Time Tracking Section -->
+      <!--section suivi du temps-->
       <div class="mt-4">
         <h5>Time Tracking</h5>
         
-        <!-- Timer Controls -->
+        <!--contrôles du timer-->
         <div class="mb-3">
           <div th:if="${story.getRunningWorkLog() == null}">
             <form th:action="@{'/story/' + ${story.id} + '/timer/start'}" method="post" style="display: inline;">
@@ -103,7 +103,7 @@
           </div>
         </div>
         
-        <!-- Manual WorkLog Entry Form -->
+        <!--formulaire d'entrée manuelle de WorkLog-->
         <div class="card mb-3">
           <div class="card-header">
             <h6 class="mb-0">Log Time Manually</h6>
@@ -136,7 +136,7 @@
           </div>
         </div>
         
-        <!-- WorkLogs List -->
+        <!--liste des WorkLogs-->
         <div class="card">
           <div class="card-header">
             <h6 class="mb-0">Work Log History</h6>
@@ -173,19 +173,19 @@
         </div>
       </div>
       
-      <!-- Action Buttons -->
+      <!--boutons d'action-->
       <div class="mt-4">
         <a th:href="@{/}" class="btn btn-secondary btn-sm">Home</a>
         <a th:if="${story.projectId != null}" th:href="@{'/board/' + ${story.projectId}}" class="btn btn-primary btn-sm">Back to Board</a>
         <a th:href="@{'/story/' + ${story.id} + '/edit'}" class="btn btn-warning btn-sm">Edit Story</a>
         
-        <!-- Delete Button -->
+        <!--bouton Delete-->
         <button class="btn btn-danger btn-sm" th:onclick="'showDeleteConfirm(' + ${story.id} + ')'">
           Delete Story
         </button>
       </div>
 
-      <!-- Confirmation Card -->
+      <!--carte de confirmation-->
       <div th:id="'confirmCard-' + ${story.id}" class="card mt-2" style="display:none;">
         <div class="card-body">
           <h6>Do you really want to delete this story?</h6>

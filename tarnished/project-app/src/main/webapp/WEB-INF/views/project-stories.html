@@ -83,7 +83,7 @@
     </div>
 
     <div class="container">
-        <!-- Empty state -->
+        <!--état vide-->
         <div th:if="${stories.isEmpty()}" class="empty-state">
             <h4>No stories yet</h4>
             <p>Create your first story to get started!</p>
@@ -92,7 +92,7 @@
             </a>
         </div>
 
-        <!-- Stories list -->
+        <!--liste des stories-->
         <div th:if="${!stories.isEmpty()}">
             <div class="mb-3 text-muted">
                 <span th:text="${stories.size()}">0</span> 

@@ -22,14 +22,12 @@ public class BoardController {
     @Autowired
     private RepoFactory repoFactory;
 
-    // Package-private setter for testing
+    //setter pour les tests
     void setRepoFactory(RepoFactory repoFactory) {
         this.repoFactory = repoFactory;
     }
 
-    /**
-     * Affiche le Kanban board d'un projet
-     */
+    //affiche le kanban board d'un projet
     @GetMapping("/{projectId}")
     public ModelAndView showBoard(@PathVariable Long projectId) {
         ModelAndView mav = new ModelAndView("board");
@@ -40,12 +38,12 @@ public class BoardController {
             return new ModelAndView("redirect:/project/list");
         }
 
-        // Get all columns for this project
+        //récupère toutes les colonnes du projet
         Collection<Column> columns = repoFactory.getColumnRepo().findByProject(projectId);
         
-        // For each column, get its stories
+        //pour chaque colonne on récupère ses stories
         for (Column column : columns) {
-            // Initialiser hasSubColumns=true pour les colonnes par défaut (sauf BACKLOG et DONE)
+            //on initialise hasSubColumns à true pour les colonnes par défaut sauf BACKLOG et DONE
             String columnName = column.getName().toUpperCase(Locale.ROOT);
             if (!column.isHasSubColumns() && 
                 (columnName.equals("IN PROGRESS") || 
@@ -73,9 +71,7 @@ public class BoardController {
         return mav;
     }
 
-    /**
-     * Déplace une story vers une autre colonne (AJAX)
-     */
+    //déplace une story vers une autre colonne (ajax)
     @PostMapping("/{projectId}/move-story")
     @ResponseBody
     public String moveStory(
@@ -88,7 +84,7 @@ public class BoardController {
             @RequestParam(required = false) Long swimlaneId) {
         
         try {
-            // Check if target column is full before moving
+            //vérifie si la colonne cible est pleine avant de déplacer
             Column targetColumn = repoFactory.getColumnRepo().find(toColumnId);
             if (targetColumn != null && targetColumn.getMaxCapacity() > 0) {
                 Collection<Story> storiesInColumn = repoFactory.getStoryRepo().findByColumn(toColumnId);
@@ -99,22 +95,22 @@ public class BoardController {
             
             repoFactory.getColumnRepo().moveStoryBetweenColumns(storyId, fromColumnId, toColumnId);
             
-            // Update position, subcolumn, and status based on target column
+            //met à jour position, subcolumn et status selon la colonne cible
             String newStatusStr = null;
             Story story = repoFactory.getStoryRepo().find(storyId);
             if (story != null) {
                 System.out.println("[DEBUG] moveStory - storyId: " + storyId + ", toColumnId: " + toColumnId + ", subColumn param: " + subColumn);
                 System.out.println("[DEBUG] Before move - Story ID: " + story.getId() + ", SubColumn: " + story.getSubColumn() + ", Status: " + story.getStatus());
                 
-                // Assigner position 0 pour mettre en haut
+                //position 0 pour mettre en haut
                 story.setPosition(0);
                 
-                // Save subcolumn if provided
+                //sauvegarde subcolumn si fourni
                 if (subColumn != null && !subColumn.isEmpty()) {
                     story.setSubColumn(subColumn);
                     System.out.println("[DEBUG] SubColumn set from parameter: " + subColumn);
                 } else {
-                    // Default to BACKLOG for custom columns
+                    //par défaut BACKLOG pour les colonnes personnalisées
                     if (targetColumn != null && !"BACKLOG".equals(targetColumn.getName()) && !"DONE".equals(targetColumn.getName())) {
                         story.setSubColumn("BACKLOG");
                         System.out.println("[DEBUG] SubColumn defaulted to BACKLOG for custom column");
@@ -124,23 +120,23 @@ public class BoardController {
                     }
                 }
                 
-                // ALWAYS update status based on target column name FOR DEFAULT COLUMNS
-                // Default columns: BACKLOG, IN PROGRESS, REVIEW, DONE, BLOCKED
-                // Custom columns and subcolumns don't change the status
+                //toujours mettre à jour le status selon le nom de la colonne pour les colonnes par défaut
+                //colonnes par défaut: BACKLOG, IN PROGRESS, REVIEW, DONE, BLOCKED
+                //les colonnes perso et sous-colonnes ne changent pas le status
                 if (targetColumn != null) {
                     String columnName = targetColumn.getName();
                     fr.uha.ensisa.gl.entities.StoryStatus mappedStatus = mapColumnNameToStatus(columnName);
                     if (mappedStatus != null) {
-                        // This is a default column - MUST update the status
+                        //colonne par défaut, on doit mettre à jour le status
                         story.setStatus(mappedStatus);
                         newStatusStr = mappedStatus.name();
                         System.out.println("[DEBUG] Status updated to: " + newStatusStr + " based on default column: " + columnName);
                     } else {
-                        // This is a custom column - keep current status (subcolumns don't change status)
+                        //colonne perso, on garde le status actuel
                         System.out.println("[DEBUG] Custom column detected, status unchanged: " + columnName);
                     }
                 }
-                // MUST persist to save position and status changes
+                //il faut persister pour sauvegarder position et status
                 if (swimlaneId != null) {
                     story.setSwimlaneId(swimlaneId);
                     System.out.println("[DEBUG] Swimlane updated to: " + swimlaneId);
@@ -183,25 +179,21 @@ public class BoardController {
         }
     }
 
-    /**
-     * Crée une nouvelle colonne pour un projet (GET - pour compatibilité avec les tests)
-     */
+    //crée une nouvelle colonne pour un projet (GET pour compatibilité tests)
     @GetMapping("/{projectId}/add-column")
     public String addColumnGet(
             @PathVariable Long projectId,
             @RequestParam(required = false) String name,
             @RequestParam(required = false, defaultValue = "0") int maxCapacity,
             @RequestParam(required = false, defaultValue = "false") boolean hasSubColumns) {
-        // Si name n'est pas fourni, rediriger vers le board avec un paramètre pour afficher le formulaire
+        //si name pas fourni, redirige vers le board avec param pour afficher le formulaire
         if (name == null || name.trim().isEmpty()) {
             return "redirect:/board/" + projectId + "?showAddColumn=true";
         }
         return addColumn(projectId, name, maxCapacity, hasSubColumns);
     }
 
-    /**
-     * Crée une nouvelle colonne pour un projet
-     */
+    //crée une nouvelle colonne pour un projet
     @PostMapping("/{projectId}/add-column")
     public String addColumn(
             @PathVariable Long projectId,
@@ -214,7 +206,7 @@ public class BoardController {
             return "redirect:/project/list";
         }
 
-        // Validation: limit name to 25 characters
+        //validation: limite le nom à 25 caractères
         if (name != null && name.length() > 25) {
             name = name.substring(0, 25);
         }
@@ -225,7 +217,7 @@ public class BoardController {
         column.setMaxCapacity(maxCapacity);
         column.setHasSubColumns(hasSubColumns);
         
-        // Trouver la colonne DONE et placer la nouvelle colonne juste avant
+        //trouve la colonne DONE et place la nouvelle colonne juste avant
         Collection<Column> existingColumns = repoFactory.getColumnRepo().findByProject(projectId);
         Column doneColumn = null;
         for (Column col : existingColumns) {
@@ -236,11 +228,11 @@ public class BoardController {
         }
         
         if (doneColumn != null) {
-            // Placer la nouvelle colonne juste avant DONE
+            //place la nouvelle colonne juste avant DONE
             int donePosition = doneColumn.getPosition();
             column.setPosition(donePosition);
             
-            // Décaler toutes les colonnes à partir de DONE (incluant DONE) vers la droite
+            //décale toutes les colonnes à partir de DONE (incluant DONE) vers la droite
             for (Column col : existingColumns) {
                 if (col != null && col.getPosition() >= donePosition) {
                     col.setPosition(col.getPosition() + 1);
@@ -248,7 +240,7 @@ public class BoardController {
                 }
             }
         } else {
-            // Si pas de DONE, placer à la fin
+            //si pas de DONE, place à la fin
             column.setPosition(existingColumns.size() + 1);
         }
 
@@ -257,9 +249,7 @@ public class BoardController {
         return "redirect:/board/" + projectId;
     }
     
-    /**
-     * Réordonne les stories dans une colonne (AJAX)
-     */
+    //réordonne les stories dans une colonne (ajax)
     @PostMapping("/{projectId}/reorder-stories")
     @ResponseBody
     public String reorderStories(
@@ -283,9 +273,7 @@ public class BoardController {
         }
     }
     
-    /**
-     * Supprime une colonne
-     */
+    //supprime une colonne
     @PostMapping("/{projectId}/delete-column/{columnId}")
     public String deleteColumn(
             @PathVariable Long projectId,
@@ -296,13 +284,13 @@ public class BoardController {
             return "redirect:/board/" + projectId + "?error=Column not found";
         }
         
-        // Interdire la suppression de BACKLOG et DONE
+        //interdit la suppression de BACKLOG et DONE
         String columnName = column.getName().toUpperCase(Locale.ROOT).replace(" ", "_");
         if ("BACKLOG".equals(columnName) || "DONE".equals(columnName)) {
             return "redirect:/board/" + projectId + "?error=Cannot delete " + column.getName() + " column";
         }
         
-        // Vérifier si la colonne contient des stories
+        //vérifie si la colonne contient des stories
         Collection<Story> storiesInColumn = repoFactory.getStoryRepo().findByColumn(columnId);
         if (!storiesInColumn.isEmpty()) {
             return "redirect:/board/" + projectId + "?error=Cannot delete column with stories. Please move stories first";
@@ -312,9 +300,7 @@ public class BoardController {
         return "redirect:/board/" + projectId;
     }
     
-    /**
-     * Supprimer une colonne avec toutes ses stories
-     */
+    //supprime une colonne avec toutes ses stories
     @PostMapping("/{projectId}/delete-column-with-stories/{columnId}")
     @ResponseBody
     public String deleteColumnWithStories(
@@ -326,20 +312,18 @@ public class BoardController {
             return "error";
         }
         
-        // Delete all stories in the column first
+        //supprime d'abord toutes les stories de la colonne
         Collection<Story> storiesInColumn = repoFactory.getStoryRepo().findByColumn(columnId);
         for (Story story : storiesInColumn) {
             repoFactory.getStoryRepo().remove(story.getId());
         }
         
-        // Then delete the column
+        //puis supprime la colonne
         repoFactory.getColumnRepo().remove(columnId);
         return "success";
     }
     
-    /**
-     * Déplacer toutes les stories d'une colonne vers une autre
-     */
+    //déplace toutes les stories d'une colonne vers une autre
     @PostMapping("/{projectId}/move-all-stories")
     @ResponseBody
     public String moveAllStories(
@@ -363,9 +347,7 @@ public class BoardController {
         return "success";
     }
     
-    /**
-     * Réordonne les colonnes (AJAX)
-     */
+    //réordonne les colonnes (ajax)
     @PostMapping("/{projectId}/reorder-columns")
     @ResponseBody
     public String reorderColumns(
@@ -374,7 +356,7 @@ public class BoardController {
         
         String[] columnIds = columnOrder.split(",");
 
-        // Ensure BACKLOG column is always position 1
+        //s'assure que BACKLOG est toujours en position 1
         Long backlogId = null;
         for (fr.uha.ensisa.gl.entities.Column c : repoFactory.getColumnRepo().findByProject(projectId)) {
             if (c != null && c.getName() != null && "BACKLOG".equalsIgnoreCase(c.getName().trim())) {
@@ -384,12 +366,12 @@ public class BoardController {
         }
 
         int pos = 1;
-        // If backlog exists, put it first
+        //si backlog existe, on le met en premier
         if (backlogId != null) {
             repoFactory.getColumnRepo().reorder(backlogId, pos++);
         }
 
-        // Then apply order for remaining columns in the payload, skipping backlog if present
+        //puis on applique l'ordre pour les colonnes restantes, en sautant backlog si présent
         for (int i = 0; i < columnIds.length; i++) {
             Long columnId = Long.parseLong(columnIds[i]);
             if (backlogId != null && columnId.equals(backlogId)) continue;
@@ -399,9 +381,7 @@ public class BoardController {
         return "{\"success\":true}";
     }
     
-    /**
-     * Met à jour le nom d'une colonne (GET - pour compatibilité avec les tests)
-     */
+    //met à jour le nom d'une colonne (GET pour compatibilité tests)
     @GetMapping("/{projectId}/update-column")
     public String updateColumnNameGet(
             @PathVariable Long projectId,
@@ -426,9 +406,7 @@ public class BoardController {
         return "redirect:/board/" + projectId;
     }
     
-    /**
-     * Met à jour le nom d'une colonne (AJAX)
-     */
+    //met à jour le nom d'une colonne (ajax)
     @PostMapping("/{projectId}/update-column")
     @ResponseBody
     public String updateColumnName(
@@ -442,7 +420,7 @@ public class BoardController {
                 return "{\"success\":false,\"error\":\"Column not found\"}";
             }
             
-            // Validation du nom
+            //validation du nom
             if (newName == null || newName.trim().isEmpty()) {
                 return "{\"success\":false,\"error\":\"Column name cannot be empty\"}";
             }
@@ -456,9 +434,7 @@ public class BoardController {
         }
     }
     
-    /**
-     * Met à jour une colonne (nom + capacité) (AJAX)
-     */
+    //met à jour une colonne (nom + capacité) (ajax)
     @PostMapping("/{projectId}/update-column-full")
     @ResponseBody
     public String updateColumn(
@@ -473,12 +449,12 @@ public class BoardController {
                 return "{\"success\":false,\"error\":\"Column not found\"}";
             }
             
-            // Mettre à jour le nom si fourni
+            //met à jour le nom si fourni
             if (newName != null && !newName.trim().isEmpty()) {
                 column.setName(newName.trim());
             }
             
-            // Mettre à jour la capacité
+            //met à jour la capacité
             column.setMaxCapacity(maxCapacity);
             repoFactory.getColumnRepo().persist(column);
             
@@ -488,16 +464,14 @@ public class BoardController {
         }
     }
     
-    /**
-     * Map column name to StoryStatus enum
-     * Handles default columns: BACKLOG, IN PROGRESS (or IN_PROGRESS), REVIEW, DONE, BLOCKED
-     */
+    //map le nom de colonne vers StoryStatus enum
+    //gère les colonnes par défaut: BACKLOG, IN PROGRESS (ou IN_PROGRESS), REVIEW, DONE, BLOCKED
     private fr.uha.ensisa.gl.entities.StoryStatus mapColumnNameToStatus(String columnName) {
         if (columnName == null) return null;
-        // Normalize: uppercase and replace spaces with underscores, trim whitespace
+        //normalise: majuscules et remplace espaces par underscores, trim
         String normalized = columnName.toUpperCase(Locale.ROOT).trim().replace(" ", "_").replace("-", "_");
         
-        // Direct matches
+        //matches directs
         switch (normalized) {
             case "BACKLOG": return fr.uha.ensisa.gl.entities.StoryStatus.BACKLOG;
             case "IN_PROGRESS": return fr.uha.ensisa.gl.entities.StoryStatus.IN_PROGRESS;
@@ -505,7 +479,7 @@ public class BoardController {
             case "DONE": return fr.uha.ensisa.gl.entities.StoryStatus.DONE;
             case "BLOCKED": return fr.uha.ensisa.gl.entities.StoryStatus.BLOCKED;
             default: 
-                // Additional checks for variations
+                //vérifications supplémentaires pour les variations
                 if (normalized.contains("BACKLOG")) return fr.uha.ensisa.gl.entities.StoryStatus.BACKLOG;
                 if (normalized.contains("IN_PROGRESS") || normalized.contains("INPROGRESS")) return fr.uha.ensisa.gl.entities.StoryStatus.IN_PROGRESS;
                 if (normalized.contains("REVIEW")) return fr.uha.ensisa.gl.entities.StoryStatus.REVIEW;

@@ -49,7 +49,7 @@ public class SwimlaneIT {
         
         wait.until(ExpectedConditions.urlContains("/project/list"));
         
-        // Get project ID from the board link
+        //récupérer l'ID du projet depuis le lien board
         try {
             WebElement boardLink = wait.until(ExpectedConditions.presenceOfElementLocated(By.xpath("//a[contains(@href,'/board/')]")));
             String href = boardLink.getAttribute("href");
@@ -112,13 +112,13 @@ public class SwimlaneIT {
         wait.until(ExpectedConditions.urlContains("/board/" + testProjectId));
         assertTrue(driver.getCurrentUrl().contains("/board/" + testProjectId));
         
-        // Verify swimlane appears on the board
+        //vérifier que la swimlane apparaît sur le board
         try {
             WebElement swimlaneElement = wait.until(ExpectedConditions.presenceOfElementLocated(
                 By.xpath("//div[contains(@class,'swimlane') or contains(@id,'swimlane')]")));
             assertNotNull(swimlaneElement);
         } catch (Exception e) {
-            // Swimlane might be created but not immediately visible, which is acceptable
+            //la swimlane peut être créée mais pas immédiatement visible, ce qui est acceptable
         }
     }
     
@@ -134,7 +134,7 @@ public class SwimlaneIT {
             WebElement createBtn = driver.findElement(By.id("createSwimlaneBtn"));
             createBtn.click();
         } catch (Exception e) {
-            // Form might not be accessible with invalid project
+            //le formulaire peut ne pas être accessible avec un projet invalide
         }
         
         wait.until(ExpectedConditions.urlContains("/"));
@@ -144,7 +144,7 @@ public class SwimlaneIT {
     @Test
     @DisplayName("Should display edit swimlane form")
     public void testShowEditForm() {
-        // First create a swimlane
+        //d'abord créer une swimlane
         driver.get(getBaseUrl() + "swimlane/new?projectId=" + testProjectId);
         String swimlaneName = "Edit Test Swimlane " + System.currentTimeMillis();
         WebElement nameInput = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("swimlaneName")));
@@ -153,11 +153,11 @@ public class SwimlaneIT {
         createBtn.click();
         wait.until(ExpectedConditions.urlContains("/board/" + testProjectId));
         
-        // Get swimlane ID from the board (if available) or use a default
-        // For now, we'll try to access edit with a known ID pattern
-        // In a real scenario, we'd extract the ID from the page
+        //récupérer l'ID de la swimlane depuis le board (si disponible) ou utiliser un défaut
+        //pour l'instant, on essaie d'accéder à edit avec un pattern d'ID connu
+        //dans un scénario réel, on extrairait l'ID depuis la page
         try {
-            // Try to find edit link/button for swimlane
+            //essayer de trouver le lien/bouton edit pour la swimlane
             WebElement editLink = driver.findElement(By.xpath("//a[contains(@href,'/swimlane/edit/')]"));
             String href = editLink.getAttribute("href");
             testSwimlaneId = Long.parseLong(href.split("/swimlane/edit/")[1].split("\\?")[0]);
@@ -170,15 +170,15 @@ public class SwimlaneIT {
             assertNotNull(editNameInput, "Name input should be present in edit form");
             assertNotNull(updateBtn, "Update button should be present");
         } catch (Exception e) {
-            // If edit link is not found, skip this test
-            // This is acceptable if swimlanes are not directly editable from the UI
+            //si le lien edit n'est pas trouvé, skip ce test
+            //c'est acceptable si les swimlanes ne sont pas directement éditables depuis l'UI
         }
     }
     
     @Test
     @DisplayName("Should update swimlane name successfully")
     public void testUpdateSwimlane() {
-        // First create a swimlane
+        //d'abord créer une swimlane
         driver.get(getBaseUrl() + "swimlane/new?projectId=" + testProjectId);
         String swimlaneName = "Update Test Swimlane " + System.currentTimeMillis();
         WebElement nameInput = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("swimlaneName")));
@@ -187,7 +187,7 @@ public class SwimlaneIT {
         createBtn.click();
         wait.until(ExpectedConditions.urlContains("/board/" + testProjectId));
         
-        // Try to update if edit functionality is available
+        //essayer de mettre à jour si la fonctionnalité edit est disponible
         try {
             WebElement editLink = driver.findElement(By.xpath("//a[contains(@href,'/swimlane/edit/')]"));
             String href = editLink.getAttribute("href");
@@ -206,7 +206,7 @@ public class SwimlaneIT {
             wait.until(ExpectedConditions.urlContains("/board/" + testProjectId));
             assertTrue(driver.getCurrentUrl().contains("/board/" + testProjectId));
         } catch (Exception e) {
-            // If edit functionality is not available in UI, skip this test
+            //si la fonctionnalité edit n'est pas disponible dans l'UI, skip ce test
         }
     }
     
@@ -222,7 +222,7 @@ public class SwimlaneIT {
     @Test
     @DisplayName("Should delete swimlane successfully")
     public void testDeleteSwimlane() {
-        // First create a swimlane
+        //d'abord créer une swimlane
         driver.get(getBaseUrl() + "swimlane/new?projectId=" + testProjectId);
         String swimlaneName = "Delete Test Swimlane " + System.currentTimeMillis();
         WebElement nameInput = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("swimlaneName")));
@@ -231,7 +231,7 @@ public class SwimlaneIT {
         createBtn.click();
         wait.until(ExpectedConditions.urlContains("/board/" + testProjectId));
         
-        // Try to delete if delete functionality is available
+        //essayer de supprimer si la fonctionnalité delete est disponible
         try {
             WebElement deleteLink = driver.findElement(By.xpath("//a[contains(@href,'/swimlane/delete/')]"));
             String href = deleteLink.getAttribute("href");
@@ -242,14 +242,14 @@ public class SwimlaneIT {
             wait.until(ExpectedConditions.urlContains("/board/" + testProjectId));
             assertTrue(driver.getCurrentUrl().contains("/board/" + testProjectId));
         } catch (Exception e) {
-            // If delete functionality is not available in UI, skip this test
+            //si la fonctionnalité delete n'est pas disponible dans l'UI, skip ce test
         }
     }
     
     @Test
     @DisplayName("Should handle creating first swimlane and assign existing stories")
     public void testCreateFirstSwimlaneAssignsStories() {
-        // Create a story first
+        //créer une story d'abord
         driver.get(getBaseUrl() + "story/new?projectId=" + testProjectId);
         String storyTitle = "Story for Swimlane " + System.currentTimeMillis();
         WebElement titleInput = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("storyTitle")));
@@ -258,7 +258,7 @@ public class SwimlaneIT {
         createStoryBtn.click();
         wait.until(ExpectedConditions.urlContains("/board/" + testProjectId));
         
-        // Now create the first swimlane
+        //maintenant créer la première swimlane
         driver.get(getBaseUrl() + "swimlane/new?projectId=" + testProjectId);
         String swimlaneName = "First Swimlane " + System.currentTimeMillis();
         WebElement nameInput = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("swimlaneName")));
@@ -269,7 +269,7 @@ public class SwimlaneIT {
         wait.until(ExpectedConditions.urlContains("/board/" + testProjectId));
         assertTrue(driver.getCurrentUrl().contains("/board/" + testProjectId));
         
-        // Verify the board loads successfully
+        //vérifier que le board se charge avec succès
         assertNotNull(driver.findElement(By.tagName("body")));
     }
 }

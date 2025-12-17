@@ -19,17 +19,17 @@ public class StoryRepoMem implements StoryRepo {
     public void persist(Story story) {
         System.out.println("[REPO DEBUG] persist() called - Story ID: " + story.getId() + ", Title: " + story.getTitle() + ", UserAssigned: " + (story.getUserAssigned() != null ? story.getUserAssigned().getName() : "NULL"));
         if (story.getId() == 0) {
-            // New story
+            //nouvelle story
             story.setId(nextId++);
             System.out.println("[REPO DEBUG] New story created with ID: " + story.getId());
         } else {
             System.out.println("[REPO DEBUG] Updating existing story with ID: " + story.getId());
         }
-        // Update or insert
+        //met à jour ou insère
         store.put((long)story.getId(), story);
         System.out.println("[REPO DEBUG] Story saved in store. Total stories in store: " + store.size());
         
-        // Verify the story was saved correctly
+        //vérifie que la story a été sauvegardée correctement
         Story savedStory = store.get((long)story.getId());
         System.out.println("[REPO DEBUG] Verification - Saved story UserAssigned: " + (savedStory != null && savedStory.getUserAssigned() != null ? savedStory.getUserAssigned().getName() : "NULL"));
     }
@@ -63,12 +63,12 @@ public class StoryRepoMem implements StoryRepo {
         if (columnId == null) {
             return store.values().stream()
                     .filter(story -> story.getColumnId() == null)
-                    .sorted((s1, s2) -> Integer.compare(s1.getPosition(), s2.getPosition())) // Tri par position
+                    .sorted((s1, s2) -> Integer.compare(s1.getPosition(), s2.getPosition())) //tri par position
                     .toList();
         }
         return store.values().stream()
                 .filter(story -> columnId.equals(story.getColumnId()))
-                .sorted((s1, s2) -> Integer.compare(s1.getPosition(), s2.getPosition())) // Tri par position
+                .sorted((s1, s2) -> Integer.compare(s1.getPosition(), s2.getPosition())) //tri par position
                 .toList();
     }
 

@@ -59,13 +59,13 @@ public class BoardIT {
                 By.xpath("//h5[contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'card')] | //div[contains(@class,'project-card')]//h3[contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'project-card')]")
             ));
             
-            // Essaie de récupérer l'ID depuis data-id ou depuis le lien vers le board
+            //essaie de récupérer l'ID depuis data-id ou depuis le lien vers le board
             try {
                 String dataId = projectCard.getAttribute("data-id");
                 if (dataId != null && !dataId.isEmpty()) {
                     testProjectId = Long.parseLong(dataId);
                 } else {
-                    // Cherche le lien vers le board
+                    //cherche le lien vers le board
                     WebElement boardLink = projectCard.findElement(By.xpath(".//a[contains(@href,'/board/')]"));
                     String href = boardLink.getAttribute("href");
                     String[] parts = href.split("/board/");
@@ -74,7 +74,7 @@ public class BoardIT {
                     }
                 }
             } catch (Exception e) {
-                // Si on ne peut pas récupérer l'ID, on va sur le board du premier projet
+                //si on ne peut pas récupérer l'ID, on va sur le board du premier projet
                 WebElement firstBoardLink = driver.findElement(By.xpath("//a[contains(@href,'/board/')]"));
                 String href = firstBoardLink.getAttribute("href");
                 String[] parts = href.split("/board/");
@@ -83,16 +83,16 @@ public class BoardIT {
                 }
             }
         } catch (Exception e) {
-            // Si aucun projet n'est trouvé, créer un projet et récupérer l'ID depuis le repository
-            // Pour les tests, on utilisera l'ID 1 par défaut
+            //si aucun projet n'est trouvé, créer un projet et récupérer l'ID depuis le repository
+            //pour les tests, on utilisera l'ID 1 par défaut
             testProjectId = 1L;
         }
         
-        // Naviguer vers le board du projet créé
+        //naviguer vers le board du projet créé
         if (testProjectId != null) {
             driver.get(getBaseUrl() + "board/" + testProjectId);
             wait.until(ExpectedConditions.urlContains("/board/" + testProjectId));
-            // Attendre que le board soit chargé
+            //attendre que le board soit chargé
             wait.until(ExpectedConditions.presenceOfElementLocated(By.className("kanban-container")));
         }
     }
@@ -134,15 +134,15 @@ public class BoardIT {
     @Test
     @DisplayName("Should display board page with project columns")
     public void testShowBoard() {
-        // Vérifie la présence du board
+        //vérifie la présence du board
         WebElement boardContainer = driver.findElement(By.className("kanban-container"));
         assertNotNull(boardContainer, "Board container should be present");
         
-        // Vérifie la présence des colonnes par défaut
+        //vérifie la présence des colonnes par défaut
         List<WebElement> columns = driver.findElements(By.className("kanban-column"));
         assertTrue(columns.size() >= 5, "Should have at least 5 default columns (BACKLOG, IN PROGRESS, REVIEW, DONE, BLOCKED)");
         
-        // Vérifie le nom du projet dans le header
+        //vérifie le nom du projet dans le header
         WebElement projectHeader = driver.findElement(By.className("project-header"));
         assertNotNull(projectHeader, "Project header should be present");
     }
@@ -159,22 +159,22 @@ public class BoardIT {
     @Test
     @DisplayName("Should create and add a story to a column")
     public void testAddStoryToColumn() {
-        // Trouve le bouton "Add Story" dans la colonne BACKLOG
+        //trouve le bouton "Add Story" dans la colonne BACKLOG
         List<WebElement> addStoryButtons = driver.findElements(By.className("add-story-btn"));
         if (!addStoryButtons.isEmpty()) {
             addStoryButtons.get(0).click();
             
-            // Remplit le formulaire de création de story
+            //remplit le formulaire de création de story
             wait.until(ExpectedConditions.presenceOfElementLocated(By.id("storyTitle")));
             String storyTitle = "Board Test Story " + System.currentTimeMillis();
             driver.findElement(By.id("storyTitle")).sendKeys(storyTitle);
             driver.findElement(By.id("storyDescription")).sendKeys("Test description");
             driver.findElement(By.id("createStoryBtn")).click();
             
-            // Vérifie la redirection vers le board
+            //vérifie la redirection vers le board
             wait.until(ExpectedConditions.urlContains("/board/" + testProjectId));
             
-            // Vérifie que la story est présente
+            //vérifie que la story est présente
             String pageSource = driver.getPageSource();
             assertTrue(pageSource.contains(storyTitle) || driver.findElements(By.className("story-card")).size() > 0, 
                        "Story should be added to the board");
@@ -184,15 +184,15 @@ public class BoardIT {
     @Test
     @DisplayName("Should drag and drop story between columns")
     public void testDragAndDropStory() {
-        // Créer une story d'abord
+        //créer une story d'abord
         createTestStory();
         
-        // Attendre que la story soit visible
+        //attendre que la story soit visible
         wait.until(ExpectedConditions.presenceOfElementLocated(By.className("story-card")));
         
         List<WebElement> storyCards = driver.findElements(By.className("story-card"));
         if (storyCards.isEmpty()) {
-            // Pas de stories, on ne peut pas tester
+            //pas de stories, on ne peut pas tester
             return;
         }
         
@@ -200,14 +200,14 @@ public class BoardIT {
         String storyId = sourceStory.getAttribute("data-story-id");
         assertNotNull(storyId, "Story should have data-story-id");
         
-        // Trouve les colonnes
+        //trouve les colonnes
         List<WebElement> columns = driver.findElements(By.className("kanban-column"));
         assertTrue(columns.size() >= 2, "Should have at least 2 columns");
         
         WebElement sourceColumn = sourceStory.findElement(By.xpath("./ancestor::div[contains(@class, 'kanban-column')]"));
         WebElement targetColumn = null;
         
-        // Trouve une colonne différente de la source
+        //trouve une colonne différente de la source
         for (WebElement col : columns) {
             if (!col.equals(sourceColumn)) {
                 targetColumn = col;
@@ -217,18 +217,18 @@ public class BoardIT {
         
         assertNotNull(targetColumn, "Should find a target column");
         
-        // Effectue le drag and drop avec Actions
+        //effectue le drag and drop avec Actions
         actions.clickAndHold(sourceStory)
                .moveToElement(targetColumn)
                .release()
                .build()
                .perform();
         
-        // Attendre un peu pour que l'AJAX se termine
+        //attendre un peu pour que l'AJAX se termine
         sleep(1000);
         
-        // Vérifie que la story a été déplacée (elle devrait être dans la nouvelle colonne)
-        // On vérifie au moins que l'opération n'a pas causé d'erreur
+        //vérifie que la story a été déplacée (elle devrait être dans la nouvelle colonne)
+        //on vérifie au moins que l'opération n'a pas causé d'erreur
         String pageSource = driver.getPageSource();
         assertFalse(pageSource.contains("error") && pageSource.contains("Column is full"), 
                    "Story should be moved successfully");
@@ -237,56 +237,56 @@ public class BoardIT {
     @Test
     @DisplayName("Should add a new column via form")
     public void testAddColumn() {
-        // Naviguer vers le board d'abord pour compter les colonnes existantes
+        //naviguer vers le board d'abord pour compter les colonnes existantes
         navigateToBoard();
         int initialColumnCount = driver.findElements(By.className("kanban-column")).size();
         
-        // Naviguer vers le board avec le paramètre pour afficher le formulaire
+        //naviguer vers le board avec le paramètre pour afficher le formulaire
         driver.get(getBaseUrl() + "board/" + testProjectId + "?showAddColumn=true");
         
         try {
-            // Attendre que le formulaire soit visible
+            //attendre que le formulaire soit visible
             wait.until(ExpectedConditions.presenceOfElementLocated(By.id("column_name")));
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("column_name")));
             
             String columnName = "Test Column " + System.currentTimeMillis();
             driver.findElement(By.id("column_name")).sendKeys(columnName);
             
-            // Utiliser le bouton createColumnBtn que nous avons ajouté
+            //utiliser le bouton createColumnBtn qu'on a ajouté
             WebElement submitBtn = driver.findElement(By.id("createColumnBtn"));
-            // Utiliser JavaScript click pour éviter les problèmes de clic
+            //utiliser JavaScript click pour éviter les problèmes de clic
             ((JavascriptExecutor) driver).executeScript("arguments[0].click();", submitBtn);
             
             wait.until(ExpectedConditions.urlContains("/board/" + testProjectId));
-            // Attendre un peu pour que la page se charge complètement
+            //attendre un peu pour que la page se charge complètement
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
             
-            // Vérifie que la colonne a été ajoutée en comptant les colonnes
+            //vérifie que la colonne a été ajoutée en comptant les colonnes
             int finalColumnCount = driver.findElements(By.className("kanban-column")).size();
             String pageSource = driver.getPageSource();
             
-            // La colonne a été ajoutée si soit le nom apparaît dans la page, soit le nombre de colonnes a augmenté
+            //la colonne a été ajoutée si soit le nom apparaît dans la page, soit le nombre de colonnes a augmenté
             boolean columnAdded = pageSource.contains(columnName) || finalColumnCount > initialColumnCount;
             assertTrue(columnAdded, 
                        "Column should be added. Initial columns: " + initialColumnCount + 
                        ", Final columns: " + finalColumnCount + 
                        ", Column name in page: " + pageSource.contains(columnName));
         } catch (Exception e) {
-            // Le formulaire peut ne pas être disponible, on teste via AJAX direct
+            //le formulaire peut ne pas être disponible, on teste via AJAX direct
             testAddColumnViaAJAX();
         }
     }
     
     private void testAddColumnViaAJAX() {
-        // Test via appel POST direct avec un formulaire HTML
+        //test via appel POST direct avec un formulaire HTML
         String columnName = "AJAX Column " + System.currentTimeMillis();
         String url = getBaseUrl() + "board/" + testProjectId + "/add-column";
         
-        // Créer un formulaire temporaire et le soumettre
+        //créer un formulaire temporaire et le soumettre
         String script = "var form = document.createElement('form');" +
                         "form.method = 'POST';" +
                         "form.action = '" + url + "';" +
@@ -311,18 +311,18 @@ public class BoardIT {
         ((JavascriptExecutor) driver).executeScript(script);
         wait.until(ExpectedConditions.urlContains("/board/" + testProjectId));
         
-        // Attendre un peu pour que la page se charge complètement
+        //attendre un peu pour que la page se charge complètement
         try {
             Thread.sleep(500);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
         
-        // Vérifie que la redirection s'est bien passée ET que la colonne a été ajoutée
+        //vérifie que la redirection s'est bien passée ET que la colonne a été ajoutée
         assertTrue(driver.getCurrentUrl().contains("/board/" + testProjectId), 
                    "Should redirect to board after adding column");
         
-        // Vérifie que la colonne a été ajoutée
+        //vérifie que la colonne a été ajoutée
         String pageSource = driver.getPageSource();
         int columnCount = driver.findElements(By.className("kanban-column")).size();
         assertTrue(pageSource.contains(columnName) || columnCount > 5, 
@@ -333,7 +333,7 @@ public class BoardIT {
     @Test
     @DisplayName("Should update column name via AJAX")
     public void testUpdateColumnName() {
-        // Trouve une colonne éditable (pas BACKLOG ou DONE)
+        //trouve une colonne éditable (pas BACKLOG ou DONE)
         List<WebElement> columns = driver.findElements(By.className("kanban-column"));
         WebElement editableColumn = null;
         
@@ -347,7 +347,7 @@ public class BoardIT {
         }
         
         if (editableColumn == null) {
-            // Créer une colonne d'abord
+            //créer une colonne d'abord
             testAddColumn();
             navigateToBoard();
             columns = driver.findElements(By.className("kanban-column"));
@@ -359,11 +359,11 @@ public class BoardIT {
         String columnId = editableColumn.getAttribute("data-column-id");
         assertNotNull(columnId, "Column should have data-column-id");
         
-        // Trouve le bouton Edit
+        //trouve le bouton Edit
         WebElement editButton = editableColumn.findElement(By.xpath(".//button[contains(text(), 'Edit')]"));
         editButton.click();
         
-        // Attendre le modal ou formulaire d'édition
+        //attendre le modal ou formulaire d'édition
         try {
             wait.until(ExpectedConditions.presenceOfElementLocated(By.id("columnNameEdit")));
             WebElement nameInput = driver.findElement(By.id("columnNameEdit"));
@@ -374,14 +374,14 @@ public class BoardIT {
             WebElement saveBtn = driver.findElement(By.cssSelector("button[type='submit'], button.save-column"));
             saveBtn.click();
             
-            // Attendre la mise à jour
+            //attendre la mise à jour
             sleep(500);
             
-            // Vérifie que le nom a été mis à jour
+            //vérifie que le nom a été mis à jour
             String pageSource = driver.getPageSource();
             assertTrue(pageSource.contains(newName), "Column name should be updated");
         } catch (Exception e) {
-            // Si le modal n'existe pas, testons via AJAX direct
+            //si le modal n'existe pas, testons via AJAX direct
             String newName = "AJAX Updated " + System.currentTimeMillis();
             String url = getBaseUrl() + "board/" + testProjectId + "/update-column?columnId=" + columnId + "&newName=" + newName;
             
@@ -389,7 +389,7 @@ public class BoardIT {
             sleep(1000);
             
             String pageSource = driver.getPageSource();
-            // Vérifie que la requête a été traitée
+            //vérifie que la requête a été traitée
             assertTrue(true, "AJAX update should be processed");
         }
     }
@@ -397,7 +397,7 @@ public class BoardIT {
     @Test
     @DisplayName("Should prevent deleting BACKLOG and DONE columns")
     public void testPreventDeleteProtectedColumns() {
-        // Attendre que le board soit chargé avec des colonnes
+        //attendre que le board soit chargé avec des colonnes
         wait.until(ExpectedConditions.presenceOfElementLocated(By.className("kanban-column")));
         
         List<WebElement> columns = driver.findElements(By.className("kanban-column"));
@@ -409,12 +409,12 @@ public class BoardIT {
                 String columnName = header.getText().toUpperCase();
                 
                 if (columnName.contains("BACKLOG") || columnName.contains("DONE")) {
-                    // Vérifie que le bouton Delete n'existe pas pour ces colonnes
+                    //vérifie que le bouton Delete n'existe pas pour ces colonnes
                     List<WebElement> deleteButtons = col.findElements(By.xpath(".//button[contains(@class, 'btn-outline-danger')]"));
                     assertTrue(deleteButtons.isEmpty(), "BACKLOG and DONE columns should not have delete button");
                 }
             } catch (Exception e) {
-                // Si on ne peut pas trouver le header, on continue avec la colonne suivante
+                //si on ne peut pas trouver le header, on continue avec la colonne suivante
                 continue;
             }
         }
@@ -423,11 +423,11 @@ public class BoardIT {
     @Test
     @DisplayName("Should delete a column without stories")
     public void testDeleteColumn() {
-        // Créer une colonne d'abord
+        //créer une colonne d'abord
         testAddColumn();
         navigateToBoard();
         
-        // Trouve une colonne éditable sans stories
+        //trouve une colonne éditable sans stories
         List<WebElement> columns = driver.findElements(By.className("kanban-column"));
         WebElement columnToDelete = null;
         
@@ -447,26 +447,26 @@ public class BoardIT {
             String columnId = columnToDelete.getAttribute("data-column-id");
             int initialColumnCount = columns.size();
             
-            // Trouve le bouton Delete
+            //trouve le bouton Delete
             WebElement deleteButton = columnToDelete.findElement(By.xpath(".//button[contains(@class, 'btn-outline-danger')]"));
             deleteButton.click();
             
-            // Confirme la suppression si un modal apparaît
+            //confirme la suppression si un modal apparaît
             try {
                 WebElement confirmBtn = wait.until(ExpectedConditions.elementToBeClickable(
                     By.xpath("//button[contains(text(), 'Delete') or contains(text(), 'Confirm')]")));
                 confirmBtn.click();
             } catch (Exception e) {
-                // Pas de modal de confirmation
+                //pas de modal de confirmation
             }
             
-            // Attendre la redirection
+            //attendre la redirection
             wait.until(ExpectedConditions.urlContains("/board/" + testProjectId));
             
-            // Vérifie que la colonne a été supprimée
+            //vérifie que la colonne a été supprimée
             navigateToBoard();
             List<WebElement> newColumns = driver.findElements(By.className("kanban-column"));
-            // La colonne devrait être supprimée (ou au moins la requête devrait être traitée)
+            //la colonne devrait être supprimée (ou au moins la requête devrait être traitée)
             assertTrue(true, "Delete column request should be processed");
         }
     }
@@ -474,7 +474,7 @@ public class BoardIT {
     @Test
     @DisplayName("Should reorder stories within a column")
     public void testReorderStories() {
-        // Créer plusieurs stories dans la même colonne
+        //créer plusieurs stories dans la même colonne
         createTestStory();
         createTestStory();
         
@@ -486,7 +486,7 @@ public class BoardIT {
             return; // Pas assez de stories pour tester
         }
         
-        // Trouve la première colonne avec des stories
+        //trouve la première colonne avec des stories
         WebElement columnWithStories = null;
         for (WebElement col : driver.findElements(By.className("kanban-column"))) {
             List<WebElement> stories = col.findElements(By.className("story-card"));
@@ -501,7 +501,7 @@ public class BoardIT {
             WebElement firstStory = stories.get(0);
             WebElement secondStory = stories.get(1);
             
-            // Effectue un drag and drop pour réordonner
+            //effectue un drag and drop pour réordonner
             actions.clickAndHold(firstStory)
                    .moveToElement(secondStory)
                    .moveByOffset(0, 50)
@@ -509,10 +509,10 @@ public class BoardIT {
                    .build()
                    .perform();
             
-            // Attendre que l'AJAX se termine
+            //attendre que l'AJAX se termine
             sleep(1000);
             
-            // Vérifie que le réordonnancement a été traité
+            //vérifie que le réordonnancement a été traité
             assertTrue(true, "Story reordering should be processed");
         }
     }
@@ -525,7 +525,7 @@ public class BoardIT {
             return; // Pas assez de colonnes pour tester
         }
         
-        // Trouve une colonne non-BACKLOG à déplacer
+        //trouve une colonne non-BACKLOG à déplacer
         WebElement columnToMove = null;
         for (WebElement col : columns) {
             WebElement header = col.findElement(By.className("column-header"));
@@ -539,21 +539,21 @@ public class BoardIT {
         if (columnToMove != null) {
             WebElement targetColumn = columns.get(columns.size() - 1);
             
-            // Trouve le header de la colonne (draggable)
+            //trouve le header de la colonne (draggable)
             WebElement columnHeader = columnToMove.findElement(By.className("column-header"));
             WebElement draggableSpan = columnHeader.findElement(By.tagName("span"));
             
-            // Effectue le drag and drop
+            //effectue le drag and drop
             actions.clickAndHold(draggableSpan)
                    .moveToElement(targetColumn)
                    .release()
                    .build()
                    .perform();
             
-            // Attendre que l'AJAX se termine
+            //attendre que l'AJAX se termine
             sleep(1500);
             
-            // Vérifie que le réordonnancement a été traité
+            //vérifie que le réordonnancement a été traité
             assertTrue(true, "Column reordering should be processed");
         }
     }
@@ -561,7 +561,7 @@ public class BoardIT {
     @Test
     @DisplayName("Should handle column capacity limits")
     public void testColumnCapacityLimit() {
-        // Créer une colonne avec capacité limitée
+        //créer une colonne avec capacité limitée
         String columnName = "Limited Column " + System.currentTimeMillis();
         String url = getBaseUrl() + "board/" + testProjectId + "/add-column?name=" + columnName + "&maxCapacity=1&hasSubColumns=true";
         driver.get(url);
@@ -569,14 +569,14 @@ public class BoardIT {
         
         navigateToBoard();
         
-        // Créer une story dans cette colonne
+        //créer une story dans cette colonne
         createTestStory();
         navigateToBoard();
         
-        // Essayer d'ajouter une deuxième story (devrait échouer si la capacité est atteinte)
-        // Ce test vérifie que la logique de capacité est en place
+        //essayer d'ajouter une deuxième story (devrait échouer si la capacité est atteinte)
+        //ce test vérifie que la logique de capacité est en place
         List<WebElement> capacityIndicators = driver.findElements(By.className("column-capacity"));
-        // Les indicateurs peuvent être présents ou non selon l'implémentation
+        //les indicateurs peuvent être présents ou non selon l'implémentation
         assertTrue(true, "Capacity limit check passed");
     }
     
@@ -594,7 +594,7 @@ public class BoardIT {
         WebElement story = storyCards.get(0);
         String storyId = story.getAttribute("data-story-id");
         
-        // Trouve une colonne avec sous-colonnes (pas BACKLOG ou DONE)
+        //trouve une colonne avec sous-colonnes (pas BACKLOG ou DONE)
         List<WebElement> columns = driver.findElements(By.className("kanban-column"));
         WebElement columnWithSubcolumns = null;
         
@@ -613,17 +613,17 @@ public class BoardIT {
         if (columnWithSubcolumns != null && story != null) {
             WebElement doneSubcolumn = columnWithSubcolumns.findElement(By.className("subcolumn-done"));
             
-            // Drag story to DONE subcolumn
+            //drag story vers sous-colonne DONE
             actions.clickAndHold(story)
                    .moveToElement(doneSubcolumn)
                    .release()
                    .build()
                    .perform();
             
-            // Attendre que l'AJAX se termine
+            //attendre que l'AJAX se termine
             sleep(1000);
             
-            // Vérifie que la sous-colonne a été mise à jour
+            //vérifie que la sous-colonne a été mise à jour
             assertTrue(true, "Subcolumn update should be processed");
         }
     }
@@ -631,7 +631,7 @@ public class BoardIT {
     @Test
     @DisplayName("Should move all stories from one column to another")
     public void testMoveAllStories() {
-        // Créer des stories dans une colonne
+        //créer des stories dans une colonne
         createTestStory();
         createTestStory();
         navigateToBoard();
@@ -641,7 +641,7 @@ public class BoardIT {
             return;
         }
         
-        // Trouve une colonne avec des stories
+        //trouve une colonne avec des stories
         WebElement sourceColumn = null;
         WebElement targetColumn = null;
         
@@ -659,7 +659,7 @@ public class BoardIT {
             String fromColumnId = sourceColumn.getAttribute("data-column-id");
             String toColumnId = targetColumn.getAttribute("data-column-id");
             
-            // Appel AJAX pour déplacer toutes les stories
+            //appel AJAX pour déplacer toutes les stories
             String url = getBaseUrl() + "board/" + testProjectId + "/move-all-stories?fromColumnId=" + fromColumnId + "&toColumnId=" + toColumnId;
             ((JavascriptExecutor) driver).executeScript("fetch('" + url + "', {method: 'POST'}).then(r => r.text()).then(t => console.log(t))");
             
@@ -677,14 +677,14 @@ public class BoardIT {
     @Test
     @DisplayName("Should delete column with all its stories")
     public void testDeleteColumnWithStories() {
-        // Créer une colonne et y ajouter des stories
+        //créer une colonne et y ajouter des stories
         testAddColumn();
         navigateToBoard();
         
         createTestStory();
         navigateToBoard();
         
-        // Trouve la colonne créée avec des stories
+        //trouve la colonne créée avec des stories
         List<WebElement> columns = driver.findElements(By.className("kanban-column"));
         WebElement columnToDelete = null;
         
@@ -700,7 +700,7 @@ public class BoardIT {
                     }
                 }
             } catch (Exception e) {
-                // Colonne non trouvée, continuer
+                //colonne non trouvée, continuer
                 continue;
             }
         }
@@ -708,7 +708,7 @@ public class BoardIT {
         if (columnToDelete != null) {
             String columnId = columnToDelete.getAttribute("data-column-id");
             
-            // Appel AJAX pour supprimer la colonne avec ses stories
+            //appel AJAX pour supprimer la colonne avec ses stories
             String url = getBaseUrl() + "board/" + testProjectId + "/delete-column-with-stories/" + columnId;
             ((JavascriptExecutor) driver).executeScript("fetch('" + url + "', {method: 'POST'}).then(r => r.text()).then(t => console.log(t))");
             
@@ -728,14 +728,14 @@ public class BoardIT {
     public void testUpdateColumnFull() {
         Long projectId = testProjectId;
         
-        // First create a column
+        //d'abord créer une colonne
         driver.get(getBaseUrl() + "board/" + projectId + "/add-column");
         WebElement nameInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("column_name")));
         String columnName = "Full Update Test " + System.currentTimeMillis();
         nameInput.sendKeys(columnName);
         
         WebElement createBtn = wait.until(ExpectedConditions.elementToBeClickable(By.id("createColumnBtn")));
-        // Scroll into view and wait a bit to ensure element is clickable
+        //scroll into view et attendre un peu pour s'assurer que l'élément est cliquable
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", createBtn);
         try {
             Thread.sleep(500);
@@ -745,19 +745,19 @@ public class BoardIT {
         ((JavascriptExecutor) driver).executeScript("arguments[0].click();", createBtn);
         wait.until(ExpectedConditions.urlContains("/board/" + projectId));
         
-        // Get column ID from the page
+        //récupère l'ID de la colonne depuis la page
         try {
             WebElement columnElement = wait.until(ExpectedConditions.presenceOfElementLocated(
                 By.xpath("//div[contains(@class,'column') and contains(.,'" + columnName + "')]")
             ));
             
-            // Try to find update column full form or button
+            //essayer de trouver le formulaire ou bouton update column full
             String pageSource = driver.getPageSource();
-            // Verify that column update functionality exists
+            //vérifier que la fonctionnalité de mise à jour de colonne existe
             assertTrue(pageSource.contains(columnName) || true,
                       "Column should be created and update functionality should be available");
         } catch (Exception e) {
-            // Column might be created but not immediately visible
+            //la colonne peut être créée mais pas immédiatement visible
             assertTrue(true, "Column update full functionality exists");
         }
     }
@@ -765,7 +765,7 @@ public class BoardIT {
     @Test
     @DisplayName("Should update column capacity")
     public void testUpdateColumnCapacity() {
-        // Trouve une colonne éditable
+        //trouve une colonne éditable
         List<WebElement> columns = driver.findElements(By.className("kanban-column"));
         WebElement editableColumn = null;
         
@@ -787,7 +787,7 @@ public class BoardIT {
         
         String columnId = editableColumn.getAttribute("data-column-id");
         
-        // Mise à jour via AJAX
+        //mise à jour via AJAX
         String url = getBaseUrl() + "board/" + testProjectId + "/update-column-full?columnId=" + columnId + "&maxCapacity=10";
         ((JavascriptExecutor) driver).executeScript("fetch('" + url + "', {method: 'POST'}).then(r => r.text()).then(t => console.log(t))");
         

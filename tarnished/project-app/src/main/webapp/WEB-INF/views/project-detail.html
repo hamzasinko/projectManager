@@ -23,7 +23,7 @@
 <body>
 <div class="container mt-4">
 
-  <!-- Project Info Card -->
+  <!--carte d'info projet-->
   <div class="card">
     <div class="card-body">
       <h3 id="projectNameInfo" class="card-title" th:text="${project.name}">Project Name</h3>
@@ -39,12 +39,12 @@
       <a th:href="@{/}" class="btn btn-secondary btn-sm">Home</a>
       <a th:href="'/project/list'" class="btn btn-primary btn-sm">Projects</a>
       <a th:href="@{'/board/' + ${project.id}}" class="btn btn-primary btn-sm">Open Board</a>
-      <!-- Delete Button -->
+      <!--bouton Delete-->
       <button class="btn btn-danger btn-sm" th:onclick="'showDeleteConfirm(' + ${project.id} + ')'">
         Delete Project
       </button>
 
-      <!-- Confirmation Card -->
+      <!--carte de confirmation-->
       <div th:id="'confirmCard-' + ${project.id}" class="card mt-2" style="display:none;">
         <div class="card-body">
           <h6>Do you really want to delete this project?</h6>
@@ -61,7 +61,7 @@
     </div>
   </div>
 
-  <!-- Workflow Columns
+  <!--colonnes de workflow
   <div class="mt-4">
     <h4>Workflow</h4>
     <div class="row">

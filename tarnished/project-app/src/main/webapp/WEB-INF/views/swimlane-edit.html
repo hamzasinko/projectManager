@@ -23,7 +23,7 @@
 
     <input type="hidden" name="id" th:value="${swimlane.id}" />
 
-    <!-- Swimlane Name -->
+    <!--nom de la swimlane-->
     <div class="mb-3">
       <label class="form-label">Swimlane Name*</label>
       <input class="form-control" type="text" name="name"
@@ -31,7 +31,7 @@
       <div class="form-text">Max 50 characters</div>
     </div>
 
-    <!-- Submit -->
+    <!--soumettre-->
     <button type="submit" class="btn btn-primary mt-3" id="updateSwimlaneBtn">
       Save Changes
     </button>
@@ -46,7 +46,7 @@
 
   </form>
 
-  <!-- Hidden delete form -->
+  <!--formulaire de suppression caché-->
   <form th:id="'deleteSwimlaneForm-' + ${swimlane.id}"
         th:action="@{'/swimlane/delete/'+ ${swimlane.id}}" method="post" style="display:none;">
   </form>

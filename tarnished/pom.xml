@@ -35,16 +35,14 @@
         <maven.project.info.reports.plugin.version>3.6.2</maven.project.info.reports.plugin.version>
     </properties>
 
-    <!-- ===================== -->
-    <!-- BUILD -->
-    <!-- ===================== -->
+    <!--build-->
     <build>
 
-        <!-- ===== Plugin configuration (multi-modules) ===== -->
+        <!--configuration des plugins (multi-modules)-->
         <pluginManagement>
             <plugins>
 
-                <!-- Compiler -->
+                <!--compilateur-->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
@@ -56,21 +54,21 @@
                     </configuration>
                 </plugin>
 
-                <!-- Unit tests -->
+                <!--tests unitaires-->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven.surefire.plugin.version}</version>
                 </plugin>
 
-                <!-- Integration tests -->
+                <!--tests d'intégration-->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-failsafe-plugin</artifactId>
                     <version>${maven.failsafe.plugin.version}</version>
                 </plugin>
 
-                <!-- 🔥 SpotBugs configuration -->
+                <!--configuration SpotBugs-->
                 <plugin>
                     <groupId>com.github.spotbugs</groupId>
                     <artifactId>spotbugs-maven-plugin</artifactId>
@@ -105,9 +103,7 @@
 
     </build>
 
-    <!-- ===================== -->
-    <!-- MODULES -->
-    <!-- ===================== -->
+    <!--modules-->
     <modules>
         <module>project-model</module>
         <module>project-repomem</module>

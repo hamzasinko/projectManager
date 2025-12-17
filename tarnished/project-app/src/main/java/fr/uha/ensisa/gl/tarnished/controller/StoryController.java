@@ -27,9 +27,7 @@ public class StoryController {
         System.out.println("*** StoryController CREATED ***");
     }
     
-    /**
-     * Affiche le formulaire de création de story
-     */
+    //affiche le formulaire de création de story
     @GetMapping("/new")
     public ModelAndView showCreateForm(
             @RequestParam(required = false) Long projectId,
@@ -38,10 +36,10 @@ public class StoryController {
 
         ModelAndView mav = new ModelAndView("story-create");
 
-        // Add all projects to select from
+        //ajoute tous les projets pour la sélection
         mav.addObject("projects", repoFactory.getProjectRepo().findAll());
 
-        // Pass projectId, columnId, and swimlaneId if provided
+        //passe projectId, columnId et swimlaneId si fournis
         if (projectId != null) {
             mav.addObject("projectId", projectId);
         }
@@ -55,9 +53,7 @@ public class StoryController {
         return mav;
     }
 
-    /**
-     * Traite la création d'une nouvelle story
-     */
+    //traite la création d'une nouvelle story
     @PostMapping("/create")
     public String createStory(
         @RequestParam(required=true) String title,
@@ -69,17 +65,17 @@ public class StoryController {
         
         System.out.println("[DEBUG] createStory called - projectId: " + projectId + ", columnId: " + columnId);
         
-        // Validate title
+        //valide le titre
         if (title == null || title.trim().isEmpty()) {
             return "redirect:/story/new?error=Title is required&projectId=" + projectId;
         }
         
-        // Limiter la longueur du titre à 59 caractères
+        //limite la longueur du titre à 59 caractères
         if (title.length() > 59) {
             return "redirect:/story/new?error=Title must be less than 59 characters&projectId=" + projectId;
         }
         
-        // projectId is optional for stories; if absent we create a global story
+        //projectId optionnel pour les stories, si absent on crée une story globale
         
         Story story = new Story();
         story.setTitle(title.trim());
@@ -87,10 +83,10 @@ public class StoryController {
         story.setDateCreated(new Date());
         story.setProjectId(projectId);
         
-        // Définir le status et columnId en fonction de la colonne
+        //définit le status et columnId selon la colonne
         StoryStatus initialStatus = StoryStatus.BACKLOG;
         if (columnId != null) {
-            // Assigner la story à la colonne spécifiée
+            //assigne la story à la colonne spécifiée
             story.setColumnId(columnId);
             fr.uha.ensisa.gl.entities.Column column = repoFactory.getColumnRepo().find(columnId);
             if (column != null) {
@@ -100,7 +96,7 @@ public class StoryController {
                 }
             }
         } else {
-            // Si pas de colonne spécifiée et si on a un projectId, trouver la colonne BACKLOG
+            //si pas de colonne spécifiée et qu'on a un projectId, trouve la colonne BACKLOG
             if (projectId != null) {
                 Collection<fr.uha.ensisa.gl.entities.Column> columns = repoFactory.getColumnRepo().findByProject(projectId);
                 for (fr.uha.ensisa.gl.entities.Column col : columns) {
@@ -110,13 +106,13 @@ public class StoryController {
                     }
                 }
             } else {
-                // pas de projectId fourni -> pas de colonne par défaut
+                //pas de projectId fourni donc pas de colonne par défaut
                 story.setColumnId(null);
             }
         }
         story.setStatus(initialStatus);
         
-        // Décaler toutes les stories existantes de cette colonne (position + 1)
+        //décale toutes les stories existantes de cette colonne (position + 1)
         if (story.getColumnId() != null) {
             Collection<Story> storiesInColumn = repoFactory.getStoryRepo().findByColumn(story.getColumnId());
             for (Story existingStory : storiesInColumn) {
@@ -125,17 +121,17 @@ public class StoryController {
             }
         }
         
-        // Assigner position 0 pour que la nouvelle story apparaisse EN HAUT
+        //position 0 pour que la nouvelle story apparaisse en haut
         story.setPosition(0);
         
-        // Initialiser subColumn pour les colonnes personnalisées (ni BACKLOG ni DONE)
+        //initialise subColumn pour les colonnes personnalisées (ni BACKLOG ni DONE)
         if (story.getColumnId() != null) {
             fr.uha.ensisa.gl.entities.Column column = repoFactory.getColumnRepo().find(story.getColumnId());
             if (column != null && !isDefaultColumn(column.getName())) {
                 story.setSubColumn("BACKLOG");
                 System.out.println("[DEBUG] Story subColumn initialized to BACKLOG for custom column: " + column.getName());
             } else {
-                story.setSubColumn(null); // colonnes système => pas de sous-colonne
+                story.setSubColumn(null); //colonnes système donc pas de sous-colonne
             }
         }
 
@@ -149,28 +145,24 @@ public class StoryController {
         System.out.println("[DEBUG] Story created - ID: " + story.getId() + ", ProjectID: " + story.getProjectId() + ", ColumnID: " + story.getColumnId() + ", Position: " + story.getPosition() + ", SubColumn: " + story.getSubColumn());
         System.out.println("[DEBUG] Redirecting to: /board/" + story.getProjectId());
         
-        // Rediriger vers le board du projet si projectId présent, sinon vers la liste des stories
+        //redirige vers le board du projet si projectId présent, sinon vers la liste des stories
         if (story.getProjectId() != null) {
             return "redirect:/board/" + story.getProjectId();
         }
         return "redirect:/story/list";
     }
     
-    /**
-     * Redirige vers la page d'accueil car les stories doivent être vues dans le contexte d'un projet
-     * Les stories sont maintenant uniquement accessibles via le board du projet
-     */
+    //redirige vers la page d'accueil car les stories doivent être vues dans le contexte d'un projet
+    //les stories sont maintenant uniquement accessibles via le board du projet
     @GetMapping("/list")
     public ModelAndView listStories() throws IOException {
-        // Return the stories list view with all stories.
+        //retourne la vue liste des stories avec toutes les stories
         ModelAndView mav = new ModelAndView("story-list");
         mav.addObject("stories", repoFactory.getStoryRepo().findAll());
         return mav;
     }
     
-    /**
-     * Affiche les détails d'une story
-     */
+    //affiche les détails d'une story
     @GetMapping("/{id}")
     public ModelAndView showStory(@PathVariable("id") Long id) throws IOException {
         ModelAndView mav = new ModelAndView("story-detail");
@@ -180,7 +172,7 @@ public class StoryController {
             return new ModelAndView("redirect:/");
         }
         
-        // Vérifier que la story a un projectId
+        //vérifie que la story a un projectId
         if (story.getProjectId() == null) {
             return new ModelAndView("redirect:/");
         }
@@ -189,9 +181,7 @@ public class StoryController {
         return mav;
     }
     
-    /**
-     * Affiche le formulaire d'édition d'une story
-     */
+    //affiche le formulaire d'édition d'une story
     @GetMapping("/{id}/edit")
     public ModelAndView editStory(@PathVariable("id") Long id) {
         ModelAndView mav = new ModelAndView("story-edit");
@@ -201,7 +191,7 @@ public class StoryController {
             return new ModelAndView("redirect:/");
         }
         
-        // Vérifier que la story a un projectId
+        //vérifie que la story a un projectId
         if (story.getProjectId() == null) {
             return new ModelAndView("redirect:/");
         }
@@ -209,7 +199,7 @@ public class StoryController {
         mav.addObject("story", story);
         mav.addObject("users", repoFactory.getUserRepo().getAll());
         
-        // Check if story is in a default column
+        //vérifie si la story est dans une colonne par défaut
         if (story.getColumnId() != null) {
             fr.uha.ensisa.gl.entities.Column column = repoFactory.getColumnRepo().find(story.getColumnId());
             if (column != null) {
@@ -241,9 +231,7 @@ public class StoryController {
         }
     }
     
-    /**
-     * Traite la mise à jour d'une story
-     */
+    //traite la mise à jour d'une story
     @PostMapping("/{id}/edit")
     public String updateStory(
         @PathVariable("id") Long id,
@@ -261,13 +249,13 @@ public class StoryController {
         
         System.out.println("[DEBUG] Found story - ID: " + story.getId() + ", CurrentTitle: " + story.getTitle() + ", UserAssigned: " + (story.getUserAssigned() != null ? story.getUserAssigned().getName() : "NULL"));
         
-        // Validate title
+        //valide le titre
         if (title == null || title.trim().isEmpty()) {
             System.out.println("[DEBUG] Title validation failed - empty title");
             return "redirect:/story/" + id + "/edit?error=Title is required";
         }
         
-        // Limiter la longueur du titre à 59 caractères
+        //limite la longueur du titre à 59 caractères
         if (title.length() > 59) {
             System.out.println("[DEBUG] Title validation failed - too long");
             return "redirect:/story/" + id + "/edit?error=Title must be less than 59 characters";
@@ -278,7 +266,7 @@ public class StoryController {
         System.out.println("[DEBUG] Setting new description: " + description);
         story.setDescription(description);
         
-        // Check if story is in a default column
+        //vérifie si la story est dans une colonne par défaut
         boolean inDefaultColumn = false;
         if (story.getColumnId() != null) {
             fr.uha.ensisa.gl.entities.Column column = repoFactory.getColumnRepo().find(story.getColumnId());
@@ -289,24 +277,24 @@ public class StoryController {
         
         System.out.println("[DEBUG] Checking if in default column: " + inDefaultColumn);
         
-        // Only allow status change if NOT in default column
+        //permet le changement de status seulement si PAS dans une colonne par défaut
         if (!inDefaultColumn && status != null && !status.isEmpty()) {
             System.out.println("[DEBUG] Updating status to: " + status);
             try {
                 story.setStatus(StoryStatus.valueOf(status));
             } catch (IllegalArgumentException e) {
                 System.out.println("[DEBUG] Invalid status value: " + status);
-                // Invalid status, keep current status
+                //status invalide, on garde le status actuel
             }
         }
         
         System.out.println("[DEBUG] About to persist story - ID: " + story.getId() + ", UserAssigned: " + (story.getUserAssigned() != null ? story.getUserAssigned().getName() : "NULL"));
-        // MUST call persist() to ensure changes are saved
-        // Even though in-memory objects are references, persist() ensures consistency
+        //il faut appeler persist() pour sauvegarder les changements
+        //même si les objets en mémoire sont des références, persist() assure la cohérence
         repoFactory.getStoryRepo().persist(story);
         System.out.println("[DEBUG] Story persisted successfully");
         
-        // Rediriger vers le board si la story a un projectId
+        //redirige vers le board si la story a un projectId
         if (story.getProjectId() != null) {
             System.out.println("[DEBUG] Redirecting to /board/" + story.getProjectId());
             return "redirect:/board/" + story.getProjectId();
@@ -315,9 +303,7 @@ public class StoryController {
         return "redirect:/story/" + id;
     }
     
-    /**
-     * Supprime une story
-     */
+    //supprime une story
     @PostMapping("/{id}/delete")
     public String deleteStory(@PathVariable("id") Long id) {
         Story story = repoFactory.getStoryRepo().find(id);
@@ -325,17 +311,15 @@ public class StoryController {
         
         repoFactory.getStoryRepo().remove(id);
         
-        // Redirect to project board if story had a project, otherwise to home
+        //redirige vers le board du projet si la story avait un projet, sinon vers home
         if (projectId != null) {
             return "redirect:/board/" + projectId;
         }
-        // When no project is associated, show the stories list (integration tests expect this)
+        //quand pas de projet associé, affiche la liste des stories (les tests d'intégration s'y attendent)
         return "redirect:/story/list";
     }
     
-    /**
-     * Assigne une story à un utilisateur
-     */
+    //assigne une story à un utilisateur
     @GetMapping("/{id}/assign")
     public String assignStory(
         @PathVariable("id") Long id,
@@ -346,17 +330,17 @@ public class StoryController {
         System.out.println("[DEBUG] Found story: " + (story != null ? "ID=" + story.getId() : "NULL"));
         
         if (story != null) {
-            // Find user by ID
+            //trouve l'utilisateur par ID
             fr.uha.ensisa.gl.entities.User user = repoFactory.getUserRepo().find(userId);
             System.out.println("[DEBUG] Found user: " + (user != null ? user.getName() + " (ID=" + user.getId() + ")" : "NULL"));
             if (user != null) {
                 story.setUserAssigned(user);
                 System.out.println("[DEBUG] Before persist - Story ID: " + story.getId() + ", UserAssigned: " + (story.getUserAssigned() != null ? story.getUserAssigned().getName() : "NULL"));
-                repoFactory.getStoryRepo().persist(story); // SAVE THE CHANGES!
+                repoFactory.getStoryRepo().persist(story); //sauvegarde les changements!
                 System.out.println("[DEBUG] After persist - Story saved successfully");
             }
             
-            // Redirect to project board if story has a project
+            //redirige vers le board du projet si la story a un projet
             if (story.getProjectId() != null) {
                 System.out.println("[DEBUG] Redirecting to /board/" + story.getProjectId());
                 return "redirect:/board/" + story.getProjectId();
@@ -367,18 +351,16 @@ public class StoryController {
         return "redirect:/";
     }
     
-    /**
-     * Désassigne une story d'un utilisateur
-     */
+    //désassigne une story d'un utilisateur
     @GetMapping("/{id}/unassign")
     public String unassignStory(@PathVariable("id") Long id) {
         Story story = repoFactory.getStoryRepo().find(id);
         
         if (story != null) {
             story.setUserAssigned(null);
-            repoFactory.getStoryRepo().persist(story); // SAVE THE CHANGES!
+            repoFactory.getStoryRepo().persist(story); //sauvegarde les changements!
             
-            // Redirect to project board if story has a project
+            //redirige vers le board du projet si la story a un projet
             if (story.getProjectId() != null) {
                 return "redirect:/board/" + story.getProjectId();
             }
@@ -406,20 +388,20 @@ public class StoryController {
                             @RequestParam(required = false, defaultValue = "0") int minutes,
                             @RequestParam(required = false) String comment,
                             @RequestParam(required = false, defaultValue = "1") Long userId) {
-        // Calculate total duration in minutes
+        //calcule la durée totale en minutes
         long totalMinutes = (days * 24 * 60) + (hours * 60) + minutes;
         
         if (totalMinutes <= 0) {
             return "redirect:/story/" + id + "?error=Duration must be greater than 0";
         }
         
-        // Limit comment to 120 characters
+        //limite le commentaire à 45 caractères
         if (comment != null && comment.length() > 45) {
             comment = comment.substring(0, 45);
         }
         
         WorkLog workLog = new WorkLog();
-        workLog.setId(System.currentTimeMillis()); // Simple ID generation
+        workLog.setId(System.currentTimeMillis()); //génération simple d'ID
         workLog.setStart(LocalDateTime.now().minus(totalMinutes, ChronoUnit.MINUTES));
         workLog.setEnd(LocalDateTime.now());
         workLog.setDuration(totalMinutes);
