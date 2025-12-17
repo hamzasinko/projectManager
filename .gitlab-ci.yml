@@ -251,7 +251,7 @@ pages:
     - mv target/site public
   artifacts:
     paths:
-      - public
+      - target/site/
   rules:
     - if: '$CI_COMMIT_REF_NAME == "main"'
     - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'
