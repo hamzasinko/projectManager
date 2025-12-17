@@ -15,6 +15,7 @@ stages:
   - static-analysis
   - integration-test
   - deploy
+  - run
 
 # ============================
 # 1️⃣ BUILD
@@ -31,7 +32,7 @@ build:
       - project-repomem/target/*.jar
 
 # ============================
-# 2️⃣ UNIT TESTS (Mockito)
+# 2️⃣ UNIT TESTS
 # ============================
 unit-test:
   stage: unit-test
@@ -42,6 +43,10 @@ unit-test:
     reports:
       junit:
         - "**/target/surefire-reports/TEST-*.xml"
+
+# ============================
+# 3️⃣ STATIC ANALYSIS (SpotBugs)
+# ============================
 static-analysis:
   stage: static-analysis
   script:
@@ -52,7 +57,7 @@ static-analysis:
       - "**/target/spotbugsXml.xml"
 
 # ============================
-# 3️⃣ INTEGRATION TESTS (Selenium)
+# 4️⃣ INTEGRATION TESTS
 # ============================
 integration-test:
   stage: integration-test
@@ -74,11 +79,10 @@ integration-test:
     expire_in: 1 hour
 
 # ============================
-# 4️⃣ DEPLOY (Docker via Kaniko)
+# 5️⃣ DOCKER BUILD (KANIKO)
 # ============================
 deploy-docker:
   stage: deploy
-
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
@@ -105,27 +109,26 @@ deploy-docker:
     - /kaniko/executor --cleanup --context $CI_PROJECT_DIR --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME"
 
 # ============================
-# 5️⃣ DEPLOY STAGING (Kubernetes)
+# 6️⃣ RUN (KUBERNETES – PROF)
 # ============================
 .kubernetes: &kubernetes
-  stage: deploy
+  stage: run
   image: docker-private.cluster.ensisa.uha.fr/docker/kubectl
   script:
-    # Setup kubectl
     - kubectl config set-cluster k8s --server="${K8S_SERVER}" --certificate-authority=${K8S_CERTIFICATE_AUTHORITY}
     - kubectl config set-credentials gitlab-ci --token="${K8S_USER_TOKEN}"
     - kubectl config set-context default --cluster=k8s --user=gitlab-ci
     - kubectl config use-context default
 
-    # Variables et Environnement
-    - APP_NAME=$(echo "${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}" | tr '[:upper:]' '[:lower:]')
+    - APP_NAME="${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}"
     - NAMESPACE="gitlab-cd-${ENV}"
-    - echo "DYNAMIC_URL=https://${ENV}.cluster.ensisa.uha.fr/" > deploy.env
 
-    # Secret pour tirer l'image Docker
-    - kubectl -n ${NAMESPACE} create secret docker-registry $APP_NAME-registry-secret --docker-server=${CI_REGISTRY} --docker-username=${CI_DEPLOY_USER} --docker-password=${CI_DEPLOY_PASSWORD} --dry-run=client -o yaml | kubectl -n ${NAMESPACE} apply -f -
+    - kubectl -n ${NAMESPACE} create secret docker-registry $APP_NAME-registry-secret \
+      --docker-server=${CI_REGISTRY} \
+      --docker-username=${CI_DEPLOY_USER} \
+      --docker-password=${CI_DEPLOY_PASSWORD} \
+      --dry-run -o yaml | kubectl -n ${NAMESPACE} apply -f -
 
-    # Génération du fichier app.yml
     - |
       echo "
       apiVersion: apps/v1
@@ -146,12 +149,9 @@ deploy-docker:
               app: $APP_NAME
           spec:
             containers:
-              - image: \"$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME\"
+              - image: \"$CI_REGISTRY_IMAGE:${CI_COMMIT_TAG:-latest}\"
                 imagePullPolicy: Always
                 name: $APP_NAME
-                env:
-                  - name: SERVER_PORT
-                    value: '8080'
                 ports:
                   - name: http
                     containerPort: 8080
@@ -185,7 +185,7 @@ deploy-docker:
         - host: ${ENV}.cluster.ensisa.uha.fr
           http:
             paths:
-            - path: /
+            - path: /$APP_NAME
               pathType: Prefix
               backend:
                 service:
@@ -194,28 +194,15 @@ deploy-docker:
                     number: 80
       " > app.yml
 
-    # Debug et Application
     - cat app.yml
     - kubectl ${ACTION} -f app.yml
     - kubectl -n $NAMESPACE rollout restart deployment $APP_NAME 2>/dev/null || /bin/true
-    - echo "=== ATTENTE DE 10s POUR LE DEMARRAGE ==="
-    - sleep 10
-    - echo "=== ETAT DES PODS ==="
-    - kubectl -n $NAMESPACE get pods
-    - echo "=== LOGS DE L'APPLICATION ==="
-    - kubectl -n $NAMESPACE logs -l app=$APP_NAME --tail=100 --all-containers=true || echo "Pas de logs disponibles"
 
-  artifacts:
-    reports:
-      dotenv: deploy.env
-
-deploy-staging:
+run-staging:
   <<: *kubernetes
   variables:
     ENV: staging
     ACTION: apply
   environment:
     name: staging
-    url: $DYNAMIC_URL
-  rules:
-    - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'
+    url: https://staging.cluster.ensisa.uha.fr/${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}
