@@ -203,3 +203,54 @@ run-staging:
   environment:
     name: staging
     url: https://staging.cluster.ensisa.uha.fr/${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}
+deploy-prod:
+  <<: *kubernetes
+  variables:
+    ENV: prod
+    ACTION: apply
+  environment:
+    name: production
+    url: $DYNAMIC_URL
+    on_stop: stop-prod
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+      when: manual
+
+stop-staging:
+  <<: *kubernetes
+  variables:
+    ENV: staging
+    ACTION: delete
+  when: manual
+  environment:
+    name: staging
+    action: stop
+  rules:
+    - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'
+      when: manual
+
+stop-prod:
+  <<: *kubernetes
+  variables:
+    ENV: prod
+    ACTION: delete
+  when: manual
+  environment:
+    name: production
+    action: stop
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+      when: manual
+
+pages:
+  stage: deploy
+  script:
+    - mvn $MAVEN_CLI_OPTS site site:stage
+    - mv target/staging public
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+    - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'
+
