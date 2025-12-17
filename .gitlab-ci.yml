@@ -6,7 +6,7 @@ variables:
 cache:
   key: default-cache
   paths:
-    - libs
+    - tarnished/libs
     - "**/target"
 
 stages:
@@ -104,7 +104,7 @@ deploy-docker:
     - |
       echo "FROM jetty:9.4-jre17
       EXPOSE 8080
-      ADD $WARFILE /var/lib/jetty/webapps/ROOT.war" > Dockerfile
+      ADD myapp.war /var/lib/jetty/webapps/ROOT.war" > Dockerfile
 
     - /kaniko/executor --cleanup --context $CI_PROJECT_DIR --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME"
 
@@ -182,7 +182,7 @@ deploy-docker:
         - host: ${ENV}.cluster.ensisa.uha.fr
           http:
             paths:
-            - path: /$APP_NAME
+            - path: /
               pathType: Prefix
               backend:
                 service:
@@ -251,7 +251,7 @@ pages:
     - mv target/site public
   artifacts:
     paths:
-      - target/site/
+      - public
   rules:
     - if: '$CI_COMMIT_REF_NAME == "main"'
     - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'
