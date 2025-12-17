@@ -109,7 +109,7 @@ deploy-docker:
     - /kaniko/executor --cleanup --context $CI_PROJECT_DIR --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME"
 
 # ============================
-# 6️⃣ RUN (KUBERNETES – PROF)
+# 6️⃣ RUN (KUBERNETES )
 # ============================
 .kubernetes: &kubernetes
   stage: run
@@ -245,6 +245,7 @@ stop-prod:
 pages:
   stage: deploy
   script:
+    - cd tarnished
     - mvn $MAVEN_CLI_OPTS site site:stage
     - mv target/staging public
   artifacts:
