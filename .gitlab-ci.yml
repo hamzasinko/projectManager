@@ -4,10 +4,9 @@ variables:
   MAVEN_CLI_OPTS: "--batch-mode -Dmaven.repo.local=libs"
 
 cache:
-  key: default-cache
+  key: maven-cache
   paths:
     - libs
-    - "**/target"
 
 stages:
   - build
@@ -27,14 +26,15 @@ build:
     - mvn clean install -DskipTests -DskipITs
   artifacts:
     paths:
-      - project-app/target/*.war
-      - project-model/target/*.jar
-      - project-repomem/target/*.jar
+      - tarnished/project-app/target/*.war
+      - tarnished/project-model/target/*.jar
+      - tarnished/project-repomem/target/*.jar
 
 # ============================
 # 2️⃣ UNIT TESTS
 # ============================
 unit-test:
+  needs: [build]
   stage: unit-test
   script:
     - cd tarnished
@@ -48,10 +48,11 @@ unit-test:
 # 3️⃣ STATIC ANALYSIS (SpotBugs)
 # ============================
 static-analysis:
+  needs: [build]
   stage: static-analysis
   script:
     - cd tarnished
-    - mvn $MAVEN_CLI_OPTS install -DskipTests -Djacoco.skip=true spotbugs:spotbugs
+    - mvn $MAVEN_CLI_OPTS install -DskipTests -Djacoco.skip=true spotbugs:check
   artifacts:
     paths:
       - "**/target/spotbugsXml.xml"
@@ -67,7 +68,6 @@ integration-test:
     - export CHROME_BIN="$(command -v chromium-browser || command -v chromium || true)"
     - echo "Using CHROME_BIN=${CHROME_BIN}"
     - cd tarnished
-    - mvn $MAVEN_CLI_OPTS clean install -DskipTests
     - mvn $MAVEN_CLI_OPTS verify -f project-app/ -Dsurefire.skip=true -Dselenium.remote.browser=false -Dservlet.port=8080
   artifacts:
     reports:
@@ -109,7 +109,7 @@ deploy-docker:
     - /kaniko/executor --cleanup --context $CI_PROJECT_DIR --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME"
 
 # ============================
-# 6️⃣ RUN (KUBERNETES )
+# 6️⃣ RUN (KUBERNETES – PROF)
 # ============================
 .kubernetes: &kubernetes
   stage: run
@@ -146,7 +146,7 @@ deploy-docker:
               app: $APP_NAME
           spec:
             containers:
-              - image: \"$CI_REGISTRY_IMAGE:${CI_COMMIT_TAG:-latest}\"
+              - image: \"$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME\"
                 imagePullPolicy: Always
                 name: $APP_NAME
                 ports:
@@ -182,7 +182,7 @@ deploy-docker:
         - host: ${ENV}.cluster.ensisa.uha.fr
           http:
             paths:
-            - path: /$APP_NAME
+            - path: /
               pathType: Prefix
               backend:
                 service:
@@ -203,55 +203,3 @@ run-staging:
   environment:
     name: staging
     url: https://staging.cluster.ensisa.uha.fr/${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}
-deploy-prod:
-  <<: *kubernetes
-  variables:
-    ENV: prod
-    ACTION: apply
-  environment:
-    name: production
-    url: $DYNAMIC_URL
-    on_stop: stop-prod
-  rules:
-    - if: '$CI_COMMIT_REF_NAME == "main"'
-      when: manual
-
-stop-staging:
-  <<: *kubernetes
-  variables:
-    ENV: staging
-    ACTION: delete
-  when: manual
-  environment:
-    name: staging
-    action: stop
-  rules:
-    - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'
-      when: manual
-
-stop-prod:
-  <<: *kubernetes
-  variables:
-    ENV: prod
-    ACTION: delete
-  when: manual
-  environment:
-    name: production
-    action: stop
-  rules:
-    - if: '$CI_COMMIT_REF_NAME == "main"'
-      when: manual
-
-pages:
-  stage: deploy
-  script:
-    - cd tarnished
-    - mvn $MAVEN_CLI_OPTS site site:stage
-    - mv target/staging public
-  artifacts:
-    paths:
-      - public
-  rules:
-    - if: '$CI_COMMIT_REF_NAME == "main"'
-    - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'
-
