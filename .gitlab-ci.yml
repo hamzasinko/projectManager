@@ -27,9 +27,9 @@ build:
     - mvn clean install -DskipTests -DskipITs
   artifacts:
     paths:
-      - project-app/target/*.war
-      - project-model/target/*.jar
-      - project-repomem/target/*.jar
+      - tarnished/project-app/target/*.war
+      - tarnished/project-model/target/*.jar
+      - tarnished/project-repomem/target/*.jar
 
 # ============================
 # 2️⃣ UNIT TESTS
@@ -96,7 +96,7 @@ deploy-docker:
     - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'
 
   script:
-    - WARFILE="tarnished/project-app/target/project-app.war"
+    - WARFILE=$(find tarnished/project-app/target -name "*.war" | head -n 1)
     - if [ -z "$WARFILE" ]; then echo "❌ Aucun WAR trouvé !"; exit 1; fi
 
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
@@ -106,7 +106,7 @@ deploy-docker:
       EXPOSE 8080
       ADD myapp.war /var/lib/jetty/webapps/ROOT.war" > Dockerfile
 
-    - /kaniko/executor --cleanup --no-push-cache --context $CI_PROJECT_DIR --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME"
+    - /kaniko/executor --cleanup --context $CI_PROJECT_DIR --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME"
 
 # ============================
 # 6️⃣ RUN (KUBERNETES )
@@ -146,7 +146,7 @@ deploy-docker:
               app: $APP_NAME
           spec:
             containers:
-              - image: \"$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA\"
+              - image: \"$CI_REGISTRY_IMAGE:${CI_COMMIT_TAG:-latest}\"
                 imagePullPolicy: Always
                 name: $APP_NAME
                 ports:
@@ -256,5 +256,3 @@ pages:
   rules:
     - if: '$CI_COMMIT_REF_NAME == "main"'
     - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'
-
-
