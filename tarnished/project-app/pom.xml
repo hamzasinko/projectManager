@@ -15,7 +15,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>17</java.version>
-        <servlet.port>8090</servlet.port>
+        <servlet.port>8080</servlet.port>
         <jetty.stop.port>9000</jetty.stop.port>
         <spring.version>5.3.39</spring.version>
         <maven.compiler.target>${java.version}</maven.compiler.target>
