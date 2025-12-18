@@ -510,6 +510,8 @@
         }
         
         function moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn = null, swimlaneId = null) {
+            const baseMoveUrl = /*[[@{/board/}]]*/ '';
+
             //vérifier que l'élément existe
             if (!movedStoryElement) {
                 console.error('movedStoryElement is null');
@@ -529,7 +531,7 @@
                     formData.append('swimlaneId', swimlaneId);
                 }
                 
-                fetch('/board/' + projectId + '/update-subcolumn', {
+                fetch(baseMoveUrl + projectId + '/update-subcolumn', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: formData
@@ -554,7 +556,7 @@
             }
             if (swimlaneId) formData.append('swimlaneId', swimlaneId);
 
-            fetch('/board/' + projectId + '/move-story', {
+            fetch(baseMoveUrl + projectId + '/move-story', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -625,6 +627,8 @@
 
         function saveStoryOrder(columnId) {
             const columnElement = document.querySelector(`[data-column-id="${columnId}"]`);
+            const baseSaveUrl = /*[[@{/story/new}]]*/ '';
+
             if (!columnElement) return;
             
             const storyCards = columnElement.querySelectorAll('.story-card');
@@ -636,7 +640,7 @@
             formData.append('columnId', columnId);
             formData.append('storyOrder', storyIds.join(','));
             
-            fetch('/board/' + projectId + '/reorder-stories', {
+            fetch(baseSaveUrl + projectId + '/reorder-stories', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -759,6 +763,7 @@
         function saveColumnOrder() {
             const columns = document.querySelectorAll('.kanban-column[data-column-id]');
             const columnIds = Array.from(columns).map(col => col.dataset.columnId);
+            const baseSaveUrl = /*[[@{/story/new}]]*/ '';
             
             if (columnIds.length === 0) return;
 
@@ -785,7 +790,7 @@
             const formData = new URLSearchParams();
             formData.append('columnOrder', columnIds.join(','));
 
-            fetch('/board/' + projectId + '/reorder-columns', {
+            fetch(baseSaveUrl + projectId + '/reorder-columns', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
