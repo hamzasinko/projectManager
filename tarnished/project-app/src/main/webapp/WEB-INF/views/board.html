@@ -232,7 +232,7 @@
         </div>
     </div>
 
-    <script>
+    <script th:inline="javascript">
         function formatDuration(minutes) {
             if (minutes < 60) {
                 return minutes + ' min';
@@ -805,8 +805,8 @@
 
         function addStoryToColumn(projectIdParam, columnId, swimlaneId = null) {
             console.log('[DEBUG] addStoryToColumn called - projectId:', projectIdParam, 'columnId:', columnId, 'swimlaneId:', swimlaneId);
-            const baseAddUrl = /*[[@{/}]]*/ '';
-            let url = baseAddUrl+'story/new?projectId=' + projectIdParam + '&columnId=' + columnId;
+            const baseAddUrl = /*[[@{/story/new}]]*/ '';
+            let url = baseAddUrl+'?projectId=' + projectIdParam + '&columnId=' + columnId;
 
             if (swimlaneId !== null) {
                 url += '&swimlaneId=' + swimlaneId;
