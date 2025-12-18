@@ -805,8 +805,8 @@
 
         function addStoryToColumn(projectIdParam, columnId, swimlaneId = null) {
             console.log('[DEBUG] addStoryToColumn called - projectId:', projectIdParam, 'columnId:', columnId, 'swimlaneId:', swimlaneId);
-
-            let url = '/story/new?projectId=' + projectIdParam + '&columnId=' + columnId;
+            const baseAddUrl = /*[[@{/}]]*/ '';
+            let url = baseAddUrl+'story/new?projectId=' + projectIdParam + '&columnId=' + columnId;
 
             if (swimlaneId !== null) {
                 url += '&swimlaneId=' + swimlaneId;
@@ -855,6 +855,7 @@
         }
         
         function confirmEditColumn() {
+            const baseEditUrl = /*[[@{/board/}]]*/ '';
             if (!columnToEdit) return;
             
             const newName = document.getElementById('editColumnName').value.trim();
@@ -889,7 +890,7 @@
             formData.append('newName', newName);
             formData.append('maxCapacity', newCapacity);
 
-            fetch('/board/' + projectId + '/update-column-full', {
+            fetch(baseEditUrl + projectId + '/update-column-full', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -977,13 +978,14 @@
         function deleteColumn(button) {
             const columnId = button.getAttribute('data-column-id');
             const storyCount = parseInt(button.getAttribute('data-story-count'));
+            const baseDeleteUrl = /*[[@{/board/}]]*/ '';
             
             if (storyCount === 0) {
                 //empty column - direct deletion
                 if (confirm('Are you sure you want to delete this column?')) {
                     const form = document.createElement('form');
                     form.method = 'POST';
-                    form.action = '/board/' + projectId + '/delete-column/' + columnId;
+                    form.action = baseDeleteUrl + projectId + '/delete-column/' + columnId;
                     document.body.appendChild(form);
                     form.submit();
                 }
@@ -1028,6 +1030,7 @@
         
         function confirmDeleteColumn() {
             const action = document.querySelector('input[name="deleteAction"]:checked').value;
+            const baseDeleteUrl = /*[[@{/board/}]]*/ '';
             
             if (action === 'moveStories') {
                 const targetColumnId = document.getElementById('targetColumnSelect').value;
@@ -1037,7 +1040,7 @@
                 }
                 
                 //move stories then delete column
-                fetch('/board/' + projectId + '/move-all-stories', {
+                fetch(baseDeleteUrl + projectId + '/move-all-stories', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: 'fromColumnId=' + columnToDelete.id + '&toColumnId=' + targetColumnId
@@ -1047,7 +1050,7 @@
                         //now delete the column
                         const form = document.createElement('form');
                         form.method = 'POST';
-                        form.action = '/board/' + projectId + '/delete-column/' + columnToDelete.id;
+                        form.action = baseDeleteUrl + projectId + '/delete-column/' + columnToDelete.id;
                         document.body.appendChild(form);
                         form.submit();
                     } else {
@@ -1059,7 +1062,7 @@
                 });
             } else {
                 //delete stories then delete column
-                fetch('/board/' + projectId + '/delete-column-with-stories/' + columnToDelete.id, {
+                fetch(baseDeleteUrl + projectId + '/delete-column-with-stories/' + columnToDelete.id, {
                     method: 'POST'
                 })
                 .then(response => {
