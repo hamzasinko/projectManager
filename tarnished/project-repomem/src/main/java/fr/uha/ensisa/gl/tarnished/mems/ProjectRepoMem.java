@@ -44,9 +44,9 @@ public class ProjectRepoMem implements ProjectRepo {
             column.setPosition(i + 1);
             column.setMaxCapacity(0); //pas de limite par défaut
             
-            //les colonnes par défaut sauf BACKLOG et DONE ont des sous-colonnes
+            //les colonnes par défaut sauf BACKLOG, DONE et BLOCKED ont des sous-colonnes
             String name = defaultColumns[i];
-            column.setHasSubColumns(!name.equals("BACKLOG") && !name.equals("DONE"));
+            column.setHasSubColumns(!name.equals("BACKLOG") && !name.equals("DONE") && !name.equals("BLOCKED"));
             
             columnRepo.persist(column);
         }

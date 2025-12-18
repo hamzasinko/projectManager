@@ -1545,7 +1545,7 @@ public class BoardControllerTest {
     }
 
     @Test
-    @DisplayName("showBoard should set hasSubColumns for BLOCKED column")
+    @DisplayName("showBoard should NOT set hasSubColumns for BLOCKED column")
     void testShowBoardSetsHasSubColumnsForBlocked() {
         Long projectId = 1L;
 
@@ -1565,8 +1565,9 @@ public class BoardControllerTest {
         ModelAndView mav = controller.showBoard(projectId);
 
         assertNotNull(mav);
-        verify(columnRepo).persist(blockedColumn);
-        assertTrue(blockedColumn.isHasSubColumns());
+        // BLOCKED should NOT have sub-columns, so persist should NOT be called
+        verify(columnRepo, never()).persist(blockedColumn);
+        assertFalse(blockedColumn.isHasSubColumns());
     }
 
     @Test

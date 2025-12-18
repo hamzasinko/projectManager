@@ -263,7 +263,10 @@
         
         // Auto-scroll functionality
         function autoScroll(ev) {
-            const container = document.getElementById('kanban-container');
+            // Trouver le conteneur kanban le plus proche
+            const container = ev.target.closest('.kanban-container') || document.querySelector('.kanban-container');
+            if (!container) return;
+            
             const scrollSpeed = 15;
             const edgeSize = 100;
             
@@ -683,10 +686,12 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            const container = document.getElementById('kanban-container');
+            // Gérer tous les conteneurs kanban (pour le mode swimlanes)
+            const containers = document.querySelectorAll('.kanban-container');
             
-            // Track mouse position for auto-scroll
-            container.addEventListener('dragover', function(ev) {
+            containers.forEach(function(container) {
+                // Track mouse position for auto-scroll
+                container.addEventListener('dragover', function(ev) {
                 window.lastDragEvent = ev;
                 
                 if (draggedColumn && !draggedStory) {
@@ -715,17 +720,18 @@
                 }
             });
 
-            container.addEventListener('dragend', function(ev) {
-                if (draggedColumn) {
-                    draggedColumn.classList.remove('dragging');
-                    saveColumnOrder();
-                    draggedColumn = null;
-                }
-                if (draggedStory) {
-                    draggedStory.style.opacity = '1';
-                    clearInterval(autoScrollInterval);
-                    draggedStory = null;
-                }
+                container.addEventListener('dragend', function(ev) {
+                    if (draggedColumn) {
+                        draggedColumn.classList.remove('dragging');
+                        saveColumnOrder();
+                        draggedColumn = null;
+                    }
+                    if (draggedStory) {
+                        draggedStory.style.opacity = '1';
+                        clearInterval(autoScrollInterval);
+                        draggedStory = null;
+                    }
+                });
             });
         });
 
@@ -912,39 +918,52 @@
             });
         }
 
-        function showAddColumnForm() {
-            document.getElementById('addColumnForm').style.display = 'block';
+        function showAddColumnForm(button) {
+            // Trouver le formulaire le plus proche du bouton cliqué
+            const form = button ? button.closest('.kanban-column').querySelector('.add-column-form') : document.querySelector('.add-column-form');
+            if (form) {
+                form.style.display = 'block';
+            }
         }
 
-        function hideAddColumnForm() {
-            document.getElementById('addColumnForm').style.display = 'none';
+        function hideAddColumnForm(button) {
+            // Trouver le formulaire le plus proche du bouton cliqué
+            const form = button ? button.closest('.kanban-column').querySelector('.add-column-form') : document.querySelector('.add-column-form');
+            if (form) {
+                form.style.display = 'none';
+            }
         }
 
         // Afficher automatiquement le formulaire si le paramètre showAddColumn est présent
         window.addEventListener('DOMContentLoaded', function() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('showAddColumn') === 'true') {
-                showAddColumnForm();
-            }
-        });
-
-        // Validation for add column form
-        document.getElementById('addColumnForm').addEventListener('submit', function(e) {
-            const nameInput = this.querySelector('input[name="name"]');
-            const capacityInput = this.querySelector('input[name="maxCapacity"]');
-            
-            if (nameInput.value.length > 25) {
-                e.preventDefault();
-                alert('Column name must not exceed 25 characters!');
-                nameInput.value = nameInput.value.substring(0, 25);
-                nameInput.focus();
-                return false;
+                const firstForm = document.querySelector('.add-column-form');
+                if (firstForm) {
+                    firstForm.style.display = 'block';
+                }
             }
             
-            // Si le champ capacité est vide, le définir à 0 (unlimited)
-            if (capacityInput.value === '' || capacityInput.value === null) {
-                capacityInput.value = '0';
-            }
+            // Validation for all add column forms
+            document.querySelectorAll('.add-column-form').forEach(function(form) {
+                form.addEventListener('submit', function(e) {
+                    const nameInput = this.querySelector('input[name="name"]');
+                    const capacityInput = this.querySelector('input[name="maxCapacity"]');
+                    
+                    if (nameInput.value.length > 25) {
+                        e.preventDefault();
+                        alert('Column name must not exceed 25 characters!');
+                        nameInput.value = nameInput.value.substring(0, 25);
+                        nameInput.focus();
+                        return false;
+                    }
+                    
+                    // Si le champ capacité est vide, le définir à 0 (unlimited)
+                    if (capacityInput.value === '' || capacityInput.value === null) {
+                        capacityInput.value = '0';
+                    }
+                });
+            });
         });
         
         // Show/hide target column select based on radio selection

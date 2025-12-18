@@ -43,13 +43,19 @@ public class BoardController {
         
         //pour chaque colonne on récupère ses stories
         for (Column column : columns) {
-            //on initialise hasSubColumns à true pour les colonnes par défaut sauf BACKLOG et DONE
             String columnName = column.getName().toUpperCase(Locale.ROOT);
+            
+            //on initialise hasSubColumns à true pour les colonnes par défaut sauf BACKLOG, DONE et BLOCKED
             if (!column.isHasSubColumns() && 
                 (columnName.equals("IN PROGRESS") || 
-                 columnName.equals("REVIEW") || 
-                 columnName.equals("BLOCKED"))) {
+                 columnName.equals("REVIEW"))) {
                 column.setHasSubColumns(true);
+                repoFactory.getColumnRepo().persist(column);
+            }
+            
+            //forcer BLOCKED à ne PAS avoir de sous-colonnes (même si elle en avait avant)
+            if (columnName.equals("BLOCKED") && column.isHasSubColumns()) {
+                column.setHasSubColumns(false);
                 repoFactory.getColumnRepo().persist(column);
             }
             

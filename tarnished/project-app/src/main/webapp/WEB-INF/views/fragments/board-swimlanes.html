@@ -31,7 +31,7 @@
         </div>
 
         <!--même container qu'avant-->
-        <div class="kanban-container" id="kanban-container">
+        <div class="kanban-container" th:id="'kanban-container-' + ${lane.id}">
             <!--colonne pour chaque colonne de workflow-->
             <div th:each="column : ${columns}"
                  class="kanban-column"
@@ -74,8 +74,8 @@
                     </div>
                 </div>
 
-                <!--pour BACKLOG et DONE de base: structure simple-->
-                <div th:if="${column.name == 'BACKLOG' or column.name == 'DONE'}" style="flex-grow: 1; display: flex; flex-direction: column;">
+                <!--pour BACKLOG, DONE et BLOCKED de base: structure simple-->
+                <div th:if="${column.name == 'BACKLOG' or column.name == 'DONE' or column.name == 'BLOCKED'}" style="flex-grow: 1; display: flex; flex-direction: column;">
                     <button class="btn btn-outline-secondary btn-sm add-story-btn"
                             th:onclick="'addStoryToColumn(' + ${project.id} + ', ' + ${column.id} + ', ' + ${lane.id} + ')' "
                             title="Add story to this swimlane"
@@ -139,7 +139,7 @@
                 </div>
 
                 <!--pour les colonnes personnalisées sans sous-colonnes-->
-                <div th:if="${column.name != 'BACKLOG' and column.name != 'DONE' and !column.hasSubColumns}"
+                <div th:if="${column.name != 'BACKLOG' and column.name != 'DONE' and column.name != 'BLOCKED' and !column.hasSubColumns}"
                      style="flex-grow: 1; display: flex; flex-direction: column;">
                     <button class="btn btn-outline-secondary btn-sm add-story-btn"
                             th:onclick="'addStoryToColumn(' + ${project.id} + ', ' + ${column.id} + ', ' + ${lane.id} + ')' "
@@ -329,20 +329,20 @@
 
             <!--bouton pour ajouter une nouvelle colonne-->
             <div class="kanban-column" style="background: transparent; border: 2px dashed #dee2e6;">
-                <button class="btn btn-outline-secondary" onclick="showAddColumnForm()">
+                <button class="btn btn-outline-secondary" onclick="showAddColumnForm(this)">
                     + Add Column
                 </button>
 
                 <form th:action="@{'/board/' + ${project.id} + '/add-column'}"
                       method="post"
-                      id="addColumnForm"
+                      class="add-column-form"
                       accept-charset="UTF-8"
                       style="display:none; margin-top: 15px;">
                     <div class="mb-2">
                         <input type="text"
                                id="column_name"
+                               class="form-control form-control-sm column-name-input"
                                name="name"
-                               class="form-control form-control-sm"
                                placeholder="Column Name"
                                maxlength="25"
                                required>
@@ -358,19 +358,18 @@
                     <div class="mb-2 form-check">
                         <input type="checkbox"
                                id="hasSubColumns"
-                               name="hasSubColumns"
                                class="form-check-input"
+                               name="hasSubColumns"
                                value="true"
                                checked>
                         <label class="form-check-label" for="hasSubColumns">
                             Has Sub-Columns (Backlog / Done)
                         </label>
                     </div>
-                        <button type="submit" id="createColumnBtn" class="btn btn-primary btn-sm">Create</button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="hideAddColumnForm()">Cancel</button>
+                    <button type="submit" id="createColumnBtn" class="btn btn-primary btn-sm">Create</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="hideAddColumnForm(this)">Cancel</button>
                 </form>
             </div>
         </div>
-
     </div>
 </div>

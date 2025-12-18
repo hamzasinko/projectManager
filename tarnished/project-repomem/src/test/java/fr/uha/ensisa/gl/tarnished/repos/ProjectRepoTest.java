@@ -150,7 +150,7 @@ public class ProjectRepoTest {
         assertEquals(5, blocked.getPosition());
         assertEquals(0, blocked.getMaxCapacity());
         assertEquals(p, blocked.getProject());
-        assertTrue(blocked.isHasSubColumns());
+        assertFalse(blocked.isHasSubColumns());
     }
     
     @Test
