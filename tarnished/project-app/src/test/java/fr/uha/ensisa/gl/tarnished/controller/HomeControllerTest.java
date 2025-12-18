@@ -42,7 +42,7 @@ public class HomeControllerTest {
 
     @Test
     void testHome() {
-        // Prepare test data
+        //Prepare test data
         List<Project> projects = new ArrayList<>();
         Project project1 = new Project();
         project1.setId(1);
@@ -65,10 +65,10 @@ public class HomeControllerTest {
         when(projectRepo.findAll()).thenReturn(projects);
         when(storyRepo.findAll()).thenReturn(stories);
 
-        // Call controller method
+        //Call controller method
         ModelAndView mav = controller.home();
 
-        // Verify
+        //Verify
         assertNotNull(mav);
         assertEquals("home", mav.getViewName());
         assertEquals(projects, mav.getModel().get("projects"));

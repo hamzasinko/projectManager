@@ -850,7 +850,7 @@ public class BoardControllerTest {
         String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null, null);
 
         assertTrue(result.contains("success"));
-        // Status should remain unchanged for custom columns
+        //status should remain unchanged for custom columns
         assertEquals(StoryStatus.BACKLOG, story.getStatus());
         verify(storyRepo).persist(story);
     }
@@ -1565,7 +1565,7 @@ public class BoardControllerTest {
         ModelAndView mav = controller.showBoard(projectId);
 
         assertNotNull(mav);
-        // BLOCKED should NOT have sub-columns, so persist should NOT be called
+        //BLOCKED should NOT have sub-columns, so persist should NOT be called
         verify(columnRepo, never()).persist(blockedColumn);
         assertFalse(blockedColumn.isHasSubColumns());
     }

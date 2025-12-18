@@ -261,9 +261,9 @@
         const projectId = /*[[${project.id}]]*/ '1';
         let columnToDelete = null;
         
-        // Auto-scroll functionality
+        //Auto-scroll functionality
         function autoScroll(ev) {
-            // Trouver le conteneur kanban le plus proche
+            //trouver le conteneur kanban le plus proche
             const container = ev.target.closest('.kanban-container') || document.querySelector('.kanban-container');
             if (!container) return;
             
@@ -313,7 +313,7 @@
             ev.dataTransfer.setData("fromColumnId", columnId);
             storyCard.style.opacity = '0.5';
             
-            // Start auto-scroll
+            //start auto-scroll
             autoScrollInterval = setInterval(() => {
                 if (draggedStory) {
                     const lastEvent = window.lastDragEvent;
@@ -326,9 +326,9 @@
             console.log('[DROP] Called - draggedStory:', draggedStory);
             if (draggedStory) {
                 ev.preventDefault();
-                ev.stopPropagation(); // Empêcher la propagation pour éviter double appel
+                ev.stopPropagation(); //empêcher la propagation pour éviter double appel
                 
-                // Get the column element (might drop on child elements)
+                //get the column element (might drop on child elements)
                 const columnElement = ev.currentTarget.closest('.kanban-column') || ev.currentTarget;
                 columnElement.classList.remove('drag-over');
                 
@@ -350,8 +350,8 @@
                     return;
                 }
 
-                // Toujours appeler moveStoryToColumn, même si même colonne
-                // car il faut repositionner en haut
+                //toujours appeler moveStoryToColumn, même si même colonne
+                //car il faut repositionner en haut
                 moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, null,swimlaneId);
             }
         }
@@ -371,10 +371,10 @@
             
             const target = ev.currentTarget;
             
-            // Check if we dropped on an empty area (column-stories div) or on a story card
+            //check if we dropped on an empty area (column-stories div) or on a story card
             const isEmptyArea = target.classList.contains('column-stories');
             
-            // If dropped in empty area, handle subcolumn change
+            //if dropped in empty area, handle subcolumn change
             if (isEmptyArea) {
                 const targetSubColumn = target.closest('.subcolumn-done') ? 'DONE' : 
                                        target.closest('.subcolumn-backlog') ? 'BACKLOG' : null;
@@ -390,7 +390,7 @@
                 const swimlaneElement = ev.currentTarget.closest('.swimlane-row');
                 const swimlaneId = swimlaneElement ? swimlaneElement.dataset.swimlaneId : null;
                 
-                // If same column but different subcolumn
+                //if same column but different subcolumn
                 if (fromColumnId === toColumnId && targetSubColumn && fromSubColumn !== targetSubColumn) {
                     const storyId = draggedStory.dataset.storyId;
                     clearInterval(autoScrollInterval);
@@ -402,7 +402,7 @@
                     return;
                 }
                 
-                // Different column
+                //different column
                 if (fromColumnId !== toColumnId) {
                     const storyId = draggedStory.dataset.storyId;
                     clearInterval(autoScrollInterval);
@@ -412,11 +412,11 @@
                     return;
                 }
                 
-                // Same column, same subcolumn - just append to end (mais vérifier qu'on ne duplique pas)
-                // Vérifier que la story n'est pas déjà dans cette zone
+                //same column, same subcolumn - just append to end (mais vérifier qu'on ne duplique pas)
+                //vérifier que la story n'est pas déjà dans cette zone
                 const existingInTarget = target.querySelector(`[data-story-id="${draggedStory.dataset.storyId}"]`);
                 if (!existingInTarget || existingInTarget === draggedStory) {
-                    // Remove from current location first to avoid duplication
+                    //remove from current location first to avoid duplication
                     if (draggedStory.parentElement && draggedStory.parentElement !== target) {
                         draggedStory.parentElement.removeChild(draggedStory);
                     }
@@ -429,9 +429,9 @@
                 return;
             }
             
-            // Dropped on a story card
+            //dropped on a story card
             const targetStory = target;
-            if (targetStory === draggedStory) return; // Same story
+            if (targetStory === draggedStory) return; //same story
             
             const columnStories = targetStory.parentElement;
             const columnElement = columnStories.closest('.kanban-column');
@@ -443,13 +443,13 @@
             const swimlaneElement = ev.currentTarget.closest('.swimlane-row');
             const swimlaneId = swimlaneElement ? swimlaneElement.dataset.swimlaneId : null;
             
-            // Detect if dropped in a subcolumn
+            //detect if dropped in a subcolumn
             const targetSubColumn = targetStory.closest('.subcolumn-done') ? 'DONE' : 
                                    targetStory.closest('.subcolumn-backlog') ? 'BACKLOG' : null;
             const fromSubColumn = draggedStory.closest('.subcolumn-done') ? 'DONE' :
                                  draggedStory.closest('.subcolumn-backlog') ? 'BACKLOG' : null;
             
-            // If same column but different subcolumn
+            //if same column but different subcolumn
             if (fromColumnId === toColumnId && targetSubColumn && fromSubColumn !== targetSubColumn) {
                 const storyId = draggedStory.dataset.storyId;
                 clearInterval(autoScrollInterval);
@@ -461,22 +461,22 @@
                 return;
             }
             
-            // Same column and same subcolumn = manual reordering
+            //same column and same subcolumn = manual reordering
             if (fromColumnId === toColumnId) {
-                // Vérifier que la story n'est pas déjà à la bonne position (éviter les duplications)
+                //vérifier que la story n'est pas déjà à la bonne position (éviter les duplications)
                 if (draggedStory.parentElement === columnStories) {
-                    // La story est déjà dans la bonne colonne, juste réordonner
+                    //la story est déjà dans la bonne colonne, juste réordonner
                     const rect = targetStory.getBoundingClientRect();
                     const midpoint = rect.top + rect.height / 2;
                     
-                    // Insert before or after based on mouse position
+                    //insert before or after based on mouse position
                     if (ev.clientY < midpoint) {
                         columnStories.insertBefore(draggedStory, targetStory);
                     } else {
                         columnStories.insertBefore(draggedStory, targetStory.nextSibling);
                     }
                 } else {
-                    // La story vient d'une autre colonne, la déplacer d'abord
+                    //la story vient d'une autre colonne, la déplacer d'abord
                     if (draggedStory.parentElement) {
                         draggedStory.parentElement.removeChild(draggedStory);
                     }
@@ -494,12 +494,12 @@
                 clearInterval(autoScrollInterval);
                 draggedStory = null;
                 
-                // Save the new order
+                //save the new order
                 saveStoryOrder(fromColumnId);
                 return;
             }
             
-            // Different column = move with server call
+            //different column = move with server call
             const storyId = draggedStory.dataset.storyId;
             const movedStoryElement = draggedStory;
             
@@ -510,7 +510,7 @@
         }
         
         function moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn = null, swimlaneId = null) {
-            // Vérifier que l'élément existe
+            //vérifier que l'élément existe
             if (!movedStoryElement) {
                 console.error('movedStoryElement is null');
                 return;
@@ -519,9 +519,9 @@
             clearInterval(autoScrollInterval);
             draggedStory = null;
 
-            // Si même colonne, gérer la sous-colonne et sauvegarder
+            //si même colonne, gérer la sous-colonne et sauvegarder
             if (fromColumnId === toColumnId && targetSubColumn) {
-                // Save subcolumn change
+                //save subcolumn change
                 const formData = new URLSearchParams();
                 formData.append('storyId', storyId);
                 formData.append('subColumn', targetSubColumn);
@@ -537,14 +537,14 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Refresh to show in correct subcolumn
+                        //refresh to show in correct subcolumn
                         window.location.reload();
                     }
                 });
                 return;
             }
 
-            // Move story via AJAX (colonne différente)
+            //move story via AJAX (colonne différente)
             const formData = new URLSearchParams();
             formData.append('storyId', storyId);
             formData.append('fromColumnId', fromColumnId);
@@ -566,20 +566,20 @@
                 if (data.success) {
                     if (movedStoryElement) movedStoryElement.style.opacity = '1';
                     
-                    // Update status badge if server returned new status
+                    //update status badge if server returned new status
                     if (data.newStatus) {
                         const statusBadge = movedStoryElement.querySelector('.status-badge');
                         if (statusBadge) {
-                            // Remove old status classes
+                            //remove old status classes
                             statusBadge.className = 'badge status-badge';
-                            // Add new status class
+                            //add new status class
                             statusBadge.classList.add('status-' + data.newStatus);
-                            // Update text with spaces instead of underscores
+                            //update text with spaces instead of underscores
                             statusBadge.textContent = data.newStatus.replace(/_/g, ' ');
                         }
                     }
                     
-                    // Move the story element in DOM AFTER server confirms
+                    //move the story element in DOM AFTER server confirms
                     let targetColumnStories;
                     if (swimlaneId) {
                         targetColumnStories = document.querySelector(
@@ -590,23 +590,23 @@
                     }
 
                     if (targetColumnStories && movedStoryElement) {
-                        // Vérifier que la story n'est pas déjà dans la colonne cible (éviter les duplications)
+                        //vérifier que la story n'est pas déjà dans la colonne cible (éviter les duplications)
                         const existingStory = targetColumnStories.querySelector(`[data-story-id="${storyId}"]`);
                         if (existingStory && existingStory !== movedStoryElement) {
-                            // La story existe déjà dans la colonne cible, ne pas la dupliquer
+                            //la story existe déjà dans la colonne cible, ne pas la dupliquer
                             console.warn('[DEBUG] Story already exists in target column, removing duplicate');
                             if (movedStoryElement.parentElement) {
                                 movedStoryElement.parentElement.removeChild(movedStoryElement);
                             }
                         } else {
-                            // Remove from current location first
+                            //remove from current location first
                             if (movedStoryElement.parentElement) {
                                 movedStoryElement.parentElement.removeChild(movedStoryElement);
                             }
-                            // Always insert at top (prepend)
+                            //always insert at top (prepend)
                             targetColumnStories.insertBefore(movedStoryElement, targetColumnStories.firstChild);
                         }
-                        // Sauvegarder le nouvel ordre de la colonne de destination
+                        //sauvegarder le nouvel ordre de la colonne de destination
                         saveStoryOrder(toColumnId);
                     }
                     
@@ -672,7 +672,7 @@
             ev.stopPropagation();
             const column = ev.target.closest('.kanban-column');
             if (column && column.dataset.columnId) {
-                // Empêcher le déplacement de BACKLOG
+                //empêcher le déplacement de BACKLOG
                 const columnName = column.querySelector('.column-header span').textContent.trim().toUpperCase();
                 if (columnName === 'BACKLOG') {
                     ev.preventDefault();
@@ -686,11 +686,11 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Gérer tous les conteneurs kanban (pour le mode swimlanes)
+            //gérer tous les conteneurs kanban (pour le mode swimlanes)
             const containers = document.querySelectorAll('.kanban-container');
             
             containers.forEach(function(container) {
-                // Track mouse position for auto-scroll
+                //track mouse position for auto-scroll
                 container.addEventListener('dragover', function(ev) {
                 window.lastDragEvent = ev;
                 
@@ -698,7 +698,7 @@
                     ev.preventDefault();
                     autoScroll(ev);
                     
-                    // Empêcher tout placement avant ou à la place de BACKLOG
+                    //empêcher tout placement avant ou à la place de BACKLOG
                     const backlogColumn = Array.from(container.querySelectorAll('.kanban-column[data-column-id]')).find(col => {
                         const nameEl = col.querySelector('.column-header span');
                         return nameEl && nameEl.textContent.trim().toUpperCase() === 'BACKLOG';
@@ -706,7 +706,7 @@
                     
                     const afterElement = getDragAfterElement(container, ev.clientX);
                     
-                    // Si afterElement est BACKLOG, ne pas bouger
+                    //si afterElement est BACKLOG, ne pas bouger
                     if (afterElement === backlogColumn) {
                         return;
                     }
@@ -736,7 +736,7 @@
         });
 
         function getDragAfterElement(container, x) {
-            // Filtrer BACKLOG des éléments draggables pour qu'on ne puisse jamais se positionner avant
+            //filtrer BACKLOG des éléments draggables pour qu'on ne puisse jamais se positionner avant
             const draggableElements = [...container.querySelectorAll('.kanban-column:not(.dragging)')].filter(el => {
                 if (!el.dataset.columnId) return false;
                 const nameEl = el.querySelector('.column-header span');
@@ -762,7 +762,7 @@
             
             if (columnIds.length === 0) return;
 
-            // Ensure BACKLOG column stays first (leftmost)
+            //ensure BACKLOG column stays first (leftmost)
             try {
                 let backlogId = null;
                 columns.forEach(col => {
@@ -824,20 +824,20 @@
             
             console.log('[DEBUG] Edit column - ID:', columnId, 'Name:', currentName, 'Capacity:', currentCapacity);
             
-            // Vérifier si c'est BACKLOG ou DONE
+            //vérifier si c'est BACKLOG ou DONE
             const isBacklogOrDone = currentName.toUpperCase() === 'BACKLOG' || currentName.toUpperCase() === 'DONE';
             
-            // Stocker les infos de la colonne à éditer
+            //stocker les infos de la colonne à éditer
             columnToEdit = {
                 id: columnId,
                 isBacklogOrDone: isBacklogOrDone
             };
             
-            // Remplir le formulaire du modal
+            //remplir le formulaire du modal
             document.getElementById('editColumnName').value = currentName;
             document.getElementById('editColumnCapacity').value = currentCapacity;
             
-            // Afficher/masquer le champ capacité selon le type de colonne
+            //afficher/masquer le champ capacité selon le type de colonne
             const capacityContainer = document.getElementById('editCapacityContainer');
             if (isBacklogOrDone) {
                 capacityContainer.style.display = 'none';
@@ -845,7 +845,7 @@
                 capacityContainer.style.display = 'block';
             }
             
-            // Afficher le modal
+            //afficher le modal
             document.getElementById('editColumnModal').style.display = 'block';
         }
         
@@ -860,7 +860,7 @@
             const newName = document.getElementById('editColumnName').value.trim();
             let newCapacity = '0';
             
-            // Validation du nom
+            //validation du nom
             if (!newName || newName.length === 0) {
                 alert('Column name is required!');
                 return;
@@ -872,7 +872,7 @@
                 return;
             }
             
-            // Récupérer la capacité seulement si ce n'est pas BACKLOG/DONE
+            //récupérer la capacité seulement si ce n'est pas BACKLOG/DONE
             if (!columnToEdit.isBacklogOrDone) {
                 newCapacity = document.getElementById('editColumnCapacity').value || '0';
                 if (isNaN(newCapacity) || parseInt(newCapacity) < 0) {
@@ -905,7 +905,7 @@
                 const data = JSON.parse(text);
                 if (data.success) {
                     console.log('[DEBUG] Update successful, reloading page');
-                    // Recharger la page pour voir les changements
+                    //recharger la page pour voir les changements
                     window.location.reload();
                 } else {
                     console.error('[DEBUG] Update failed:', data.error);
@@ -919,7 +919,7 @@
         }
 
         function showAddColumnForm(button) {
-            // Trouver le formulaire le plus proche du bouton cliqué
+            //trouver le formulaire le plus proche du bouton cliqué
             const form = button ? button.closest('.kanban-column').querySelector('.add-column-form') : document.querySelector('.add-column-form');
             if (form) {
                 form.style.display = 'block';
@@ -927,14 +927,14 @@
         }
 
         function hideAddColumnForm(button) {
-            // Trouver le formulaire le plus proche du bouton cliqué
+            //trouver le formulaire le plus proche du bouton cliqué
             const form = button ? button.closest('.kanban-column').querySelector('.add-column-form') : document.querySelector('.add-column-form');
             if (form) {
                 form.style.display = 'none';
             }
         }
 
-        // Afficher automatiquement le formulaire si le paramètre showAddColumn est présent
+        //afficher automatiquement le formulaire si le paramètre showAddColumn est présent
         window.addEventListener('DOMContentLoaded', function() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('showAddColumn') === 'true') {
@@ -944,7 +944,7 @@
                 }
             }
             
-            // Validation for all add column forms
+            //validation for all add column forms
             document.querySelectorAll('.add-column-form').forEach(function(form) {
                 form.addEventListener('submit', function(e) {
                     const nameInput = this.querySelector('input[name="name"]');
@@ -958,7 +958,7 @@
                         return false;
                     }
                     
-                    // Si le champ capacité est vide, le définir à 0 (unlimited)
+                    //si le champ capacité est vide, le définir à 0 (unlimited)
                     if (capacityInput.value === '' || capacityInput.value === null) {
                         capacityInput.value = '0';
                     }
@@ -966,7 +966,7 @@
             });
         });
         
-        // Show/hide target column select based on radio selection
+        //show/hide target column select based on radio selection
         document.querySelectorAll('input[name="deleteAction"]').forEach(radio => {
             radio.addEventListener('change', function() {
                 const select = document.getElementById('targetColumnSelect');
@@ -979,7 +979,7 @@
             const storyCount = parseInt(button.getAttribute('data-story-count'));
             
             if (storyCount === 0) {
-                // Empty column - direct deletion
+                //empty column - direct deletion
                 if (confirm('Are you sure you want to delete this column?')) {
                     const form = document.createElement('form');
                     form.method = 'POST';
@@ -990,7 +990,7 @@
                 return;
             }
             
-            // Column has stories - show modal
+            //column has stories - show modal
             columnToDelete = {
                 id: columnId,
                 storyCount: storyCount
@@ -999,11 +999,11 @@
             document.getElementById('deleteColumnMessage').textContent = 
                 'This column contains ' + storyCount + ' story/stories. What would you like to do?';
             
-            // Populate target column select
+            //populate target column select
             const select = document.getElementById('targetColumnSelect');
             select.innerHTML = '<option value="">-- Select a column --</option>';
             
-            // Get all columns except the one being deleted
+            //get all columns except the one being deleted
             document.querySelectorAll('.kanban-column').forEach(col => {
                 const colHeader = col.querySelector('.column-header');
                 if (colHeader) {
@@ -1036,7 +1036,7 @@
                     return;
                 }
                 
-                // Move stories then delete column
+                //move stories then delete column
                 fetch('/board/' + projectId + '/move-all-stories', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -1044,7 +1044,7 @@
                 })
                 .then(response => {
                     if (response.ok) {
-                        // Now delete the column
+                        //now delete the column
                         const form = document.createElement('form');
                         form.method = 'POST';
                         form.action = '/board/' + projectId + '/delete-column/' + columnToDelete.id;
@@ -1058,7 +1058,7 @@
                     alert('Error: ' + error.message);
                 });
             } else {
-                // Delete stories then delete column
+                //delete stories then delete column
                 fetch('/board/' + projectId + '/delete-column-with-stories/' + columnToDelete.id, {
                     method: 'POST'
                 })

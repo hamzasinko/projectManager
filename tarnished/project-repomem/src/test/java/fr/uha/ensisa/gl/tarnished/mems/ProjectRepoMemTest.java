@@ -36,23 +36,23 @@ class ProjectRepoMemTest {
     @Test
     @DisplayName("Should persist project and create default columns")
     void testPersistProject() {
-        // Arrange
+        //Arrange
         Project project = new Project();
         project.setName("Test Project");
         project.setDescription("Test Description");
 
-        // Act
+        //Act
         projectRepo.persist(project);
 
-        // Assert
+        //Assert
         assertEquals(1, project.getId());
         assertNotNull(project.getDateStarted());
         
-        // Verify 5 default columns were created
+        //Verify 5 default columns were created
         ArgumentCaptor<Column> columnCaptor = ArgumentCaptor.forClass(Column.class);
         verify(columnRepo, times(5)).persist(columnCaptor.capture());
 
-        // Verify column names
+        //Verify column names
         var capturedColumns = columnCaptor.getAllValues();
         assertEquals("BACKLOG", capturedColumns.get(0).getName());
         assertEquals("IN PROGRESS", capturedColumns.get(1).getName());
@@ -60,7 +60,7 @@ class ProjectRepoMemTest {
         assertEquals("DONE", capturedColumns.get(3).getName());
         assertEquals("BLOCKED", capturedColumns.get(4).getName());
 
-        // Verify positions
+        //Verify positions
         for (int i = 0; i < 5; i++) {
             assertEquals(i + 1, capturedColumns.get(i).getPosition());
             assertEquals(0, capturedColumns.get(i).getMaxCapacity());
@@ -71,7 +71,7 @@ class ProjectRepoMemTest {
     @Test
     @DisplayName("Should generate incrementing IDs")
     void testIncrementingIds() {
-        // Arrange
+        //Arrange
         Project project1 = new Project();
         project1.setName("Project 1");
 
@@ -81,12 +81,12 @@ class ProjectRepoMemTest {
         Project project3 = new Project();
         project3.setName("Project 3");
 
-        // Act
+        //Act
         projectRepo.persist(project1);
         projectRepo.persist(project2);
         projectRepo.persist(project3);
 
-        // Assert
+        //Assert
         assertEquals(1, project1.getId());
         assertEquals(2, project2.getId());
         assertEquals(3, project3.getId());
@@ -95,15 +95,15 @@ class ProjectRepoMemTest {
     @Test
     @DisplayName("Should find project by ID")
     void testFindProject() {
-        // Arrange
+        //Arrange
         Project project = new Project();
         project.setName("Test Project");
         projectRepo.persist(project);
 
-        // Act
+        //Act
         Project found = projectRepo.find(1L);
 
-        // Assert
+        //Assert
         assertNotNull(found);
         assertEquals(project.getId(), found.getId());
         assertEquals("Test Project", found.getName());
@@ -112,17 +112,17 @@ class ProjectRepoMemTest {
     @Test
     @DisplayName("Should return null when project not found")
     void testFindProjectNotFound() {
-        // Act
+        //Act
         Project found = projectRepo.find(999L);
 
-        // Assert
+        //Assert
         assertNull(found);
     }
 
     @Test
     @DisplayName("Should find all projects")
     void testFindAllProjects() {
-        // Arrange
+        //Arrange
         Project project1 = new Project();
         project1.setName("Project 1");
 
@@ -132,10 +132,10 @@ class ProjectRepoMemTest {
         projectRepo.persist(project1);
         projectRepo.persist(project2);
 
-        // Act
+        //Act
         Collection<Project> projects = projectRepo.findAll();
 
-        // Assert
+        //Assert
         assertEquals(2, projects.size());
         assertTrue(projects.stream().anyMatch(p -> p.getName().equals("Project 1")));
         assertTrue(projects.stream().anyMatch(p -> p.getName().equals("Project 2")));
@@ -144,10 +144,10 @@ class ProjectRepoMemTest {
     @Test
     @DisplayName("Should return empty collection when no projects exist")
     void testFindAllEmpty() {
-        // Act
+        //Act
         Collection<Project> projects = projectRepo.findAll();
 
-        // Assert
+        //Assert
         assertNotNull(projects);
         assertTrue(projects.isEmpty());
     }
@@ -155,19 +155,19 @@ class ProjectRepoMemTest {
     @Test
     @DisplayName("Should update existing project")
     void testUpdateProject() {
-        // Arrange
+        //Arrange
         Project project = new Project();
         project.setName("Original Name");
         projectRepo.persist(project);
 
-        // Act
+        //Act
         project.setName("Updated Name");
         project.setDescription("Updated Description");
         projectRepo.update(project);
 
         Project found = projectRepo.find((long)project.getId());
 
-        // Assert
+        //Assert
         assertNotNull(found);
         assertEquals("Updated Name", found.getName());
         assertEquals("Updated Description", found.getDescription());
@@ -176,7 +176,7 @@ class ProjectRepoMemTest {
     @Test
     @DisplayName("Should remove project")
     void testRemoveProject() {
-        // Arrange
+        //Arrange
         Project project = new Project();
         project.setName("Test Project");
         projectRepo.persist(project);
@@ -184,36 +184,36 @@ class ProjectRepoMemTest {
         long projectId = project.getId();
         assertNotNull(projectRepo.find(projectId));
 
-        // Act
+        //Act
         projectRepo.remove(projectId);
 
-        // Assert
+        //Assert
         assertNull(projectRepo.find(projectId));
     }
 
     @Test
     @DisplayName("Should handle removing non-existent project")
     void testRemoveNonExistentProject() {
-        // Act & Assert - should not throw exception
+        //Act & Assert - should not throw exception
         assertDoesNotThrow(() -> projectRepo.remove(999L));
     }
 
     @Test
     @DisplayName("Should return correct count")
     void testCount() {
-        // Arrange
+        //Arrange
         assertEquals(0, projectRepo.count());
 
         Project project1 = new Project();
         Project project2 = new Project();
         Project project3 = new Project();
 
-        // Act
+        //Act
         projectRepo.persist(project1);
         projectRepo.persist(project2);
         projectRepo.persist(project3);
 
-        // Assert
+        //Assert
         assertEquals(3, projectRepo.count());
 
         projectRepo.remove(2L);
@@ -223,35 +223,35 @@ class ProjectRepoMemTest {
     @Test
     @DisplayName("Should handle setColumnRepo")
     void testSetColumnRepo() {
-        // Arrange
+        //Arrange
         ProjectRepoMem newProjectRepo = new ProjectRepoMem();
         ColumnRepo mockColumnRepo = mock(ColumnRepo.class);
 
-        // Act
+        //Act
         newProjectRepo.setColumnRepo(mockColumnRepo);
         
         Project project = new Project();
         newProjectRepo.persist(project);
 
-        // Assert
+        //Assert
         verify(mockColumnRepo, times(5)).persist(any(Column.class));
     }
 
     @Test
     @DisplayName("Should handle concurrent access")
     void testConcurrentAccess() {
-        // Arrange
+        //Arrange
         Project project1 = new Project();
         project1.setName("Project 1");
 
         Project project2 = new Project();
         project2.setName("Project 2");
 
-        // Act - store is synchronized
+        //Act - store is synchronized
         projectRepo.persist(project1);
         projectRepo.persist(project2);
 
-        // Assert - both should be findable
+        //Assert - both should be findable
         assertNotNull(projectRepo.find(1L));
         assertNotNull(projectRepo.find(2L));
         assertEquals(2, projectRepo.count());

@@ -398,7 +398,7 @@ public class BoardController {
                 return "redirect:/board/" + projectId + "?error=Column not found";
             }
             
-            // Validation du nom
+            //validation du nom
             if (newName == null || newName.trim().isEmpty()) {
                 return "redirect:/board/" + projectId + "?error=Column name cannot be empty";
             }

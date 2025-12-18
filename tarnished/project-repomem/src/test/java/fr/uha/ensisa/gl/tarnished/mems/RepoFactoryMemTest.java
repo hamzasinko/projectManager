@@ -49,7 +49,7 @@ public class RepoFactoryMemTest {
     void testColumnRepoHasStoryRepoInjected() {
         ColumnRepo columnRepo = factory.getColumnRepo();
         assertNotNull(columnRepo);
-        // Verify it's the same instance
+        //Verify it's the same instance
         assertSame(factory.storyRepo, factory.getStoryRepo());
     }
 
@@ -57,7 +57,7 @@ public class RepoFactoryMemTest {
     void testProjectRepoHasColumnRepoInjected() {
         ProjectRepo projectRepo = factory.getProjectRepo();
         assertNotNull(projectRepo);
-        // Verify it's the same instance
+        //Verify it's the same instance
         assertSame(factory.columnRepo, factory.getColumnRepo());
     }
 
@@ -81,21 +81,21 @@ public class RepoFactoryMemTest {
         ColumnRepo columnRepo = factory.getColumnRepo();
         StoryRepo storyRepo = factory.getStoryRepo();
         
-        // Create a story
+        //Create a story
         fr.uha.ensisa.gl.entities.Story story = new fr.uha.ensisa.gl.entities.Story();
         story.setTitle("Test Story");
         storyRepo.persist(story);
         
-        // Create a column and verify it can work with stories
+        //Create a column and verify it can work with stories
         fr.uha.ensisa.gl.entities.Column column = new fr.uha.ensisa.gl.entities.Column();
         column.setName("Test Column");
         column.setMaxCapacity(5);
         columnRepo.persist(column);
         
-        // Move story to column - this requires StoryRepo to be injected
+        //Move story to column - this requires StoryRepo to be injected
         storyRepo.moveToColumn((long) story.getId(), (long) column.getId());
         
-        // Verify the story was moved
+        //Verify the story was moved
         fr.uha.ensisa.gl.entities.Story foundStory = storyRepo.find((long) story.getId());
         assertEquals((long) column.getId(), foundStory.getColumnId());
     }
@@ -105,18 +105,18 @@ public class RepoFactoryMemTest {
         ProjectRepo projectRepo = factory.getProjectRepo();
         ColumnRepo columnRepo = factory.getColumnRepo();
         
-        // Create a project - this should create default columns via ColumnRepo
+        //Create a project - this should create default columns via ColumnRepo
         fr.uha.ensisa.gl.entities.Project project = new fr.uha.ensisa.gl.entities.Project();
         project.setName("Test Project");
         projectRepo.persist(project);
         
-        // Verify the project was created
+        //Verify the project was created
         fr.uha.ensisa.gl.entities.Project foundProject = projectRepo.find(project.getId());
         assertNotNull(foundProject);
         assertEquals("Test Project", foundProject.getName());
         
-        // Verify columns were created (requires ColumnRepo injection)
-        // The default columns should have been created
+        //Verify columns were created (requires ColumnRepo injection)
+        //The default columns should have been created
         java.util.Collection<fr.uha.ensisa.gl.entities.Column> columns = columnRepo.findByProject((long) project.getId());
         assertTrue(columns.size() > 0, "Default columns should have been created");
     }

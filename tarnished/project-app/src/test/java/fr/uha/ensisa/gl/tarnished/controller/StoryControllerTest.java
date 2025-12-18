@@ -52,13 +52,13 @@ public class StoryControllerTest {
     public void setup() {
         MockitoAnnotations.openMocks(this); // Initialise les @Mock
         
-        // Configure le mock pour retourner storyRepo et projectRepo
+        //Configure le mock pour retourner storyRepo et projectRepo
         when(repoFactory.getStoryRepo()).thenReturn(storyRepo);
         when(repoFactory.getProjectRepo()).thenReturn(projectRepo);
         when(repoFactory.getColumnRepo()).thenReturn(columnRepo);
         when(repoFactory.getUserRepo()).thenReturn(userRepo);
 
-        // Crée le controller et injecte le mock
+        //Crée le controller et injecte le mock
         sut = new StoryController();
         sut.repoFactory = repoFactory;
     }
@@ -66,7 +66,7 @@ public class StoryControllerTest {
     @Test
     @DisplayName("showCreateForm should return correct view with projects")
     public void testShowCreateForm() {
-        // Mock projects
+        //Mock projects
         when(projectRepo.findAll()).thenReturn(Arrays.asList(new Project()));
         
         ModelAndView result = sut.showCreateForm(null, null, null);
@@ -86,19 +86,19 @@ public class StoryControllerTest {
         String testDescription = "Test Description";
         Long projectId = 1L;
         
-        // Mock column repository
+        //Mock column repository
         fr.uha.ensisa.gl.tarnished.repos.ColumnRepo columnRepo = mock(fr.uha.ensisa.gl.tarnished.repos.ColumnRepo.class);
         when(repoFactory.getColumnRepo()).thenReturn(columnRepo);
         when(columnRepo.findByProject(projectId)).thenReturn(Arrays.asList());
 
-        // Appelle la méthode
+        //Appelle la méthode
         String redirect = sut.createStory(testTitle, testDescription, projectId, null, null);
 
-        // Vérifie la redirection vers le board du projet
+        //Vérifie la redirection vers le board du projet
         assertEquals("redirect:/board/" + projectId, redirect,
                      "Should redirect to project board");
 
-        // Vérifie que persist a été appelé avec les bons paramètres
+        //Vérifie que persist a été appelé avec les bons paramètres
         ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
         verify(storyRepo).persist(storyCaptor.capture());
 
@@ -135,16 +135,16 @@ public class StoryControllerTest {
         
         String redirect = sut.createStory(testTitle, null, null, null, null);
 
-        // Controller now allows creating a story without a project and redirects to the story list
+        //Controller now allows creating a story without a project and redirects to the story list
         assertEquals("redirect:/story/list", redirect);
-        // Story should have been persisted
+        //Story should have been persisted
         verify(storyRepo).persist(any(Story.class));
     }
     
     @Test
     @DisplayName("listStories should return story-list view")
     public void testListStoriesEmpty() throws IOException {
-        // listStories should return the story-list view with stories model
+        //listStories should return the story-list view with stories model
         org.springframework.web.servlet.ModelAndView result = sut.listStories();
         
         assertNotNull(result);
@@ -155,7 +155,7 @@ public class StoryControllerTest {
     @Test
     @DisplayName("listStories should return story-list view regardless of data")
     public void testListStoriesWithData() throws IOException {
-        // listStories should return the story-list view even when data exists
+        //listStories should return the story-list view even when data exists
         when(repoFactory.getStoryRepo()).thenReturn(storyRepo);
         when(storyRepo.findAll()).thenReturn(Arrays.asList(new Story()));
 
@@ -205,7 +205,7 @@ public class StoryControllerTest {
         String testTitle = "New Story";
         Long projectId = 1L;
 
-        // Mock column repository
+        //Mock column repository
         fr.uha.ensisa.gl.tarnished.repos.ColumnRepo columnRepo = mock(fr.uha.ensisa.gl.tarnished.repos.ColumnRepo.class);
         when(repoFactory.getColumnRepo()).thenReturn(columnRepo);
         when(columnRepo.findByProject(projectId)).thenReturn(Arrays.asList());
@@ -226,7 +226,7 @@ public class StoryControllerTest {
         String testTitle = "New Story";
         Long projectId = 1L;
 
-        // Mock column repository
+        //Mock column repository
         fr.uha.ensisa.gl.tarnished.repos.ColumnRepo columnRepo = mock(fr.uha.ensisa.gl.tarnished.repos.ColumnRepo.class);
         when(repoFactory.getColumnRepo()).thenReturn(columnRepo);
         when(columnRepo.findByProject(projectId)).thenReturn(Arrays.asList());
@@ -244,7 +244,7 @@ public class StoryControllerTest {
     @Test
     @DisplayName("editStory should return view with story and available users")
     public void testEditStory() throws IOException {
-        // Given
+        //Given
         long storyId = 1L;
         Story mockStory = mock(Story.class);
         when(mockStory.getId()).thenReturn((int) storyId);
@@ -255,10 +255,10 @@ public class StoryControllerTest {
         when(repoFactory.getUserRepo()).thenReturn(mock(fr.uha.ensisa.gl.tarnished.repos.UserRepo.class));
         when(repoFactory.getColumnRepo()).thenReturn(mock(fr.uha.ensisa.gl.tarnished.repos.ColumnRepo.class));
 
-        // When
+        //When
         ModelAndView result = sut.editStory(storyId);
         
-        // Then
+        //Then
         assertNotNull(result);
         assertEquals("story-edit", result.getViewName());
         assertEquals(mockStory, result.getModelMap().get("story"));
@@ -270,7 +270,7 @@ public class StoryControllerTest {
     @Test
     @DisplayName("updateStory should update story and redirect to board")
     public void testUpdateStory() throws IOException {
-        // Given
+        //Given
         long storyId = 1L;
         String newTitle = "Updated Title";
         String newDescription = "Updated Description";
@@ -282,10 +282,10 @@ public class StoryControllerTest {
         when(storyRepo.find(storyId)).thenReturn(mockStory);
         when(repoFactory.getColumnRepo()).thenReturn(mock(fr.uha.ensisa.gl.tarnished.repos.ColumnRepo.class));
 
-        // When
+        //When
         String result = sut.updateStory(storyId, newTitle, newDescription, newStatus);
         
-        // Then
+        //Then
         assertEquals("redirect:/board/1", result);
         
         verify(mockStory).setTitle(newTitle);
@@ -296,16 +296,16 @@ public class StoryControllerTest {
     @Test
     @DisplayName("deleteStory should call remove on repository and redirect to board")
     public void testDeleteStory() {
-        // Given
+        //Given
         long storyId = 1L;
         Story mockStory = new Story();
         mockStory.setProjectId(1L);
         when(storyRepo.find(storyId)).thenReturn(mockStory);
 
-        // When
+        //When
         String result = sut.deleteStory(storyId);
         
-        // Then
+        //Then
         assertEquals("redirect:/board/1", result);
         verify(storyRepo).remove(storyId);
     }
@@ -335,17 +335,17 @@ public class StoryControllerTest {
     @Test
     @DisplayName("unassignStory should remove user assignment and redirect to board")
     public void testUnassignStory() throws IOException {
-        // Given
+        //Given
         long storyId = 1L;
         
         Story mockStory = mock(Story.class);
         when(mockStory.getProjectId()).thenReturn(1L);
         when(storyRepo.find(storyId)).thenReturn(mockStory);
         
-        // When
+        //When
         String result = sut.unassignStory(storyId);
         
-        // Then
+        //Then
         assertEquals("redirect:/board/1", result);
         verify(mockStory).setUserAssigned(null);
         verify(storyRepo).persist(mockStory);
@@ -354,14 +354,14 @@ public class StoryControllerTest {
     @Test
     @DisplayName("startTimer should start timer and redirect to story detail")
     public void testStartTimer() {
-        // Given
+        //Given
         long storyId = 1L;
         long userId = 1L;
         
-        // When
+        //When
         String result = sut.startTimer(storyId, userId);
         
-        // Then
+        //Then
         assertEquals("redirect:/story/1", result);
         verify(storyRepo).startTimer(storyId, userId);
     }
@@ -369,14 +369,14 @@ public class StoryControllerTest {
     @Test
     @DisplayName("stopTimer should stop timer and redirect to story detail")
     public void testStopTimer() {
-        // Given
+        //Given
         long storyId = 1L;
         long workLogId = 100L;
         
-        // When
+        //When
         String result = sut.stopTimer(storyId, workLogId);
         
-        // Then
+        //Then
         assertEquals("redirect:/story/1", result);
         verify(storyRepo).stopTimer(storyId, workLogId);
     }
@@ -384,7 +384,7 @@ public class StoryControllerTest {
     @Test
     @DisplayName("addWorkLog should add work log and redirect to story detail")
     public void testAddWorkLog() {
-        // Given
+        //Given
         long storyId = 1L;
         int days = 0;
         int hours = 0;
@@ -392,10 +392,10 @@ public class StoryControllerTest {
         String comment = "Fixed bug";
         long userId = 1L;
         
-        // When
+        //When
         String result = sut.addWorkLog(storyId, days, hours, minutes, comment, userId);
         
-        // Then
+        //Then
         assertEquals("redirect:/story/1", result);
         verify(storyRepo).addWorkLog(eq(storyId), any());
     }
@@ -403,17 +403,17 @@ public class StoryControllerTest {
     @Test
     @DisplayName("addWorkLog should work with null comment")
     public void testAddWorkLogWithNullComment() {
-        // Given
+        //Given
         long storyId = 1L;
         int days = 0;
         int hours = 0;
         int minutes = 45;
         long userId = 1L;
         
-        // When
+        //When
         String result = sut.addWorkLog(storyId, days, hours, minutes, null, userId);
         
-        // Then
+        //Then
         assertEquals("redirect:/story/1", result);
         verify(storyRepo).addWorkLog(eq(storyId), any());
     }
@@ -421,7 +421,7 @@ public class StoryControllerTest {
     @Test
     @DisplayName("addWorkLog should calculate total minutes correctly with days and hours")
     public void testAddWorkLogWithDaysAndHours() {
-        // Given
+        //Given
         long storyId = 1L;
         int days = 1;
         int hours = 2;
@@ -429,10 +429,10 @@ public class StoryControllerTest {
         String comment = "Complex task";
         long userId = 1L;
         
-        // When
+        //When
         String result = sut.addWorkLog(storyId, days, hours, minutes, comment, userId);
         
-        // Then
+        //Then
         assertEquals("redirect:/story/1", result);
         verify(storyRepo).addWorkLog(eq(storyId), any());
     }
@@ -440,7 +440,7 @@ public class StoryControllerTest {
     @Test
     @DisplayName("addWorkLog should redirect with error if duration is zero")
     public void testAddWorkLogWithZeroDuration() {
-        // Given
+        //Given
         long storyId = 1L;
         int days = 0;
         int hours = 0;
@@ -448,10 +448,10 @@ public class StoryControllerTest {
         String comment = "Invalid";
         long userId = 1L;
         
-        // When
+        //When
         String result = sut.addWorkLog(storyId, days, hours, minutes, comment, userId);
         
-        // Then
+        //Then
         assertEquals("redirect:/story/1?error=Duration must be greater than 0", result);
         verify(storyRepo, never()).addWorkLog(any(), any());
     }
@@ -459,14 +459,14 @@ public class StoryControllerTest {
     @Test
     @DisplayName("deleteWorkLog should remove work log and redirect to story detail")
     public void testDeleteWorkLog() {
-        // Given
+        //Given
         long storyId = 1L;
         long workLogId = 100L;
         
-        // When
+        //When
         String result = sut.deleteWorkLog(storyId, workLogId);
         
-        // Then
+        //Then
         assertEquals("redirect:/story/1", result);
         verify(storyRepo).removeWorkLog(storyId, workLogId);
     }
@@ -474,7 +474,7 @@ public class StoryControllerTest {
     @Test
     @DisplayName("addWorkLog should truncate comment to 45 characters")
     public void testAddWorkLogTruncatesLongComment() {
-        // Given
+        //Given
         long storyId = 1L;
         int days = 0;
         int hours = 1;
@@ -482,10 +482,10 @@ public class StoryControllerTest {
         String longComment = "This is a very long comment that exceeds the maximum allowed limit";
         long userId = 1L;
         
-        // When
+        //When
         String result = sut.addWorkLog(storyId, days, hours, minutes, longComment, userId);
         
-        // Then
+        //Then
         assertEquals("redirect:/story/1", result);
         verify(storyRepo).addWorkLog(eq(storyId), argThat(wl -> 
             wl.getComment() != null && wl.getComment().length() == 45
@@ -677,7 +677,7 @@ public class StoryControllerTest {
         String result = sut.updateStory(storyId, "Updated Title", "Description", "DONE");
 
         assertTrue(result.contains("redirect:/board/"));
-        // Status should NOT change because it's in a default column
+        //Status should NOT change because it's in a default column
         assertEquals(StoryStatus.BACKLOG, story.getStatus());
         verify(storyRepo).persist(story);
     }
@@ -1098,7 +1098,7 @@ public class StoryControllerTest {
         String result = sut.updateStory(storyId, "New Title", "Description", "INVALID_STATUS");
         
         assertEquals("redirect:/board/10", result);
-        // Status should remain unchanged
+        //Status should remain unchanged
         assertEquals(fr.uha.ensisa.gl.entities.StoryStatus.BACKLOG, story.getStatus());
         verify(storyRepo).persist(story);
     }
@@ -1163,7 +1163,7 @@ public class StoryControllerTest {
     @Test
     @DisplayName("mapColumnNameToStatus should return correct status for all default columns")
     void testMapColumnNameToStatus() throws IOException {
-        // Test through createStory which uses mapColumnNameToStatus
+        //Test through createStory which uses mapColumnNameToStatus
         String title = "Test Story";
         Long projectId = 1L;
         Long columnId = 2L;

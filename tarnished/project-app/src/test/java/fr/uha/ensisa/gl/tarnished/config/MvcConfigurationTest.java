@@ -24,13 +24,13 @@ class MvcConfigurationTest {
         mvcConfiguration = new MvcConfiguration();
         mockApplicationContext = mock(ApplicationContext.class);
         
-        // Inject ApplicationContext using reflection
+        //Inject ApplicationContext using reflection
         try {
             java.lang.reflect.Field field = MvcConfiguration.class.getDeclaredField("applicationContext");
             field.setAccessible(true);
             field.set(mvcConfiguration, mockApplicationContext);
         } catch (Exception e) {
-            // If reflection fails, we'll test what we can
+            //If reflection fails, we'll test what we can
         }
     }
 
@@ -76,12 +76,12 @@ class MvcConfigurationTest {
     @Test
     @DisplayName("Should configure resource handlers")
     void testAddResourceHandlers() {
-        // This test verifies that the addResourceHandlers method exists and is properly implemented
-        // Full integration testing would require a Spring application context
-        // For unit testing, we verify the method signature and basic structure
+        //This test verifies that the addResourceHandlers method exists and is properly implemented
+        //Full integration testing would require a Spring application context
+        //For unit testing, we verify the method signature and basic structure
         assertNotNull(mvcConfiguration);
         
-        // Verify the method exists by checking the class implements WebMvcConfigurer
+        //Verify the method exists by checking the class implements WebMvcConfigurer
         assertTrue(mvcConfiguration instanceof org.springframework.web.servlet.config.annotation.WebMvcConfigurer,
                    "MvcConfiguration should implement WebMvcConfigurer");
     }

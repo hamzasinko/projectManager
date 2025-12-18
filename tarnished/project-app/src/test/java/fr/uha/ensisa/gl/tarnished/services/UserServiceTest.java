@@ -30,14 +30,14 @@ class UserServiceTest {
     @Test
     @DisplayName("Should successfully signup a new user")
     void testSignupNewUser() {
-        // Arrange
+        //Arrange
         User newUser = new User(0, "John Doe", "john@example.com", "password123", new ArrayList<>());
         when(userRepo.get("john@example.com")).thenReturn(null);
 
-        // Act
+        //Act
         String result = userService.signup(newUser);
 
-        // Assert
+        //Assert
         assertEquals("Signup successful!", result);
         verify(userRepo).get("john@example.com");
         verify(userRepo).add(newUser);
@@ -46,15 +46,15 @@ class UserServiceTest {
     @Test
     @DisplayName("Should fail signup when email already exists")
     void testSignupExistingEmail() {
-        // Arrange
+        //Arrange
         User existingUser = new User(1, "Jane Doe", "jane@example.com", "password123", new ArrayList<>());
         User newUser = new User(0, "John Doe", "jane@example.com", "differentpassword", new ArrayList<>());
         when(userRepo.get("jane@example.com")).thenReturn(existingUser);
 
-        // Act
+        //Act
         String result = userService.signup(newUser);
 
-        // Assert
+        //Assert
         assertEquals("Error: Email already used", result);
         verify(userRepo).get("jane@example.com");
         verify(userRepo, never()).add(any());
@@ -63,14 +63,14 @@ class UserServiceTest {
     @Test
     @DisplayName("Should handle null email")
     void testSignupNullEmail() {
-        // Arrange
+        //Arrange
         User userWithNullEmail = new User(0, "Test User", null, "password", new ArrayList<>());
         when(userRepo.get(null)).thenReturn(null);
 
-        // Act
+        //Act
         String result = userService.signup(userWithNullEmail);
 
-        // Assert
+        //Assert
         assertEquals("Signup successful!", result);
         verify(userRepo).get(null);
         verify(userRepo).add(userWithNullEmail);
@@ -79,14 +79,14 @@ class UserServiceTest {
     @Test
     @DisplayName("Should handle empty email")
     void testSignupEmptyEmail() {
-        // Arrange
+        //Arrange
         User userWithEmptyEmail = new User(0, "Test User", "", "password", new ArrayList<>());
         when(userRepo.get("")).thenReturn(null);
 
-        // Act
+        //Act
         String result = userService.signup(userWithEmptyEmail);
 
-        // Assert
+        //Assert
         assertEquals("Signup successful!", result);
         verify(userRepo).get("");
         verify(userRepo).add(userWithEmptyEmail);
@@ -95,14 +95,14 @@ class UserServiceTest {
     @Test
     @DisplayName("Should handle user with null name")
     void testSignupNullName() {
-        // Arrange
+        //Arrange
         User user = new User(0, null, "test@example.com", "password", new ArrayList<>());
         when(userRepo.get("test@example.com")).thenReturn(null);
 
-        // Act
+        //Act
         String result = userService.signup(user);
 
-        // Assert
+        //Assert
         assertEquals("Signup successful!", result);
         verify(userRepo).add(user);
     }
@@ -110,14 +110,14 @@ class UserServiceTest {
     @Test
     @DisplayName("Should handle user with null password")
     void testSignupNullPassword() {
-        // Arrange
+        //Arrange
         User user = new User(0, "Test", "test@example.com", null, new ArrayList<>());
         when(userRepo.get("test@example.com")).thenReturn(null);
 
-        // Act
+        //Act
         String result = userService.signup(user);
 
-        // Assert
+        //Assert
         assertEquals("Signup successful!", result);
         verify(userRepo).add(user);
     }
@@ -125,14 +125,14 @@ class UserServiceTest {
     @Test
     @DisplayName("Should handle user with null stories list")
     void testSignupNullStoriesList() {
-        // Arrange
+        //Arrange
         User user = new User(0, "Test", "test@example.com", "password", null);
         when(userRepo.get("test@example.com")).thenReturn(null);
 
-        // Act
+        //Act
         String result = userService.signup(user);
 
-        // Assert
+        //Assert
         assertEquals("Signup successful!", result);
         verify(userRepo).add(user);
     }

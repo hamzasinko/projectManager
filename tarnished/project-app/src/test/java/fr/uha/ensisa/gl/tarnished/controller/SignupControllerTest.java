@@ -29,7 +29,7 @@ class SignupControllerTest {
     @Test
     @DisplayName("Should signup user successfully when passwords match")
     void testSignupSuccess() {
-        // Arrange
+        //Arrange
         String name = "John Doe";
         String email = "john@example.com";
         String password = "password123";
@@ -37,10 +37,10 @@ class SignupControllerTest {
 
         when(userService.signup(any(User.class))).thenReturn("Signup successful");
 
-        // Act
+        //Act
         String result = signupController.signup(name, email, password, confirmPassword);
 
-        // Assert
+        //Assert
         assertEquals("Signup successful", result);
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
@@ -55,16 +55,16 @@ class SignupControllerTest {
     @Test
     @DisplayName("Should return error when passwords do not match")
     void testSignupPasswordMismatch() {
-        // Arrange
+        //Arrange
         String name = "John Doe";
         String email = "john@example.com";
         String password = "password123";
         String confirmPassword = "password456";
 
-        // Act
+        //Act
         String result = signupController.signup(name, email, password, confirmPassword);
 
-        // Assert
+        //Assert
         assertEquals("Error: passwords do not match", result);
         verify(userService, never()).signup(any(User.class));
     }
@@ -72,7 +72,7 @@ class SignupControllerTest {
     @Test
     @DisplayName("Should handle empty password")
     void testSignupEmptyPassword() {
-        // Arrange
+        //Arrange
         String name = "John Doe";
         String email = "john@example.com";
         String password = "";
@@ -80,10 +80,10 @@ class SignupControllerTest {
 
         when(userService.signup(any(User.class))).thenReturn("Signup successful");
 
-        // Act
+        //Act
         String result = signupController.signup(name, email, password, confirmPassword);
 
-        // Assert
+        //Assert
         assertEquals("Signup successful", result);
         verify(userService).signup(any(User.class));
     }
@@ -91,7 +91,7 @@ class SignupControllerTest {
     @Test
     @DisplayName("Should handle null password")
     void testSignupNullPassword() {
-        // Arrange
+        //Arrange
         String name = "John Doe";
         String email = "john@example.com";
         String password = null;
@@ -99,10 +99,10 @@ class SignupControllerTest {
 
         when(userService.signup(any(User.class))).thenReturn("Signup successful");
 
-        // Act
+        //Act
         String result = signupController.signup(name, email, password, confirmPassword);
 
-        // Assert
+        //Assert
         assertEquals("Signup successful", result);
         verify(userService).signup(any(User.class));
     }
@@ -110,16 +110,16 @@ class SignupControllerTest {
     @Test
     @DisplayName("Should handle one null one non-null password")
     void testSignupOneNullPassword() {
-        // Arrange
+        //Arrange
         String name = "John Doe";
         String email = "john@example.com";
         String password = "password123";
         String confirmPassword = null;
 
-        // Act
+        //Act
         String result = signupController.signup(name, email, password, confirmPassword);
 
-        // Assert
+        //Assert
         assertEquals("Error: passwords do not match", result);
         verify(userService, never()).signup(any(User.class));
     }
@@ -127,7 +127,7 @@ class SignupControllerTest {
     @Test
     @DisplayName("Should handle empty name")
     void testSignupEmptyName() {
-        // Arrange
+        //Arrange
         String name = "";
         String email = "john@example.com";
         String password = "password123";
@@ -135,10 +135,10 @@ class SignupControllerTest {
 
         when(userService.signup(any(User.class))).thenReturn("Signup successful");
 
-        // Act
+        //Act
         String result = signupController.signup(name, email, password, confirmPassword);
 
-        // Assert
+        //Assert
         assertEquals("Signup successful", result);
         
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
@@ -149,7 +149,7 @@ class SignupControllerTest {
     @Test
     @DisplayName("Should handle empty email")
     void testSignupEmptyEmail() {
-        // Arrange
+        //Arrange
         String name = "John Doe";
         String email = "";
         String password = "password123";
@@ -157,10 +157,10 @@ class SignupControllerTest {
 
         when(userService.signup(any(User.class))).thenReturn("Signup successful");
 
-        // Act
+        //Act
         String result = signupController.signup(name, email, password, confirmPassword);
 
-        // Assert
+        //Assert
         assertEquals("Signup successful", result);
         
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
@@ -171,7 +171,7 @@ class SignupControllerTest {
     @Test
     @DisplayName("Should handle null name")
     void testSignupNullName() {
-        // Arrange
+        //Arrange
         String name = null;
         String email = "john@example.com";
         String password = "password123";
@@ -179,10 +179,10 @@ class SignupControllerTest {
 
         when(userService.signup(any(User.class))).thenReturn("Signup successful");
 
-        // Act
+        //Act
         String result = signupController.signup(name, email, password, confirmPassword);
 
-        // Assert
+        //Assert
         assertEquals("Signup successful", result);
         
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
@@ -193,7 +193,7 @@ class SignupControllerTest {
     @Test
     @DisplayName("Should handle null email")
     void testSignupNullEmail() {
-        // Arrange
+        //Arrange
         String name = "John Doe";
         String email = null;
         String password = "password123";
@@ -201,10 +201,10 @@ class SignupControllerTest {
 
         when(userService.signup(any(User.class))).thenReturn("Signup successful");
 
-        // Act
+        //Act
         String result = signupController.signup(name, email, password, confirmPassword);
 
-        // Assert
+        //Assert
         assertEquals("Signup successful", result);
         
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
@@ -215,7 +215,7 @@ class SignupControllerTest {
     @Test
     @DisplayName("Should handle UserService returning error")
     void testSignupServiceError() {
-        // Arrange
+        //Arrange
         String name = "John Doe";
         String email = "existing@example.com";
         String password = "password123";
@@ -223,10 +223,10 @@ class SignupControllerTest {
 
         when(userService.signup(any(User.class))).thenReturn("Error: Email already exists");
 
-        // Act
+        //Act
         String result = signupController.signup(name, email, password, confirmPassword);
 
-        // Assert
+        //Assert
         assertEquals("Error: Email already exists", result);
         verify(userService).signup(any(User.class));
     }
@@ -234,7 +234,7 @@ class SignupControllerTest {
     @Test
     @DisplayName("Should handle whitespace in passwords")
     void testSignupWhitespacePasswords() {
-        // Arrange
+        //Arrange
         String name = "John Doe";
         String email = "john@example.com";
         String password = "  pass word  ";
@@ -242,10 +242,10 @@ class SignupControllerTest {
 
         when(userService.signup(any(User.class))).thenReturn("Signup successful");
 
-        // Act
+        //Act
         String result = signupController.signup(name, email, password, confirmPassword);
 
-        // Assert
+        //Assert
         assertEquals("Signup successful", result);
         verify(userService).signup(any(User.class));
     }
@@ -253,7 +253,7 @@ class SignupControllerTest {
     @Test
     @DisplayName("Should handle special characters in all fields")
     void testSignupSpecialCharacters() {
-        // Arrange
+        //Arrange
         String name = "Jean-François O'Brien";
         String email = "user+test@example.co.uk";
         String password = "P@ssw0rd!#$%";
@@ -261,10 +261,10 @@ class SignupControllerTest {
 
         when(userService.signup(any(User.class))).thenReturn("Signup successful");
 
-        // Act
+        //Act
         String result = signupController.signup(name, email, password, confirmPassword);
 
-        // Assert
+        //Assert
         assertEquals("Signup successful", result);
         
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
@@ -279,18 +279,18 @@ class SignupControllerTest {
     @Test
     @DisplayName("Should create new User object for each signup")
     void testSignupCreatesNewUser() {
-        // Arrange
+        //Arrange
         when(userService.signup(any(User.class))).thenReturn("Signup successful");
 
-        // Act
+        //Act
         signupController.signup("User1", "user1@example.com", "pass1", "pass1");
         signupController.signup("User2", "user2@example.com", "pass2", "pass2");
 
-        // Assert
+        //Assert
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userService, times(2)).signup(userCaptor.capture());
 
-        // Verify two different User objects were created
+        //Verify two different User objects were created
         assertEquals(2, userCaptor.getAllValues().size());
         assertNotSame(userCaptor.getAllValues().get(0), userCaptor.getAllValues().get(1));
     }

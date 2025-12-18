@@ -106,7 +106,7 @@
 
 <script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
 <script th:inline="javascript">
-    // Handle readonly status select
+    //Handle readonly status select
     document.addEventListener('DOMContentLoaded', function() {
         const statusSelect = document.getElementById('storyStatus');
         if (statusSelect && statusSelect.dataset.readonly === 'true') {
@@ -124,7 +124,7 @@
         const storyId = [[${story.id}]];
         
         if (userId) {
-            // Use window.location instead of creating a form to avoid conflicts
+            //Use window.location instead of creating a form to avoid conflicts
             window.location.href = `/story/${storyId}/assign?userId=${userId}`;
         } else {
             alert('Please select a user to assign.');

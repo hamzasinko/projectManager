@@ -23,7 +23,7 @@ public class WebDriverFactory {
 
         ChromeOptions options = new ChromeOptions();
 
-        // Options communes
+        //Options communes
         options.addArguments(
                 "--headless=new",
                 "--no-sandbox",
@@ -32,11 +32,11 @@ public class WebDriverFactory {
         );
         options.setAcceptInsecureCerts(true);
 
-        // Détection explicite de la CI GitLab
+        //Détection explicite de la CI GitLab
         String ciEnv = System.getenv("CI");
         boolean isCI = ciEnv != null && (ciEnv.equalsIgnoreCase("true") || ciEnv.equals("1"));
 
-        // On active le RemoteWebDriver UNIQUEMENT si selenium.remote.browser=true
+        //On active le RemoteWebDriver UNIQUEMENT si selenium.remote.browser=true
         String remoteFlag = System.getProperty("selenium.remote.browser", "false");
         boolean useRemote = remoteFlag.equalsIgnoreCase("true") || remoteFlag.equals("1");
 
@@ -53,7 +53,7 @@ public class WebDriverFactory {
             }
         }
 
-        // Si on est en CI SANS Selenium distant, on utilise le chromedriver système installé via apk
+        //Si on est en CI SANS Selenium distant, on utilise le chromedriver système installé via apk
         if (isCI) {
             String chromeBin = System.getenv("CHROME_BIN");
             if (chromeBin != null && !chromeBin.isBlank()) {
@@ -62,12 +62,12 @@ public class WebDriverFactory {
             } else {
                 System.out.println("[WebDriverFactory] CI local mode → ChromeDriver (binary from PATH)");
             }
-            // Chemin standard du paquet alpine chromium-chromedriver
+            //Chemin standard du paquet alpine chromium-chromedriver
             System.setProperty("webdriver.chrome.driver", "/usr/bin/chromedriver");
             return new ChromeDriver(options);
         }
 
-        // Sinon : ChromeDriver local (développement, hors CI)
+        //Sinon : ChromeDriver local (développement, hors CI)
         System.out.println("[WebDriverFactory] Local mode → ChromeDriver (WebDriverManager)");
         WebDriverManager.chromedriver().setup();
         return new ChromeDriver(options);

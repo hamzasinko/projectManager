@@ -55,11 +55,11 @@ public class UserMemTest {
         user.setEmail("test@ex.com");
         userMem.add(user);
 
-        // Update should not throw even if not implemented
+        //Update should not throw even if not implemented
         user.setEmail("updated@ex.com");
         userMem.update(user);
 
-        // Verify user still exists
+        //Verify user still exists
         User found = userMem.find(user.getId());
         assertNotNull(found);
     }
@@ -74,10 +74,10 @@ public class UserMemTest {
 
         int id = user.getId();
         
-        // Delete the user
+        //Delete the user
         userMem.delete(id);
 
-        // Verify user no longer exists
+        //Verify user no longer exists
         User found = userMem.find(id);
         assertNull(found);
     }
@@ -131,7 +131,7 @@ public class UserMemTest {
         user3.setEmail("user3@ex.com");
         userMem.add(user3);
 
-        // Find specific user by ID
+        //Find specific user by ID
         User found = userMem.find(user2.getId());
         assertNotNull(found);
         assertEquals(user2.getId(), found.getId());
@@ -154,7 +154,7 @@ public class UserMemTest {
         user3.setEmail("charlie@ex.com");
         userMem.add(user3);
 
-        // Get specific user by email
+        //Get specific user by email
         User found = userMem.get("bob@ex.com");
         assertNotNull(found);
         assertEquals("bob@ex.com", found.getEmail());
@@ -177,7 +177,7 @@ public class UserMemTest {
         user3.setEmail("user3@ex.com");
         userMem.add(user3);
 
-        // Verify exact incrementation
+        //Verify exact incrementation
         assertEquals(user1.getId() + 1, user2.getId(), "Second ID must be exactly first ID + 1");
         assertEquals(user2.getId() + 1, user3.getId(), "Third ID must be exactly second ID + 1");
     }

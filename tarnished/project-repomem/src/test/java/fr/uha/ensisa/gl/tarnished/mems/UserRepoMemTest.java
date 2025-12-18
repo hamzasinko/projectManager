@@ -22,23 +22,23 @@ class UserRepoMemTest {
     @Test
     @DisplayName("Should add user with incrementing ID")
     void testAddUser() {
-        // Arrange
+        //Arrange
         User user = new User();
         user.setName("John Doe");
         user.setEmail("john@example.com");
         user.setPassword("password123");
 
-        // Act
+        //Act
         userRepo.add(user);
 
-        // Assert
+        //Assert
         assertEquals(1, user.getId());
     }
 
     @Test
     @DisplayName("Should generate incrementing IDs for multiple users")
     void testIncrementingIds() {
-        // Arrange
+        //Arrange
         User user1 = new User();
         user1.setEmail("user1@example.com");
 
@@ -48,12 +48,12 @@ class UserRepoMemTest {
         User user3 = new User();
         user3.setEmail("user3@example.com");
 
-        // Act
+        //Act
         userRepo.add(user1);
         userRepo.add(user2);
         userRepo.add(user3);
 
-        // Assert
+        //Assert
         assertEquals(1, user1.getId());
         assertEquals(2, user2.getId());
         assertEquals(3, user3.getId());
@@ -62,16 +62,16 @@ class UserRepoMemTest {
     @Test
     @DisplayName("Should find user by ID")
     void testFindById() {
-        // Arrange
+        //Arrange
         User user = new User();
         user.setName("Jane Smith");
         user.setEmail("jane@example.com");
         userRepo.add(user);
 
-        // Act
+        //Act
         User found = userRepo.find(1);
 
-        // Assert
+        //Assert
         assertNotNull(found);
         assertEquals("Jane Smith", found.getName());
         assertEquals("jane@example.com", found.getEmail());
@@ -80,28 +80,28 @@ class UserRepoMemTest {
     @Test
     @DisplayName("Should return null when user ID not found")
     void testFindByIdNotFound() {
-        // Act
+        //Act
         User found = userRepo.find(999);
 
-        // Assert
+        //Assert
         assertNull(found);
     }
 
     @Test
     @DisplayName("Should get user by email (case-insensitive)")
     void testGetByEmail() {
-        // Arrange
+        //Arrange
         User user = new User();
         user.setName("Bob Johnson");
         user.setEmail("bob@example.com");
         userRepo.add(user);
 
-        // Act
+        //Act
         User foundLowercase = userRepo.get("bob@example.com");
         User foundUppercase = userRepo.get("BOB@EXAMPLE.COM");
         User foundMixedCase = userRepo.get("Bob@Example.Com");
 
-        // Assert
+        //Assert
         assertNotNull(foundLowercase);
         assertNotNull(foundUppercase);
         assertNotNull(foundMixedCase);
@@ -248,11 +248,11 @@ class UserRepoMemTest {
     @Test
     @DisplayName("Should handle adding user with null fields")
     void testAddUserWithNullFields() {
-        // Arrange
+        //Arrange
         User user = new User();
-        // All fields are null
+        //All fields are null
 
-        // Act & Assert
+        //Act & Assert
         assertDoesNotThrow(() -> userRepo.add(user));
         assertEquals(1, user.getId());
     }
@@ -260,7 +260,7 @@ class UserRepoMemTest {
     @Test
     @DisplayName("Should find first user when multiple users have same email")
     void testGetByEmailFindsFirstMatch() {
-        // Arrange
+        //Arrange
         User user1 = new User();
         user1.setEmail("duplicate@example.com");
         user1.setName("First User");
@@ -272,10 +272,10 @@ class UserRepoMemTest {
         userRepo.add(user1);
         userRepo.add(user2);
 
-        // Act
+        //Act
         User found = userRepo.get("duplicate@example.com");
 
-        // Assert
+        //Assert
         assertNotNull(found);
         assertEquals("First User", found.getName());
     }

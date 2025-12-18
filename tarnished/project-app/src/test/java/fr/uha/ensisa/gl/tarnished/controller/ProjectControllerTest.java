@@ -45,7 +45,7 @@ public class ProjectControllerTest {
     public void setup() {
         MockitoAnnotations.openMocks(this); // Initialise les @Mock
         
-        // Configure le mock pour retourner projectRepo
+        //Configure le mock pour retourner projectRepo
         when(repoFactory.getProjectRepo()).thenReturn(projectRepo);
         when(repoFactory.getUserRepo()).thenReturn(userRepo);
         User testUser = new User();
@@ -55,7 +55,7 @@ public class ProjectControllerTest {
         testUser.setPassword("password1");
         when(userRepo.getAll()).thenReturn(List.of(testUser));
         
-        // Crée le controller et injecte le mock
+        //Crée le controller et injecte le mock
         sut = new ProjectController();
         sut.repoFactory = repoFactory;
     }
@@ -76,13 +76,13 @@ public class ProjectControllerTest {
         String testName = "Test Project";
         String testDescription = "Test Description";
         
-        // Mock UserRepo
+        //Mock UserRepo
         User mockUser = new User();
         mockUser.setId(1);
         when(repoFactory.getUserRepo()).thenReturn(userRepo);
         when(userRepo.getAll()).thenReturn(Arrays.asList(mockUser));
         
-        // Appelle la méthode
+        //Appelle la méthode
         String redirect = sut.createProject(testName, testDescription);
         
         //Vérifie la redirection
@@ -90,7 +90,7 @@ public class ProjectControllerTest {
                      "Should redirect to project list");
         
 
-        // Vérifie que persist a été appelé avec les bons paramètres
+        //Vérifie que persist a été appelé avec les bons paramètres
         ArgumentCaptor<Project> projectCaptor = ArgumentCaptor.forClass(Project.class);
         verify(projectRepo).persist(projectCaptor.capture());
 
@@ -104,7 +104,7 @@ public class ProjectControllerTest {
     public void testCreateProjectWithNullDescription() throws IOException {
         String testName = "Test Project";
         
-        // Mock UserRepo
+        //Mock UserRepo
         User mockUser = new User();
         mockUser.setId(1);
         when(repoFactory.getUserRepo()).thenReturn(userRepo);
@@ -121,7 +121,7 @@ public class ProjectControllerTest {
     @Test
     @DisplayName("listProjects should return view with empty list when mocked")
     public void testListProjectsEmpty() throws IOException {
-        // Configure le mock pour retourner une liste vide
+        //Configure le mock pour retourner une liste vide
         when(projectRepo.findAll()).thenReturn(Arrays.asList());
         
         ModelAndView result = sut.listProjects();
@@ -129,7 +129,7 @@ public class ProjectControllerTest {
         assertNotNull(result);
         assertEquals("project-list", result.getViewName());
         
-        // Vérifie que projects est dans le modèle
+        //Vérifie que projects est dans le modèle
         assertTrue(result.getModelMap().containsKey("projects"), 
                    "Model should contain 'projects' attribute");
         
@@ -142,7 +142,7 @@ public class ProjectControllerTest {
     @Test
     @DisplayName("listProjects should return view with projects when they exist")
     public void testListProjectsWithData() throws IOException {
-        // Crée des projets mock
+        //Crée des projets mock
         Project p1 = mock(Project.class);
         when(p1.getName()).thenReturn("Project 1");
         when(p1.getId()).thenReturn(1);
@@ -151,7 +151,7 @@ public class ProjectControllerTest {
         when(p2.getName()).thenReturn("Project 2");
         when(p2.getId()).thenReturn(2);
         
-        // Configure le mock pour retourner ces projets
+        //Configure le mock pour retourner ces projets
         when(projectRepo.findAll()).thenReturn(Arrays.asList(p1, p2));
         
         ModelAndView result = sut.listProjects();
@@ -190,10 +190,10 @@ public class ProjectControllerTest {
     @Test
     @DisplayName("deleteProject should call remove on repository and redirect")
     void testDeleteProject() {
-        // Given
+        //Given
         long projectId = 1L;
 
-        // Make repoFactory return the mocked repositories
+        //Make repoFactory return the mocked repositories
         fr.uha.ensisa.gl.tarnished.repos.StoryRepo mockStoryRepo = mock(fr.uha.ensisa.gl.tarnished.repos.StoryRepo.class);
         fr.uha.ensisa.gl.tarnished.repos.ColumnRepo mockColumnRepo = mock(fr.uha.ensisa.gl.tarnished.repos.ColumnRepo.class);
         
@@ -201,24 +201,24 @@ public class ProjectControllerTest {
         when(repoFactory.getStoryRepo()).thenReturn(mockStoryRepo);
         when(repoFactory.getColumnRepo()).thenReturn(mockColumnRepo);
         
-        // Mock empty lists for cascade delete
+        //Mock empty lists for cascade delete
         when(mockStoryRepo.findByProject(projectId)).thenReturn(List.of());
         when(mockColumnRepo.findByProject(projectId)).thenReturn(List.of());
 
-        // When: call the controller method directly
+        //When: call the controller method directly
         String result = sut.deleteProject(projectId);
 
-        // Then: verify the redirection string
+        //Then: verify the redirection string
         assertEquals("redirect:/project/list", result, "Should redirect to project list");
 
-        // And: verify that remove was called on the repository with the correct ID
+        //And: verify that remove was called on the repository with the correct ID
         verify(projectRepo).remove(projectId);
     }
 
     @Test
     @DisplayName("ProjectController.info should return correct project and view")
     void testProjectInfo() {
-        // Arrange
+        //Arrange
         int projectId = 1;
         Project p = new Project();
         p.setId(projectId);
@@ -231,10 +231,10 @@ public class ProjectControllerTest {
         when(repoFactory.getProjectRepo()).thenReturn(projectRepo);
         when(projectRepo.find(projectId)).thenReturn(p);
 
-        // Act
+        //Act
         ModelAndView mav = sut.showProject((long) projectId);
 
-        // Assert
+        //Assert
         assertEquals("project-detail", mav.getViewName(), "Should return project-info view");
         Project projectInModel = (Project) mav.getModel().get("project");
         assertEquals("Test Project", projectInModel.getName());
@@ -529,8 +529,8 @@ public class ProjectControllerTest {
         defaultUser.setEmail("email1@gmail.com");
         defaultUser.setPassword("password1");
         
-        // First call (isEmpty check) returns empty list
-        // Second call (get(0)) returns list with the added user
+        //First call (isEmpty check) returns empty list
+        //Second call (get(0)) returns list with the added user
         when(userRepo.getAll())
             .thenReturn(new ArrayList<>())  // First call - empty for isEmpty()
             .thenReturn(List.of(defaultUser)); // Second call - with user for get(0)
@@ -556,7 +556,7 @@ public class ProjectControllerTest {
         defaultUser.setPassword("password1");
         
         when(projectRepo.find(1L)).thenReturn(project);
-        // First call (isEmpty check) returns empty, second call (addObject) returns user after add
+        //First call (isEmpty check) returns empty, second call (addObject) returns user after add
         when(userRepo.getAll())
             .thenReturn(new ArrayList<>())  // First call - empty for isEmpty()
             .thenReturn(List.of(defaultUser)); // Second call - with user for addObject

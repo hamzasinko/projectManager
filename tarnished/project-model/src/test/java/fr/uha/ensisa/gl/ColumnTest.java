@@ -118,7 +118,7 @@ class ColumnTest {
         column.setPosition(1);
         column.setMaxCapacity(5);
         
-        // Default value for boolean is false
+        //Default value for boolean is false
         assertFalse(column.isHasSubColumns());
     }
 

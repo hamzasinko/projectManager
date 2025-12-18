@@ -60,11 +60,11 @@ public class StoryRepoMemTest {
         storyRepo.persist(story3);
         long id3 = story3.getId();
         
-        // Verify exact incrementation
+        //Verify exact incrementation
         assertEquals(id1 + 1, id2, "Second ID must be exactly first ID + 1");
         assertEquals(id2 + 1, id3, "Third ID must be exactly second ID + 1");
         
-        // Also verify they're sequential starting from 1
+        //Also verify they're sequential starting from 1
         assertTrue(id1 > 0, "First ID should be positive");
         assertTrue(id2 > id1, "IDs should increase");
         assertTrue(id3 > id2, "IDs should keep increasing");
@@ -354,7 +354,7 @@ public class StoryRepoMemTest {
     @DisplayName("Should handle moveToColumn for non-existent story")
     void testMoveToColumnNonExistent() {
         storyRepo.moveToColumn(999L, 1L);
-        // Should not throw
+        //Should not throw
     }
 
     @Test
@@ -374,7 +374,7 @@ public class StoryRepoMemTest {
     @DisplayName("Should handle updateStatus for non-existent story")
     void testUpdateStatusNonExistent() {
         storyRepo.updateStatus(999L, StoryStatus.DONE);
-        // Should not throw
+        //Should not throw
     }
 
     @Test
@@ -399,7 +399,7 @@ public class StoryRepoMemTest {
     void testAddWorkLogNonExistent() {
         WorkLog workLog = new WorkLog(1L, LocalDateTime.now(), 1L, 999L);
         storyRepo.addWorkLog(999L, workLog);
-        // Should not throw
+        //Should not throw
     }
 
     @Test
@@ -425,7 +425,7 @@ public class StoryRepoMemTest {
     @DisplayName("Should handle removeWorkLog for non-existent story")
     void testRemoveWorkLogNonExistent() {
         storyRepo.removeWorkLog(999L, 1L);
-        // Should not throw
+        //Should not throw
     }
 
     @Test
@@ -489,11 +489,11 @@ public class StoryRepoMemTest {
     @Test
     @DisplayName("Should assign incrementing IDs to work logs")
     void testWorkLogIdIncrementation() {
-        // Create story
+        //Create story
         storyRepo.persist(testStory);
         long storyId = testStory.getId();
         
-        // Start multiple timers to create work logs
+        //Start multiple timers to create work logs
         WorkLog wl1 = storyRepo.startTimer(storyId, 1L);
         WorkLog wl2 = storyRepo.startTimer(storyId, 1L);
         WorkLog wl3 = storyRepo.startTimer(storyId, 1L);
@@ -502,7 +502,7 @@ public class StoryRepoMemTest {
         assertNotNull(wl2, "Second work log should be created");
         assertNotNull(wl3, "Third work log should be created");
         
-        // Verify exact incrementation
+        //Verify exact incrementation
         assertEquals(wl1.getId() + 1, wl2.getId(), "Second WorkLog ID must be exactly first + 1");
         assertEquals(wl2.getId() + 1, wl3.getId(), "Third WorkLog ID must be exactly second + 1");
     }
@@ -652,15 +652,15 @@ public class StoryRepoMemTest {
     @Test
     @DisplayName("Should initialize work logs list when adding to story without work logs")
     void testAddWorkLogInitializesList() {
-        // Create a fresh story without using testStory which might have been modified
+        //Create a fresh story without using testStory which might have been modified
         Story freshStory = new Story();
         freshStory.setTitle("Fresh Story");
         freshStory.setDescription("No work logs yet");
         storyRepo.persist(freshStory);
         long storyId = freshStory.getId();
         
-        // Ensure story has no work logs initially by checking directly after persist
-        // Note: Story entity might initialize workLogs to empty list in constructor
+        //Ensure story has no work logs initially by checking directly after persist
+        //Note: Story entity might initialize workLogs to empty list in constructor
         Story story = storyRepo.find(storyId);
         boolean initiallyEmpty = story.getWorkLogs() == null || story.getWorkLogs().isEmpty();
         assertTrue(initiallyEmpty, "Work logs should be null or empty initially");
@@ -715,7 +715,7 @@ public class StoryRepoMemTest {
         assertNotNull(workLog2, "Second work log should be created");
         assertNotNull(workLog3, "Third work log should be created");
         
-        // Stop the second work log
+        //Stop the second work log
         WorkLog stopped = storyRepo.stopTimer(storyId, workLog2.getId());
         
         assertNotNull(stopped, "Should find and return the work log");
@@ -732,11 +732,11 @@ public class StoryRepoMemTest {
         assertNotNull(workLog, "Work log should be created");
         assertNull(workLog.getEnd(), "End time should be null initially");
         
-        // Wait a tiny bit to ensure duration is non-zero
+        //Wait a tiny bit to ensure duration is non-zero
         try {
             Thread.sleep(10);
         } catch (InterruptedException e) {
-            // Ignore
+            //Ignore
         }
         
         WorkLog stopped = storyRepo.stopTimer(storyId, workLog.getId());

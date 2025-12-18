@@ -19,7 +19,7 @@ public class ProjectRepoTest {
     void setup() {
         repo = new ProjectRepoMem();
 
-        // Mock the ColumnRepo and inject it into ProjectRepoMem
+        //Mock the ColumnRepo and inject it into ProjectRepoMem
         ColumnRepo columnRepo = Mockito.mock(ColumnRepo.class);
         repo.setColumnRepo(columnRepo);
     }
@@ -94,25 +94,25 @@ public class ProjectRepoTest {
 
     @Test
     void testCreateDefaultColumns() {
-        // Get the mocked columnRepo from setup
+        //Get the mocked columnRepo from setup
         ColumnRepo columnRepo = Mockito.mock(ColumnRepo.class);
         repo.setColumnRepo(columnRepo);
         
-        // Capture all columns persisted
+        //Capture all columns persisted
         ArgumentCaptor<Column> columnCaptor = ArgumentCaptor.forClass(Column.class);
         
         Project p = new Project();
         p.setName("Test");
         repo.persist(p);
 
-        // Verify persist was called 5 times for default columns
+        //Verify persist was called 5 times for default columns
         Mockito.verify(columnRepo, Mockito.times(5)).persist(columnCaptor.capture());
         
-        // Get all captured columns
+        //Get all captured columns
         List<Column> columns = columnCaptor.getAllValues();
         assertEquals(5, columns.size());
         
-        // Verify first column (BACKLOG)
+        //Verify first column (BACKLOG)
         Column backlog = columns.get(0);
         assertEquals("BACKLOG", backlog.getName());
         assertEquals(1, backlog.getPosition());
@@ -120,7 +120,7 @@ public class ProjectRepoTest {
         assertEquals(p, backlog.getProject());
         assertFalse(backlog.isHasSubColumns());
         
-        // Verify second column (IN PROGRESS)
+        //Verify second column (IN PROGRESS)
         Column inProgress = columns.get(1);
         assertEquals("IN PROGRESS", inProgress.getName());
         assertEquals(2, inProgress.getPosition());
@@ -128,7 +128,7 @@ public class ProjectRepoTest {
         assertEquals(p, inProgress.getProject());
         assertTrue(inProgress.isHasSubColumns());
         
-        // Verify third column (REVIEW)
+        //Verify third column (REVIEW)
         Column review = columns.get(2);
         assertEquals("REVIEW", review.getName());
         assertEquals(3, review.getPosition());
@@ -136,7 +136,7 @@ public class ProjectRepoTest {
         assertEquals(p, review.getProject());
         assertTrue(review.isHasSubColumns());
         
-        // Verify fourth column (DONE)
+        //Verify fourth column (DONE)
         Column done = columns.get(3);
         assertEquals("DONE", done.getName());
         assertEquals(4, done.getPosition());
@@ -144,7 +144,7 @@ public class ProjectRepoTest {
         assertEquals(p, done.getProject());
         assertFalse(done.isHasSubColumns());
         
-        // Verify fifth column (BLOCKED)
+        //Verify fifth column (BLOCKED)
         Column blocked = columns.get(4);
         assertEquals("BLOCKED", blocked.getName());
         assertEquals(5, blocked.getPosition());
@@ -161,7 +161,7 @@ public class ProjectRepoTest {
         assertEquals(0, p.getId());
         repo.persist(p);
         
-        // Verify ID was auto-incremented
+        //Verify ID was auto-incremented
         assertTrue(p.getId() > 0);
     }
     
@@ -173,7 +173,7 @@ public class ProjectRepoTest {
         assertNull(p.getDateStarted());
         repo.persist(p);
         
-        // Verify dateStarted was set
+        //Verify dateStarted was set
         assertNotNull(p.getDateStarted());
     }
     
@@ -193,7 +193,7 @@ public class ProjectRepoTest {
 
     @Test
     void testDefaultColumnsHaveZeroMaxCapacity() {
-        // Use a real ColumnRepo to verify actual capacity values
+        //Use a real ColumnRepo to verify actual capacity values
         ColumnRepo realColumnRepo = new fr.uha.ensisa.gl.tarnished.mems.ColumnRepoMem();
         repo.setColumnRepo(realColumnRepo);
         
@@ -201,12 +201,12 @@ public class ProjectRepoTest {
         p.setName("Test Project");
         repo.persist(p);
         
-        // Find all columns for this project
+        //Find all columns for this project
         java.util.Collection<Column> columns = realColumnRepo.findByProject((long) p.getId());
         
         assertEquals(5, columns.size(), "Should have 5 default columns");
         
-        // Verify each column has maxCapacity of exactly 0
+        //Verify each column has maxCapacity of exactly 0
         for (Column column : columns) {
             assertEquals(0, column.getMaxCapacity(), 
                 "Column " + column.getName() + " should have maxCapacity of exactly 0");
