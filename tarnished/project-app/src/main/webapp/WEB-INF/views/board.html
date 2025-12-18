@@ -20,6 +20,7 @@
             display: flex;
             flex-direction: column;
             gap: 20px;
+            padding-bottom: 40px; /* Pour s'assurer que les swimlanes en bas sont visibles */
         }
 
         .swimlane-row {
@@ -727,7 +728,7 @@
                 container.addEventListener('dragend', function(ev) {
                     if (draggedColumn) {
                         draggedColumn.classList.remove('dragging');
-                        saveColumnOrder();
+                        saveColumnOrder(container);
                         draggedColumn = null;
                     }
                     if (draggedStory) {
@@ -760,9 +761,23 @@
             }, { offset: Number.NEGATIVE_INFINITY }).element;
         }
 
-        function saveColumnOrder() {
-            const columns = document.querySelectorAll('.kanban-column[data-column-id]');
-            const columnIds = Array.from(columns).map(col => col.dataset.columnId);
+        function saveColumnOrder(container) {
+            //Utiliser le conteneur passé en paramètre, ou le premier si non spécifié
+            //(tous les conteneurs ont les mêmes colonnes dans le même ordre visuel)
+            const targetContainer = container || document.querySelector('.kanban-container');
+            if (!targetContainer) return;
+            
+            const columns = targetContainer.querySelectorAll('.kanban-column[data-column-id]');
+            const columnIdsMap = new Map(); // Utiliser Map pour éviter les doublons et préserver l'ordre
+            
+            columns.forEach(col => {
+                const columnId = col.dataset.columnId;
+                if (columnId && !columnIdsMap.has(columnId)) {
+                    columnIdsMap.set(columnId, col);
+                }
+            });
+            
+            const columnIds = Array.from(columnIdsMap.keys());
             const baseSaveUrl = /*[[@{/board/}]]*/ '';
             
             if (columnIds.length === 0) return;
@@ -770,10 +785,10 @@
             //ensure BACKLOG column stays first (leftmost)
             try {
                 let backlogId = null;
-                columns.forEach(col => {
+                columnIdsMap.forEach((col, id) => {
                     const nameEl = col.querySelector('.column-header span');
                     if (nameEl && nameEl.textContent.trim().toUpperCase() === 'BACKLOG') {
-                        backlogId = col.dataset.columnId;
+                        backlogId = id;
                     }
                 });
                 if (backlogId) {
@@ -790,6 +805,7 @@
             const formData = new URLSearchParams();
             formData.append('columnOrder', columnIds.join(','));
 
+            console.log('[DEBUG] Saving column order:', columnIds.join(','));
             fetch(baseSaveUrl + projectId + '/reorder-columns', {
                 method: 'POST',
                 headers: {
@@ -799,12 +815,56 @@
             })
             .then(response => response.json())
             .then(data => {
-                if (!data.success) {
-                    console.error('Failed to reorder columns');
+                if (data.success) {
+                    console.log('[DEBUG] Column order saved successfully');
+                    // Synchroniser l'ordre dans tous les conteneurs kanban (pour les swimlanes)
+                    syncColumnOrderToAllContainers(targetContainer, columnIds);
+                } else {
+                    console.error('[DEBUG] Failed to reorder columns:', data);
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
+                console.error('[DEBUG] Error saving column order:', error);
+            });
+        }
+
+        function syncColumnOrderToAllContainers(sourceContainer, columnIds) {
+            //récupérer tous les conteneurs kanban
+            const allContainers = document.querySelectorAll('.kanban-container');
+            
+            //si un seul conteneur, rien à synchroniser
+            if (allContainers.length <= 1) return;
+            
+            //pour chaque conteneur (sauf le source qui est déjà à jour), réorganiser les colonnes
+            allContainers.forEach(container => {
+                //ignorer le conteneur source qui a déjà le bon ordre
+                if (container === sourceContainer) return;
+                
+                //récupérer toutes les colonnes avec leur ID
+                const columns = Array.from(container.querySelectorAll('.kanban-column[data-column-id]'));
+                const columnsMap = new Map();
+                columns.forEach(col => {
+                    const columnId = col.dataset.columnId;
+                    if (columnId) {
+                        columnsMap.set(columnId, col);
+                    }
+                });
+                
+                // Trouver le dernier élément qui n'est pas une colonne (probablement le formulaire "Add Column")
+                const allChildren = Array.from(container.children);
+                const lastNonColumnElement = allChildren.slice().reverse().find(child => !child.dataset.columnId);
+                const insertBeforeElement = lastNonColumnElement || container.lastElementChild;
+                
+                // Réorganiser selon l'ordre spécifié (colonnes dans l'ordre de columnIds)
+                columnIds.forEach(columnId => {
+                    const columnElement = columnsMap.get(columnId);
+                    if (columnElement && columnElement.parentNode === container) {
+                        // Déplacer la colonne au bon endroit
+                        if (insertBeforeElement && insertBeforeElement !== columnElement) {
+                            container.insertBefore(columnElement, insertBeforeElement);
+                        }
+                    }
+                });
             });
         }
 
