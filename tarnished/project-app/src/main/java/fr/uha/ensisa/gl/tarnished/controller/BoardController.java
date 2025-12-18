@@ -8,6 +8,7 @@ import fr.uha.ensisa.gl.tarnished.config.PathHelper;
 import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
 import fr.uha.ensisa.gl.tarnished.repos.SwimlaneRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
@@ -208,6 +209,7 @@ public class BoardController {
 
     //crée une nouvelle colonne pour un projet
     @PostMapping("/{projectId}/add-column")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public String addColumn(
             @PathVariable Long projectId,
             @RequestParam String name,
