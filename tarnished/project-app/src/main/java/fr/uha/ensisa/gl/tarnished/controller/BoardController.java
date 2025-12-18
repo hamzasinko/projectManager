@@ -31,6 +31,10 @@ public class BoardController {
         this.repoFactory = repoFactory;
     }
 
+    void setPathHelper(PathHelper pathHelper) {
+        this.pathHelper = pathHelper;
+    }
+
     //affiche le kanban board d'un projet
     @GetMapping("/{projectId}")
     public ModelAndView showBoard(@PathVariable Long projectId) {

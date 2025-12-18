@@ -14,6 +14,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.ArgumentCaptor;
 import org.springframework.web.servlet.ModelAndView;
 
+import fr.uha.ensisa.gl.tarnished.config.PathHelper;
 import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
 import fr.uha.ensisa.gl.tarnished.repos.ProjectRepo;
 import fr.uha.ensisa.gl.entities.Project;
@@ -39,6 +40,9 @@ public class ProjectControllerTest {
     @Mock
     UserRepo userRepo;
     
+    @Mock
+    private PathHelper pathHelper;
+    
     private ProjectController sut; // System Under Test
     
     @BeforeEach
@@ -58,6 +62,17 @@ public class ProjectControllerTest {
         //Crée le controller et injecte le mock
         sut = new ProjectController();
         sut.repoFactory = repoFactory;
+        sut.setPathHelper(pathHelper);
+        
+        // Configure PathHelper mock pour retourner les redirections standard
+        when(pathHelper.redirect(anyString())).thenAnswer(invocation -> {
+            String path = invocation.getArgument(0);
+            return "redirect:" + path;
+        });
+        when(pathHelper.redirectView(anyString())).thenAnswer(invocation -> {
+            String path = invocation.getArgument(0);
+            return new ModelAndView("redirect:" + path);
+        });
     }
     
     @Test

@@ -24,6 +24,11 @@ public class ColumnController {
     @Autowired
     private PathHelper pathHelper;
 
+    //setter pour les tests
+    void setPathHelper(PathHelper pathHelper) {
+        this.pathHelper = pathHelper;
+    }
+
     @GetMapping("/columns")
     public String listColumns(Model model) {
         ColumnRepo columnRepo = repoFactory.getColumnRepo();

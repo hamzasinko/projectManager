@@ -3,6 +3,7 @@ package fr.uha.ensisa.gl.tarnished.controller;
 import fr.uha.ensisa.gl.entities.Project;
 import fr.uha.ensisa.gl.entities.Story;
 import fr.uha.ensisa.gl.entities.StoryStatus;
+import fr.uha.ensisa.gl.tarnished.config.PathHelper;
 import fr.uha.ensisa.gl.tarnished.repos.ProjectRepo;
 import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
 import fr.uha.ensisa.gl.tarnished.repos.StoryRepo;
@@ -30,6 +31,9 @@ public class HomeControllerTest {
     @Mock
     private StoryRepo storyRepo;
 
+    @Mock
+    private PathHelper pathHelper;
+
     @InjectMocks
     private HomeController controller;
 
@@ -38,6 +42,8 @@ public class HomeControllerTest {
         MockitoAnnotations.openMocks(this);
         when(repoFactory.getProjectRepo()).thenReturn(projectRepo);
         when(repoFactory.getStoryRepo()).thenReturn(storyRepo);
+        controller.setPathHelper(pathHelper);
+        when(pathHelper.redirect("/")).thenReturn("redirect:/");
     }
 
     @Test
@@ -120,6 +126,7 @@ public class HomeControllerTest {
     void testHello() {
         String result = controller.hello();
         assertEquals("redirect:/", result);
+        verify(pathHelper).redirect("/");
     }
 }
 

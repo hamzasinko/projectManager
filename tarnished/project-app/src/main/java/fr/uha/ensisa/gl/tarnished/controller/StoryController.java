@@ -27,6 +27,11 @@ public class StoryController {
     @Autowired
     private PathHelper pathHelper;
     
+    //setter pour les tests
+    void setPathHelper(PathHelper pathHelper) {
+        this.pathHelper = pathHelper;
+    }
+    
     public StoryController() {
         System.out.println("*** StoryController CREATED ***");
     }

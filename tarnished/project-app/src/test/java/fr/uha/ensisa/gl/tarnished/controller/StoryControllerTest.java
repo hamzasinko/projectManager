@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import fr.uha.ensisa.gl.entities.User;
+import fr.uha.ensisa.gl.tarnished.config.PathHelper;
 import fr.uha.ensisa.gl.tarnished.repos.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,9 @@ public class StoryControllerTest {
     @Mock
     private UserRepo userRepo;
 
+    @Mock
+    private PathHelper pathHelper;
+
     private StoryController sut; // System Under Test
     
     @BeforeEach
@@ -61,6 +65,17 @@ public class StoryControllerTest {
         //Crée le controller et injecte le mock
         sut = new StoryController();
         sut.repoFactory = repoFactory;
+        sut.setPathHelper(pathHelper);
+        
+        // Configure PathHelper mock pour retourner les redirections standard
+        when(pathHelper.redirect(anyString())).thenAnswer(invocation -> {
+            String path = invocation.getArgument(0);
+            return "redirect:" + path;
+        });
+        when(pathHelper.redirectView(anyString())).thenAnswer(invocation -> {
+            String path = invocation.getArgument(0);
+            return new ModelAndView("redirect:" + path);
+        });
     }
     
     @Test

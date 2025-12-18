@@ -20,6 +20,11 @@ public class ProjectController {
     @Autowired
     private PathHelper pathHelper;
     
+    //setter pour les tests
+    void setPathHelper(PathHelper pathHelper) {
+        this.pathHelper = pathHelper;
+    }
+    
     //affiche le formulaire de création de projet
     @GetMapping("/new")
     public ModelAndView showCreateForm() {

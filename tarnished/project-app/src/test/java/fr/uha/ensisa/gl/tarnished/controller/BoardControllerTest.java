@@ -5,6 +5,7 @@ import fr.uha.ensisa.gl.entities.Project;
 import fr.uha.ensisa.gl.entities.Story;
 import fr.uha.ensisa.gl.entities.StoryStatus;
 import fr.uha.ensisa.gl.entities.Swimlane;
+import fr.uha.ensisa.gl.tarnished.config.PathHelper;
 import fr.uha.ensisa.gl.tarnished.repos.ColumnRepo;
 import fr.uha.ensisa.gl.tarnished.repos.ProjectRepo;
 import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
@@ -44,6 +45,9 @@ public class BoardControllerTest {
     @Mock
     private SwimlaneRepo swimlaneRepo;
 
+    @Mock
+    private PathHelper pathHelper;
+
     @InjectMocks
     private BoardController controller;
 
@@ -54,6 +58,17 @@ public class BoardControllerTest {
         when(repoFactory.getColumnRepo()).thenReturn(columnRepo);
         when(repoFactory.getStoryRepo()).thenReturn(storyRepo);
         when(repoFactory.getSwimlaneRepo()).thenReturn(swimlaneRepo);
+        controller.setPathHelper(pathHelper);
+        
+        // Configure PathHelper mock
+        when(pathHelper.redirect(anyString())).thenAnswer(invocation -> {
+            String path = invocation.getArgument(0);
+            return "redirect:" + path;
+        });
+        when(pathHelper.redirectView(anyString())).thenAnswer(invocation -> {
+            String path = invocation.getArgument(0);
+            return new ModelAndView("redirect:" + path);
+        });
     }
 
     @Test

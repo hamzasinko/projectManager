@@ -26,6 +26,11 @@ public class SwimlaneController {
     @Autowired
     private PathHelper pathHelper;
 
+    //setter pour les tests
+    void setPathHelper(PathHelper pathHelper) {
+        this.pathHelper = pathHelper;
+    }
+
     @GetMapping("/new")
     public ModelAndView newSwimlaneForm(@RequestParam(required = false) Integer projectId) {
         ProjectRepo projectRepo = repoFactory.getProjectRepo();

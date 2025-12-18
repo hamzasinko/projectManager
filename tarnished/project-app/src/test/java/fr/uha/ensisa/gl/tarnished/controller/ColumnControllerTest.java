@@ -2,6 +2,7 @@ package fr.uha.ensisa.gl.tarnished.controller;
 
 import fr.uha.ensisa.gl.entities.Column;
 import fr.uha.ensisa.gl.entities.Project;
+import fr.uha.ensisa.gl.tarnished.config.PathHelper;
 import fr.uha.ensisa.gl.tarnished.repos.ColumnRepo;
 import fr.uha.ensisa.gl.tarnished.repos.ProjectRepo;
 import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
@@ -33,6 +34,9 @@ class ColumnControllerTest {
     @Mock
     private Model model;
 
+    @Mock
+    private PathHelper pathHelper;
+
     @InjectMocks
     private ColumnController controller;
 
@@ -55,6 +59,13 @@ class ColumnControllerTest {
 
         when(repoFactory.getColumnRepo()).thenReturn(columnRepo);
         when(repoFactory.getProjectRepo()).thenReturn(projectRepo);
+        controller.setPathHelper(pathHelper);
+        
+        // Configure PathHelper mock
+        when(pathHelper.redirect(anyString())).thenAnswer(invocation -> {
+            String path = invocation.getArgument(0);
+            return "redirect:" + path;
+        });
     }
 
     @Test

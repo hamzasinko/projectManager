@@ -2,6 +2,7 @@ package fr.uha.ensisa.gl.tarnished.controller;
 
 import fr.uha.ensisa.gl.entities.Project;
 import fr.uha.ensisa.gl.entities.Swimlane;
+import fr.uha.ensisa.gl.tarnished.config.PathHelper;
 import fr.uha.ensisa.gl.tarnished.repos.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,12 +32,22 @@ class SwimlaneControllerTest {
     @Mock
     private StoryRepo storyRepo;
 
+    @Mock
+    private PathHelper pathHelper;
+
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
         when(repoFactory.getProjectRepo()).thenReturn(projectRepo);
         when(repoFactory.getSwimlaneRepo()).thenReturn(swimlaneRepo);
         when(repoFactory.getStoryRepo()).thenReturn(storyRepo);
+        controller.setPathHelper(pathHelper);
+        
+        // Configure PathHelper mock
+        when(pathHelper.redirectView(anyString())).thenAnswer(invocation -> {
+            String path = invocation.getArgument(0);
+            return new ModelAndView("redirect:" + path);
+        });
     }
 
     @Test
