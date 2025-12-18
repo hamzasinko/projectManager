@@ -23,7 +23,7 @@ class ColumnIT {
     
     private static String getBaseUrl() {
         String host = System.getProperty("host", "localhost");
-        String port = System.getProperty("servlet.port", "8080");
+        String port = System.getProperty("servlet.port", "8090");
         String contextPath = System.getProperty("jetty.context.path", "/gl2526-tarnished");
         return "http://" + host + ":" + port + contextPath;
     }

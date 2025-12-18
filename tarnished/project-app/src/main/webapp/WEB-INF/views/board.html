@@ -10,22 +10,39 @@
     <link rel="stylesheet" th:href="@{/libs/bootstrap/bootstrap.min.css}">
     <style>
         * { font-family: 'Space Grotesk', system-ui, sans-serif !important; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+        }
         .swimlane-actions i {
             font-size: 1.2rem; /*ajuste la taille*/
             color: #333;       /*ajuste la couleur*/
             vertical-align: middle;
         }
 
+        .swimlane-board-wrapper {
+            overflow-x: auto !important;
+            overflow-y: visible;
+            padding-bottom: 40px; /* histoire d'avoir un peu d'espace en bas sinon on voit pas les dernières swimlanes */
+            width: 100%;
+            position: relative;
+            box-sizing: border-box;
+            -webkit-overflow-scrolling: touch;
+        }
+
         .swimlane-board {
             display: flex;
             flex-direction: column;
             gap: 20px;
-            padding-bottom: 40px; /* Pour s'assurer que les swimlanes en bas sont visibles */
+            min-width: min-content;
+            width: max-content;
         }
 
         .swimlane-row {
             display: flex;
             align-items: stretch;
+            min-width: min-content;
         }
 
         .swimlane-label {
@@ -38,19 +55,42 @@
             flex-direction: column;
             gap: 10px;
             font-weight: 600;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        .swimlane-label *,
+        .swimlane-label a,
+        .swimlane-label button {
+            pointer-events: auto;
         }
 
         .swimlane-row .kanban-container {
-            flex: 1;
+            flex: 0 0 auto;
+            min-width: min-content;
+            width: auto;
         }
 
         .kanban-container {
             display: flex;
-            overflow-x: auto;
             gap: 20px;
             padding: 20px;
             min-height: 600px;
+            flex-shrink: 0;
+        }
+
+        /* le board classique (sans swimlanes) garde son scroll */
+        .container-fluid .kanban-container {
+            overflow-x: auto;
             scroll-behavior: smooth;
+        }
+
+        /* les conteneurs dans les swimlanes n'ont pas de scroll individuel */
+        .swimlane-board .kanban-container {
+            overflow: visible;
+            width: max-content;
         }
         .kanban-column {
             flex: 0 0 300px;
@@ -109,9 +149,38 @@
         .project-header {
             background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
             color: white;
-            padding: 20px;
-            margin-bottom: 0;
+            padding: 20px 0;
+            margin: 0;
+            box-sizing: border-box;
+            width: 100vw;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            overflow-x: hidden;
+            pointer-events: none;
         }
+
+        .project-header .container-fluid {
+            width: 100%;
+            max-width: 100%;
+            padding-left: 20px;
+            padding-right: 20px;
+            margin: 0 auto;
+            box-sizing: border-box;
+            pointer-events: auto;
+        }
+        
+        .project-header a,
+        .project-header button {
+            pointer-events: auto;
+        }
+        
+        /* ajouter un espace pour compenser le header fixe */
+        body {
+            padding-top: 85px;
+        }
+        
         .drag-over {
             background-color: #e7f3ff;
             border: 2px dashed #0d6efd;
@@ -264,20 +333,22 @@
         
         //Auto-scroll functionality
         function autoScroll(ev) {
-            //trouver le conteneur kanban le plus proche
-            const container = ev.target.closest('.kanban-container') || document.querySelector('.kanban-container');
-            if (!container) return;
+            // trouver le conteneur kanban le plus proche ou le wrapper de swimlanes
+            const container = ev.target.closest('.kanban-container');
+            const swimlaneWrapper = ev.target.closest('.swimlane-board-wrapper');
+            const scrollContainer = swimlaneWrapper || container || document.querySelector('.kanban-container');
+            if (!scrollContainer) return;
             
             const scrollSpeed = 15;
             const edgeSize = 100;
             
-            const rect = container.getBoundingClientRect();
+            const rect = scrollContainer.getBoundingClientRect();
             const x = ev.clientX - rect.left;
             
             if (x < edgeSize) {
-                container.scrollLeft -= scrollSpeed;
+                scrollContainer.scrollLeft -= scrollSpeed;
             } else if (x > rect.width - edgeSize) {
-                container.scrollLeft += scrollSpeed;
+                scrollContainer.scrollLeft += scrollSpeed;
             }
         }
         
@@ -762,13 +833,13 @@
         }
 
         function saveColumnOrder(container) {
-            //Utiliser le conteneur passé en paramètre, ou le premier si non spécifié
-            //(tous les conteneurs ont les mêmes colonnes dans le même ordre visuel)
+            // on prend le conteneur qu'on nous donne, sinon on prend le premier qu'on trouve
+            // normalement ils ont tous les mêmes colonnes donc peu importe lequel
             const targetContainer = container || document.querySelector('.kanban-container');
             if (!targetContainer) return;
             
             const columns = targetContainer.querySelectorAll('.kanban-column[data-column-id]');
-            const columnIdsMap = new Map(); // Utiliser Map pour éviter les doublons et préserver l'ordre
+            const columnIdsMap = new Map(); // Map c'est pratique pour éviter les doublons et garder l'ordre
             
             columns.forEach(col => {
                 const columnId = col.dataset.columnId;
@@ -782,7 +853,7 @@
             
             if (columnIds.length === 0) return;
 
-            //ensure BACKLOG column stays first (leftmost)
+            // BACKLOG doit toujours rester en premier, c'est important
             try {
                 let backlogId = null;
                 columnIdsMap.forEach((col, id) => {
@@ -817,7 +888,7 @@
             .then(data => {
                 if (data.success) {
                     console.log('[DEBUG] Column order saved successfully');
-                    // Synchroniser l'ordre dans tous les conteneurs kanban (pour les swimlanes)
+                    // maintenant faut mettre à jour tous les autres conteneurs aussi (genre les swimlanes)
                     syncColumnOrderToAllContainers(targetContainer, columnIds);
                 } else {
                     console.error('[DEBUG] Failed to reorder columns:', data);
@@ -829,18 +900,18 @@
         }
 
         function syncColumnOrderToAllContainers(sourceContainer, columnIds) {
-            //récupérer tous les conteneurs kanban
+            // on récupère tous les conteneurs de colonnes
             const allContainers = document.querySelectorAll('.kanban-container');
             
-            //si un seul conteneur, rien à synchroniser
+            // s'il y en a qu'un seul, y a rien à faire
             if (allContainers.length <= 1) return;
             
-            //pour chaque conteneur (sauf le source qui est déjà à jour), réorganiser les colonnes
+            // on parcourt tous les conteneurs pour mettre à jour leur ordre
             allContainers.forEach(container => {
-                //ignorer le conteneur source qui a déjà le bon ordre
+                // on saute celui qu'on a déjà modifié, il est déjà bon
                 if (container === sourceContainer) return;
                 
-                //récupérer toutes les colonnes avec leur ID
+                // on récupère toutes les colonnes de ce conteneur
                 const columns = Array.from(container.querySelectorAll('.kanban-column[data-column-id]'));
                 const columnsMap = new Map();
                 columns.forEach(col => {
@@ -850,16 +921,16 @@
                     }
                 });
                 
-                // Trouver le dernier élément qui n'est pas une colonne (probablement le formulaire "Add Column")
+                // faut trouver où on doit mettre les colonnes, probablement avant le bouton "Add Column"
                 const allChildren = Array.from(container.children);
                 const lastNonColumnElement = allChildren.slice().reverse().find(child => !child.dataset.columnId);
                 const insertBeforeElement = lastNonColumnElement || container.lastElementChild;
                 
-                // Réorganiser selon l'ordre spécifié (colonnes dans l'ordre de columnIds)
+                // on réorganise les colonnes dans le bon ordre maintenant
                 columnIds.forEach(columnId => {
                     const columnElement = columnsMap.get(columnId);
                     if (columnElement && columnElement.parentNode === container) {
-                        // Déplacer la colonne au bon endroit
+                        // on déplace la colonne au bon endroit
                         if (insertBeforeElement && insertBeforeElement !== columnElement) {
                             container.insertBefore(columnElement, insertBeforeElement);
                         }
@@ -1149,26 +1220,6 @@
             }
         }
 
-        const containers = document.querySelectorAll('.kanban-container');
-        let isSyncingScroll = false;
-
-        containers.forEach(container => {
-            container.addEventListener('scroll', e => {
-                if (isSyncingScroll) return; // prevent recursive updates
-
-                const scrollLeft = e.target.scrollLeft;
-
-                isSyncingScroll = true;
-                requestAnimationFrame(() => {
-                    containers.forEach(c => {
-                        if (c !== e.target) {
-                            c.scrollLeft = scrollLeft;
-                        }
-                    });
-                    isSyncingScroll = false; // reset after updates
-                });
-            });
-        });
     </script>
 
     <script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
