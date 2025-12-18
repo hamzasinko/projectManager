@@ -574,8 +574,8 @@ public class StoryIT {
         try {
             WebElement projectCard = wait.until(
                     ExpectedConditions.presenceOfElementLocated(
-                            By.xpath("//h5.contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'card')] | " +
-                                    "//div[contains(@class,'project-card')]//h3.contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'project-card')]")
+                            By.xpath("//h5[contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'card')] | " +
+                                    "//div[contains(@class,'project-card')]//h3[contains(text(),'" + projectName + "')]/ancestor::div[contains(@class,'project-card')]")
                     ));
             projectId = projectCard.getAttribute("data-id");
             if (projectId == null || projectId.isEmpty()) {

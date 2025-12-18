@@ -326,7 +326,7 @@
                 </div>
                 <div style="text-align:right; margin-top:20px;">
                     <button type="button" onclick="cancelAddStory()" class="btn btn-secondary">Cancel</button>
-                    <button type="button" onclick="confirmAddStory()" class="btn btn-primary" style="margin-left:10px;">Create Story</button>
+                    <button type="button" id="createStoryBtn" onclick="confirmAddStory()" class="btn btn-primary" style="margin-left:10px;">Create Story</button>
                 </div>
             </form>
         </div>
@@ -1622,7 +1622,7 @@
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: formData
+                body: editFormData
             })
             .then(response => {
                 console.log('[DEBUG] Response status:', response.status);

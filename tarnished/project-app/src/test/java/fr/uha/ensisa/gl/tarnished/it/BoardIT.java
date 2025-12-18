@@ -165,7 +165,8 @@ public class BoardIT {
         if (!addStoryButtons.isEmpty()) {
             addStoryButtons.get(0).click();
             
-            //remplit le formulaire de création de story
+            //remplit le formulaire de création de story - attendre que le modal soit visible
+            wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("addStoryModal")));
             wait.until(ExpectedConditions.presenceOfElementLocated(By.id("storyTitle")));
             String storyTitle = "Board Test Story " + System.currentTimeMillis();
             driver.findElement(By.id("storyTitle")).sendKeys(storyTitle);
@@ -366,8 +367,8 @@ public class BoardIT {
         
         //attendre le modal ou formulaire d'édition
         try {
-            wait.until(ExpectedConditions.presenceOfElementLocated(By.id("columnNameEdit")));
-            WebElement nameInput = driver.findElement(By.id("columnNameEdit"));
+            wait.until(ExpectedConditions.presenceOfElementLocated(By.id("editColumnName")));
+            WebElement nameInput = driver.findElement(By.id("editColumnName"));
             nameInput.clear();
             String newName = "Updated " + System.currentTimeMillis();
             nameInput.sendKeys(newName);
@@ -804,6 +805,8 @@ public class BoardIT {
             if (!addStoryButtons.isEmpty()) {
                 addStoryButtons.get(0).click();
                 
+                //attendre que le modal soit visible
+                wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("addStoryModal")));
                 wait.until(ExpectedConditions.presenceOfElementLocated(By.id("storyTitle")));
                 String storyTitle = "Test Story " + System.currentTimeMillis();
                 driver.findElement(By.id("storyTitle")).sendKeys(storyTitle);
