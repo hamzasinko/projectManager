@@ -76,7 +76,10 @@
 </div>
 
 <script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
-<script>
+<script th:inline="javascript">
+    //Base URL avec context path
+    const baseUrl = /*[[@{/}]]*/ '';
+    
     const tbody = document.getElementById('columnTableBody');
     let draggedElement = null;
 
@@ -133,7 +136,7 @@
             const columnId = row.getAttribute('data-column-id');
             const newOrder = index + 1;
             
-            fetch('/columns/' + columnId + '/reorder', {
+            fetch(baseUrl + 'columns/' + columnId + '/reorder', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',

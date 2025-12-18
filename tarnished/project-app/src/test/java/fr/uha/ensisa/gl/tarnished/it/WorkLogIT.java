@@ -20,7 +20,13 @@ class WorkLogIT {
 
     private static WebDriver driver;
     private static WebDriverWait wait;
-    private static final String BASE_URL = "http://localhost:8080";
+    
+    private static String getBaseUrl() {
+        String host = System.getProperty("host", "localhost");
+        String port = System.getProperty("servlet.port", "8080");
+        String contextPath = System.getProperty("jetty.context.path", "/gl2526-tarnished");
+        return "http://" + host + ":" + port + contextPath;
+    }
     private static Long testProjectId;
     private static Long testStoryId;
 
@@ -30,7 +36,7 @@ class WorkLogIT {
         wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         
         //créer un projet de test
-        driver.get(BASE_URL + "/project/new");
+        driver.get(getBaseUrl() + "/project/new");
         WebElement projectNameInput = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("projectName")));
         projectNameInput.sendKeys("WorkLog Test Project " + System.currentTimeMillis());
         driver.findElement(By.id("projectDescription")).sendKeys("For worklog testing");
@@ -49,7 +55,7 @@ class WorkLogIT {
         }
         
         //créer une story de test
-        driver.get(BASE_URL + "/story/new?projectId=" + testProjectId);
+        driver.get(getBaseUrl() + "/story/new?projectId=" + testProjectId);
         WebElement storyTitleInput = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("storyTitle")));
         storyTitleInput.sendKeys("WorkLog Test Story " + System.currentTimeMillis());
         
@@ -86,7 +92,7 @@ class WorkLogIT {
     @Order(1)
     @DisplayName("Should display story detail page with time tracking section")
     void testStoryDetailPageHasTimeTracking() {
-        driver.get(BASE_URL + "/story/" + testStoryId);
+        driver.get(getBaseUrl() + "/story/" + testStoryId);
         
         //vérifier que la section time tracking existe
         assertTrue(driver.getPageSource().contains("Time Tracking") || 
@@ -97,7 +103,7 @@ class WorkLogIT {
     @Order(2)
     @DisplayName("Should start timer on story")
     void testStartTimer() {
-        driver.get(BASE_URL + "/story/" + testStoryId);
+        driver.get(getBaseUrl() + "/story/" + testStoryId);
         
         try {
             //attendre que la page se charge et que le bouton soit cliquable
@@ -113,7 +119,7 @@ class WorkLogIT {
             }
             
             //vérifier que le timer est en cours en cherchant le bouton Stop ou le texte Timer Running
-            driver.get(BASE_URL + "/story/" + testStoryId);
+            driver.get(getBaseUrl() + "/story/" + testStoryId);
             wait.until(ExpectedConditions.or(
                 ExpectedConditions.textToBePresentInElementLocated(By.tagName("body"), "Stop"),
                 ExpectedConditions.textToBePresentInElementLocated(By.tagName("body"), "Timer Running")
@@ -133,7 +139,7 @@ class WorkLogIT {
     @Order(3)
     @DisplayName("Should stop timer on story")
     void testStopTimer() {
-        driver.get(BASE_URL + "/story/" + testStoryId);
+        driver.get(getBaseUrl() + "/story/" + testStoryId);
         
         try {
             WebElement stopButton = driver.findElement(By.xpath("//button[contains(text(),'Stop')]"));
@@ -141,7 +147,7 @@ class WorkLogIT {
             wait.until(ExpectedConditions.urlContains("/story/" + testStoryId));
             
             //vérifier que le timer est arrêté
-            driver.get(BASE_URL + "/story/" + testStoryId);
+            driver.get(getBaseUrl() + "/story/" + testStoryId);
             assertTrue(driver.getPageSource().contains("Start"));
         } catch (Exception e) {
             //le timer n'est peut-être pas en cours
@@ -153,7 +159,7 @@ class WorkLogIT {
     @Order(4)
     @DisplayName("Should add manual work log entry")
     void testAddManualWorkLog() {
-        driver.get(BASE_URL + "/story/" + testStoryId);
+        driver.get(getBaseUrl() + "/story/" + testStoryId);
         
         try {
             WebElement minutesInput = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("minutes")));
@@ -182,7 +188,7 @@ class WorkLogIT {
     @Order(5)
     @DisplayName("Should display work log history")
     void testWorkLogHistory() {
-        driver.get(BASE_URL + "/story/" + testStoryId);
+        driver.get(getBaseUrl() + "/story/" + testStoryId);
         
         assertTrue(driver.getPageSource().contains("Work Log History") || 
                    driver.getPageSource().contains("No work logs yet"));
@@ -192,7 +198,7 @@ class WorkLogIT {
     @Order(6)
     @DisplayName("Should delete work log entry")
     void testDeleteWorkLog() {
-        driver.get(BASE_URL + "/story/" + testStoryId);
+        driver.get(getBaseUrl() + "/story/" + testStoryId);
         
         try {
             List<WebElement> deleteButtons = driver.findElements(By.xpath("//button[contains(text(),'Delete')]"));
@@ -212,7 +218,7 @@ class WorkLogIT {
     @Order(7)
     @DisplayName("Should show start/stop timer buttons in board view")
     void testTimerButtonsInBoard() {
-        driver.get(BASE_URL + "/board/" + testProjectId);
+        driver.get(getBaseUrl() + "/board/" + testProjectId);
         
         //vérifier si les boutons Start ou Stop sont présents
         boolean hasTimerButtons = driver.getPageSource().contains("Start Timer") || 
@@ -227,7 +233,7 @@ class WorkLogIT {
     @Order(8)
     @DisplayName("Should update total time spent after adding work log")
     void testTotalTimeSpentUpdate() {
-        driver.get(BASE_URL + "/story/" + testStoryId);
+        driver.get(getBaseUrl() + "/story/" + testStoryId);
         
         //vérifier que le temps total est affiché
         assertTrue(driver.getPageSource().contains("Total Time Spent") || 

@@ -627,7 +627,7 @@
 
         function saveStoryOrder(columnId) {
             const columnElement = document.querySelector(`[data-column-id="${columnId}"]`);
-            const baseSaveUrl = /*[[@{/story/new}]]*/ '';
+            const baseSaveUrl = /*[[@{/board/}]]*/ '';
 
             if (!columnElement) return;
             
@@ -763,7 +763,7 @@
         function saveColumnOrder() {
             const columns = document.querySelectorAll('.kanban-column[data-column-id]');
             const columnIds = Array.from(columns).map(col => col.dataset.columnId);
-            const baseSaveUrl = /*[[@{/story/new}]]*/ '';
+            const baseSaveUrl = /*[[@{/board/}]]*/ '';
             
             if (columnIds.length === 0) return;
 
@@ -888,7 +888,7 @@
             }
             
             console.log('[DEBUG] New values - Name:', newName, 'Capacity:', newCapacity);
-            console.log('[DEBUG] Posting to: /board/' + projectId + '/update-column-full');
+            console.log('[DEBUG] Posting to: ' + baseEditUrl + projectId + '/update-column-full');
             
             const formData = new URLSearchParams();
             formData.append('columnId', columnToEdit.id);

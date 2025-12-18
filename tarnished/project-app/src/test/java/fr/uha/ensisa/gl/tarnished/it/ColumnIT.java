@@ -20,7 +20,13 @@ class ColumnIT {
 
     private static WebDriver driver;
     private static WebDriverWait wait;
-    private static final String BASE_URL = "http://localhost:8080";
+    
+    private static String getBaseUrl() {
+        String host = System.getProperty("host", "localhost");
+        String port = System.getProperty("servlet.port", "8080");
+        String contextPath = System.getProperty("jetty.context.path", "/gl2526-tarnished");
+        return "http://" + host + ":" + port + contextPath;
+    }
 
     @BeforeAll
     static void setUpClass() {
@@ -50,7 +56,7 @@ class ColumnIT {
     @Test
     @Order(1)
     void testCreateColumnViaForm() {
-        driver.get(BASE_URL + "/columns/create");
+        driver.get(getBaseUrl() + "/columns/create");
 
         WebElement nameInput = driver.findElement(By.id("column_name"));
         WebElement orderInput = driver.findElement(By.id("column_order"));
@@ -72,7 +78,7 @@ class ColumnIT {
     @Order(2)
     @DisplayName("Should create column WITH sub-columns (Backlog/Done)")
     void testCreateColumnWithSubColumns() {
-        driver.get(BASE_URL + "/columns/create");
+        driver.get(getBaseUrl() + "/columns/create");
 
         WebElement nameInput = driver.findElement(By.id("column_name"));
         WebElement orderInput = driver.findElement(By.id("column_order"));
@@ -99,7 +105,7 @@ class ColumnIT {
     @Order(3)
     @DisplayName("Should create column WITHOUT sub-columns")
     void testCreateColumnWithoutSubColumns() {
-        driver.get(BASE_URL + "/columns/create");
+        driver.get(getBaseUrl() + "/columns/create");
 
         WebElement nameInput = driver.findElement(By.id("column_name"));
         WebElement orderInput = driver.findElement(By.id("column_order"));
@@ -129,7 +135,7 @@ class ColumnIT {
     @Test
     @Order(4)
     void testEditColumnName() {
-        driver.get(BASE_URL + "/columns");
+        driver.get(getBaseUrl() + "/columns");
 
         WebElement editButton = driver.findElement(By.cssSelector("[id^='column_edit_']"));
         editButton.click();
@@ -147,7 +153,7 @@ class ColumnIT {
     @Test
     @Order(9)
     void testStopTimerOnStory() {
-        driver.get(BASE_URL + "/story/list");
+        driver.get(getBaseUrl() + "/story/list");
 
         try {
             WebElement stopTimerForm = driver.findElement(By.cssSelector("[id^='timer_stop_']"));
@@ -163,7 +169,7 @@ class ColumnIT {
     @Test
     @Order(10)
     void testDragAndDropColumns() {
-        driver.get(BASE_URL + "/columns");
+        driver.get(getBaseUrl() + "/columns");
 
         assertTrue(driver.findElement(By.id("column_list")).isDisplayed());
     }
@@ -171,10 +177,10 @@ class ColumnIT {
     @Test
     @Order(11)
     void testAllEndpointsAccessible() {
-        driver.get(BASE_URL + "/columns");
+        driver.get(getBaseUrl() + "/columns");
         assertEquals(200, getHttpStatus());
 
-        driver.get(BASE_URL + "/columns/create");
+        driver.get(getBaseUrl() + "/columns/create");
         assertEquals(200, getHttpStatus());
 
         assertTrue(true);
@@ -189,7 +195,7 @@ class ColumnIT {
     @DisplayName("Should delete a column")
     void testDeleteColumn() {
         //créer une colonne d'abord
-        driver.get(BASE_URL + "/columns/create");
+        driver.get(getBaseUrl() + "/columns/create");
         WebElement nameInput = driver.findElement(By.id("column_name"));
         nameInput.sendKeys("Column To Delete " + System.currentTimeMillis());
         driver.findElement(By.id("column_order")).clear();
@@ -214,7 +220,7 @@ class ColumnIT {
     @DisplayName("Should reorder a column")
     void testReorderColumn() {
         //créer une colonne d'abord
-        driver.get(BASE_URL + "/columns/create");
+        driver.get(getBaseUrl() + "/columns/create");
         WebElement nameInput = driver.findElement(By.id("column_name"));
         nameInput.sendKeys("Column To Reorder " + System.currentTimeMillis());
         driver.findElement(By.id("column_order")).clear();
@@ -245,8 +251,8 @@ class ColumnIT {
             //si on est déjà sur une autre page, forcer la navigation
             if (!currentUrl.contains("/project/new")) {
                 //naviguer vers une page neutre d'abord pour réinitialiser l'état
-                driver.get(BASE_URL + "/");
-                wait.until(ExpectedConditions.urlContains(BASE_URL));
+                driver.get(getBaseUrl() + "/");
+                wait.until(ExpectedConditions.urlContains(getBaseUrl()));
             }
         } catch (Exception e) {
             //si le navigateur est dans un état invalide, le recréer
@@ -255,7 +261,7 @@ class ColumnIT {
         }
         
         //forcer une navigation complète vers la page de création de projet
-        String projectNewUrl = BASE_URL + "/project/new";
+        String projectNewUrl = getBaseUrl() + "/project/new";
         driver.get(projectNewUrl);
         
         //attendre que la page soit complètement chargée avec timeout plus long
@@ -299,9 +305,9 @@ class ColumnIT {
         
         //créer une story
         if (projectId != null && !projectId.isEmpty()) {
-            driver.get(BASE_URL + "/story/new?projectId=" + projectId);
+            driver.get(getBaseUrl() + "/story/new?projectId=" + projectId);
         } else {
-            driver.get(BASE_URL + "/story/new");
+            driver.get(getBaseUrl() + "/story/new");
         }
         driver.findElement(By.id("storyTitle")).sendKeys("Story To Move " + System.currentTimeMillis());
         

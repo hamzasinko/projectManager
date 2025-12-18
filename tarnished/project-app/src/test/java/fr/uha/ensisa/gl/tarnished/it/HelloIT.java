@@ -26,7 +26,8 @@ public class HelloIT {
 
     @Test
     public void hello() throws IOException {
-        String url = "http://" + host + ":" + port + "/hello";
+        String contextPath = System.getProperty("jetty.context.path", "/gl2526-tarnished");
+        String url = "http://" + host + ":" + port + contextPath + "/hello";
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
 
         connection.connect();

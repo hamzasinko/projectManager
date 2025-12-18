@@ -37,7 +37,7 @@
       </p>
 
       <a th:href="@{/}" class="btn btn-secondary btn-sm">Home</a>
-      <a th:href="'/project/list'" class="btn btn-primary btn-sm">Projects</a>
+      <a th:href="@{'/project/list'}" class="btn btn-primary btn-sm">Projects</a>
       <a th:href="@{'/board/' + ${project.id}}" class="btn btn-primary btn-sm">Open Board</a>
       <!--bouton Delete-->
       <button class="btn btn-danger btn-sm" th:onclick="'showDeleteConfirm(' + ${project.id} + ')'">

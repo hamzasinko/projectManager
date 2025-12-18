@@ -20,6 +20,7 @@
         <spring.version>5.3.39</spring.version>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <maven.compiler.source>${java.version}</maven.compiler.source>
+        <jetty.context.path>/gl2526-tarnished</jetty.context.path>
     </properties>
 
     <dependencies>
@@ -174,7 +175,7 @@
                     <stopKey>quit</stopKey>
                     <stopPort>${jetty.stop.port}</stopPort>
                     <webApp>
-                        <contextPath>/</contextPath>
+                        <contextPath>${jetty.context.path}</contextPath>
                     </webApp>
                     <scanIntervalSeconds>5</scanIntervalSeconds>
                     <systemProperties>
@@ -233,6 +234,10 @@
                                 <property>
                                     <name>name</name>
                                     <value>${project.name}</value>
+                                </property>
+                                <property>
+                                    <name>jetty.context.path</name>
+                                    <value>${jetty.context.path}</value>
                                 </property>
                             </systemProperties>
                         </configuration>

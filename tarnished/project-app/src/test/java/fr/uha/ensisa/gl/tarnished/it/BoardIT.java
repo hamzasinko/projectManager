@@ -110,7 +110,8 @@ public class BoardIT {
     }
     
     public static String getBaseUrl() {
-        return "http://" + host + ":" + port + "/";
+        String contextPath = System.getProperty("jetty.context.path", "/gl2526-tarnished");
+        return "http://" + host + ":" + port + contextPath + "/";
     }
     
     private void sleep(int milliseconds) {
