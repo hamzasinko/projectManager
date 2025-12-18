@@ -202,7 +202,7 @@ run-staging:
     ACTION: apply
   environment:
     name: staging
-    url: https://staging.cluster.ensisa.uha.fr/
+    url: https://staging.cluster.ensisa.uha.fr/gl2526-tarnished
 deploy-prod:
   <<: *kubernetes
   variables:
