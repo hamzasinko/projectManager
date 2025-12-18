@@ -2,6 +2,7 @@ package fr.uha.ensisa.gl.tarnished.controller;
 
 import fr.uha.ensisa.gl.entities.Column;
 import fr.uha.ensisa.gl.entities.Project;
+import fr.uha.ensisa.gl.tarnished.config.PathHelper;
 import fr.uha.ensisa.gl.tarnished.repos.ColumnRepo;
 import fr.uha.ensisa.gl.tarnished.repos.ProjectRepo;
 import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
@@ -19,6 +20,9 @@ public class ColumnController {
 
     @Autowired
     private RepoFactory repoFactory;
+
+    @Autowired
+    private PathHelper pathHelper;
 
     @GetMapping("/columns")
     public String listColumns(Model model) {
@@ -59,7 +63,7 @@ public class ColumnController {
         );
 
         if (alreadyExists) {
-            return "redirect:/columns?error=Column already exists";
+            return pathHelper.redirect("/columns?error=Column already exists");
         }
 
 
@@ -78,7 +82,7 @@ public class ColumnController {
         }
         
         columnRepo.persist(column);
-        return "redirect:/columns";
+        return pathHelper.redirect("/columns");
     }
 
     @GetMapping("/columns/{id}/edit")
@@ -109,21 +113,21 @@ public class ColumnController {
             columnRepo.persist(column);
         }
         
-        return "redirect:/columns";
+        return pathHelper.redirect("/columns");
     }
 
     @PostMapping("/columns/{id}/delete")
     public String deleteColumn(@PathVariable Long id) {
         ColumnRepo columnRepo = repoFactory.getColumnRepo();
         columnRepo.remove(id);
-        return "redirect:/columns";
+        return pathHelper.redirect("/columns");
     }
 
     @PostMapping("/columns/{id}/reorder")
     public String reorderColumn(@PathVariable Long id, @RequestParam(required = false, defaultValue = "0") int newOrder) {
         ColumnRepo columnRepo = repoFactory.getColumnRepo();
         columnRepo.reorder(id, newOrder);
-        return "redirect:/columns";
+        return pathHelper.redirect("/columns");
     }
 
     @PostMapping("/stories/{storyId}/move")
@@ -135,9 +139,9 @@ public class ColumnController {
         try {
             columnRepo.moveStoryBetweenColumns(storyId, fromColumnId, toColumnId);
         } catch (IllegalStateException e) {
-            return "redirect:/stories?error=Column is full";
+            return pathHelper.redirect("/stories?error=Column is full");
         }
         
-        return "redirect:/stories";
+        return pathHelper.redirect("/stories");
     }
 }

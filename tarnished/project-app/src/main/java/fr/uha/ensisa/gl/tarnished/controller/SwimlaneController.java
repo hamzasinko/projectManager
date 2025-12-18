@@ -2,6 +2,7 @@ package fr.uha.ensisa.gl.tarnished.controller;
 
 import fr.uha.ensisa.gl.entities.Swimlane;
 import fr.uha.ensisa.gl.entities.Project;
+import fr.uha.ensisa.gl.tarnished.config.PathHelper;
 import fr.uha.ensisa.gl.tarnished.repos.ProjectRepo;
 import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
 import fr.uha.ensisa.gl.tarnished.repos.StoryRepo;
@@ -22,12 +23,15 @@ public class SwimlaneController {
     @Autowired
     private RepoFactory repoFactory;
 
+    @Autowired
+    private PathHelper pathHelper;
+
     @GetMapping("/new")
     public ModelAndView newSwimlaneForm(@RequestParam(required = false) Integer projectId) {
         ProjectRepo projectRepo = repoFactory.getProjectRepo();
 
         if (projectId == null || projectRepo.find(projectId) == null) {
-            return new ModelAndView("redirect:/");
+            return pathHelper.redirectView("/");
         }
 
         ModelAndView mav = new ModelAndView("swimlane-create");
@@ -45,7 +49,7 @@ public class SwimlaneController {
         StoryRepo storyRepo = repoFactory.getStoryRepo();
 
         if (projectId == null || projectRepo.find(projectId) == null) {
-            return new ModelAndView("redirect:/");
+            return pathHelper.redirectView("/");
         }
 
         Swimlane swimlane = new Swimlane();
@@ -73,7 +77,7 @@ public class SwimlaneController {
                     });
         }
 
-        return new ModelAndView("redirect:/board/" + projectId);
+        return pathHelper.redirectView("/board/" + projectId);
     }
 
     @PostMapping("/delete/{id}")
@@ -84,13 +88,13 @@ public class SwimlaneController {
 
         Swimlane swimlane = swimlaneRepo.find(id);
         if (swimlane == null) {
-            return new ModelAndView("redirect:/");
+            return pathHelper.redirectView("/");
         }
 
         Long projectId = (long) swimlane.getProjectId();
         Project project = projectRepo.find(projectId);
         if (project == null) {
-            return new ModelAndView("redirect:/");
+            return pathHelper.redirectView("/");
         }
 
         swimlaneRepo.remove(id);
@@ -111,7 +115,7 @@ public class SwimlaneController {
 
         projectRepo.update(project);
 
-        return new ModelAndView("redirect:/board/" + projectId);
+        return pathHelper.redirectView("/board/" + projectId);
     }
 
     //optionnel: édite une swimlane
@@ -121,7 +125,7 @@ public class SwimlaneController {
 
         Swimlane swimlane = swimlaneRepo.find(id);
         if (swimlane == null) {
-            return new ModelAndView("redirect:/");
+            return pathHelper.redirectView("/");
         }
 
         ModelAndView mav = new ModelAndView("swimlane-edit");
@@ -139,7 +143,7 @@ public class SwimlaneController {
 
         Swimlane swimlane = swimlaneRepo.find(id);
         if (swimlane == null) {
-            return new ModelAndView("redirect:/");
+            return pathHelper.redirectView("/");
         }
 
         swimlane.setName(name);
@@ -151,6 +155,6 @@ public class SwimlaneController {
             projectRepo.update(project);
         }
 
-        return new ModelAndView("redirect:/board/" + swimlane.getProjectId());
+        return pathHelper.redirectView("/board/" + swimlane.getProjectId());
     }
 }

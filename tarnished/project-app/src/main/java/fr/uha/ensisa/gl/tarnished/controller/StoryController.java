@@ -3,6 +3,7 @@ package fr.uha.ensisa.gl.tarnished.controller;
 import fr.uha.ensisa.gl.entities.Story;
 import fr.uha.ensisa.gl.entities.StoryStatus;
 import fr.uha.ensisa.gl.entities.WorkLog;
+import fr.uha.ensisa.gl.tarnished.config.PathHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +23,9 @@ public class StoryController {
     
     @Autowired
     public RepoFactory repoFactory;
+    
+    @Autowired
+    private PathHelper pathHelper;
     
     public StoryController() {
         System.out.println("*** StoryController CREATED ***");
@@ -67,12 +71,12 @@ public class StoryController {
         
         //valide le titre
         if (title == null || title.trim().isEmpty()) {
-            return "redirect:/story/new?error=Title is required&projectId=" + projectId;
+            return pathHelper.redirect("/story/new?error=Title is required&projectId=" + projectId);
         }
         
         //limite la longueur du titre à 59 caractères
         if (title.length() > 59) {
-            return "redirect:/story/new?error=Title must be less than 59 characters&projectId=" + projectId;
+            return pathHelper.redirect("/story/new?error=Title must be less than 59 characters&projectId=" + projectId);
         }
         
         //projectId optionnel pour les stories, si absent on crée une story globale
@@ -147,9 +151,9 @@ public class StoryController {
         
         //redirige vers le board du projet si projectId présent, sinon vers la liste des stories
         if (story.getProjectId() != null) {
-            return "redirect:/board/" + story.getProjectId();
+            return pathHelper.redirect("/board/" + story.getProjectId());
         }
-        return "redirect:/story/list";
+        return pathHelper.redirect("/story/list");
     }
     
     //redirige vers la page d'accueil car les stories doivent être vues dans le contexte d'un projet
@@ -169,12 +173,12 @@ public class StoryController {
         Story story = repoFactory.getStoryRepo().find(id);
         
         if (story == null) {
-            return new ModelAndView("redirect:/");
+            return pathHelper.redirectView("/");
         }
         
         //vérifie que la story a un projectId
         if (story.getProjectId() == null) {
-            return new ModelAndView("redirect:/");
+            return pathHelper.redirectView("/");
         }
         
         mav.addObject("story", story);
@@ -188,12 +192,12 @@ public class StoryController {
         Story story = repoFactory.getStoryRepo().find(id);
         
         if (story == null) {
-            return new ModelAndView("redirect:/");
+            return pathHelper.redirectView("/");
         }
         
         //vérifie que la story a un projectId
         if (story.getProjectId() == null) {
-            return new ModelAndView("redirect:/");
+            return pathHelper.redirectView("/");
         }
         
         mav.addObject("story", story);
@@ -244,7 +248,7 @@ public class StoryController {
         
         if (story == null) {
             System.out.println("[DEBUG] Story not found! Redirecting to /story/list");
-            return "redirect:/story/list";
+            return pathHelper.redirect("/story/list");
         }
         
         System.out.println("[DEBUG] Found story - ID: " + story.getId() + ", CurrentTitle: " + story.getTitle() + ", UserAssigned: " + (story.getUserAssigned() != null ? story.getUserAssigned().getName() : "NULL"));
@@ -252,13 +256,13 @@ public class StoryController {
         //valide le titre
         if (title == null || title.trim().isEmpty()) {
             System.out.println("[DEBUG] Title validation failed - empty title");
-            return "redirect:/story/" + id + "/edit?error=Title is required";
+            return pathHelper.redirect("/story/" + id + "/edit?error=Title is required");
         }
         
         //limite la longueur du titre à 59 caractères
         if (title.length() > 59) {
             System.out.println("[DEBUG] Title validation failed - too long");
-            return "redirect:/story/" + id + "/edit?error=Title must be less than 59 characters";
+            return pathHelper.redirect("/story/" + id + "/edit?error=Title must be less than 59 characters");
         }
         
         System.out.println("[DEBUG] Setting new title: " + title.trim());
@@ -297,10 +301,10 @@ public class StoryController {
         //redirige vers le board si la story a un projectId
         if (story.getProjectId() != null) {
             System.out.println("[DEBUG] Redirecting to /board/" + story.getProjectId());
-            return "redirect:/board/" + story.getProjectId();
+            return pathHelper.redirect("/board/" + story.getProjectId());
         }
         System.out.println("[DEBUG] Redirecting to /story/" + id);
-        return "redirect:/story/" + id;
+        return pathHelper.redirect("/story/" + id);
     }
     
     //supprime une story
@@ -313,10 +317,10 @@ public class StoryController {
         
         //redirige vers le board du projet si la story avait un projet, sinon vers home
         if (projectId != null) {
-            return "redirect:/board/" + projectId;
+            return pathHelper.redirect("/board/" + projectId);
         }
         //quand pas de projet associé, affiche la liste des stories (les tests d'intégration s'y attendent)
-        return "redirect:/story/list";
+        return pathHelper.redirect("/story/list");
     }
     
     //assigne une story à un utilisateur
@@ -343,12 +347,12 @@ public class StoryController {
             //redirige vers le board du projet si la story a un projet
             if (story.getProjectId() != null) {
                 System.out.println("[DEBUG] Redirecting to /board/" + story.getProjectId());
-                return "redirect:/board/" + story.getProjectId();
+                return pathHelper.redirect("/board/" + story.getProjectId());
             }
         }
         
         System.out.println("[DEBUG] Redirecting to /");
-        return "redirect:/";
+        return pathHelper.redirect("/");
     }
     
     //désassigne une story d'un utilisateur
@@ -362,23 +366,23 @@ public class StoryController {
             
             //redirige vers le board du projet si la story a un projet
             if (story.getProjectId() != null) {
-                return "redirect:/board/" + story.getProjectId();
+                return pathHelper.redirect("/board/" + story.getProjectId());
             }
         }
         
-        return "redirect:/";
+        return pathHelper.redirect("/");
     }
 
     @PostMapping("/{id}/timer/start")
     public String startTimer(@PathVariable("id") Long id, @RequestParam(required = false, defaultValue = "1") Long userId) {
         repoFactory.getStoryRepo().startTimer(id, userId);
-        return "redirect:/story/" + id;
+        return pathHelper.redirect("/story/" + id);
     }
 
     @PostMapping("/{id}/timer/stop")
     public String stopTimer(@PathVariable("id") Long id, @RequestParam Long workLogId) {
         repoFactory.getStoryRepo().stopTimer(id, workLogId);
-        return "redirect:/story/" + id;
+        return pathHelper.redirect("/story/" + id);
     }
     
     @PostMapping("/{id}/worklog/add")
@@ -392,7 +396,7 @@ public class StoryController {
         long totalMinutes = (days * 24 * 60) + (hours * 60) + minutes;
         
         if (totalMinutes <= 0) {
-            return "redirect:/story/" + id + "?error=Duration must be greater than 0";
+            return pathHelper.redirect("/story/" + id + "?error=Duration must be greater than 0");
         }
         
         //limite le commentaire à 45 caractères
@@ -410,12 +414,12 @@ public class StoryController {
         workLog.setComment(comment);
         
         repoFactory.getStoryRepo().addWorkLog(id, workLog);
-        return "redirect:/story/" + id;
+        return pathHelper.redirect("/story/" + id);
     }
     
     @PostMapping("/{storyId}/worklog/{workLogId}/delete")
     public String deleteWorkLog(@PathVariable Long storyId, @PathVariable Long workLogId) {
         repoFactory.getStoryRepo().removeWorkLog(storyId, workLogId);
-        return "redirect:/story/" + storyId;
+        return pathHelper.redirect("/story/" + storyId);
     }
 }

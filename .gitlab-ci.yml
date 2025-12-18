@@ -104,7 +104,7 @@ deploy-docker:
     - |
       echo "FROM jetty:9.4-jre17
       EXPOSE 8080
-      ADD myapp.war /var/lib/jetty/webapps/ROOT.war" > Dockerfile
+      ADD myapp.war /var/lib/jetty/webapps/gl2526-tarnished.war" > Dockerfile
 
     - /kaniko/executor --cleanup --context $CI_PROJECT_DIR --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME" --destination "$CI_REGISTRY_IMAGE:latest"
 

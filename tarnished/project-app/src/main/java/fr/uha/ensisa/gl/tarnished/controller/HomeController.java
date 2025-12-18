@@ -2,6 +2,7 @@ package fr.uha.ensisa.gl.tarnished.controller;
 
 import fr.uha.ensisa.gl.entities.Story;
 import fr.uha.ensisa.gl.entities.StoryStatus;
+import fr.uha.ensisa.gl.tarnished.config.PathHelper;
 import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -16,9 +17,16 @@ public class HomeController {
 	@Autowired
 	private RepoFactory repoFactory;
 
+	@Autowired
+	private PathHelper pathHelper;
+
 	//setter pour les tests
 	void setRepoFactory(RepoFactory repoFactory) {
 		this.repoFactory = repoFactory;
+	}
+
+	void setPathHelper(PathHelper pathHelper) {
+		this.pathHelper = pathHelper;
 	}
 
 	@RequestMapping(value="/")
@@ -40,6 +48,6 @@ public class HomeController {
 
 	@RequestMapping(value="/hello")
 	public String hello() {
-		return "redirect:/";
+		return pathHelper.redirect("/");
 	}
 }

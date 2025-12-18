@@ -4,6 +4,7 @@ import fr.uha.ensisa.gl.entities.Column;
 import fr.uha.ensisa.gl.entities.Project;
 import fr.uha.ensisa.gl.entities.Story;
 import fr.uha.ensisa.gl.entities.Swimlane;
+import fr.uha.ensisa.gl.tarnished.config.PathHelper;
 import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
 import fr.uha.ensisa.gl.tarnished.repos.SwimlaneRepo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,9 @@ public class BoardController {
     @Autowired
     private RepoFactory repoFactory;
 
+    @Autowired
+    private PathHelper pathHelper;
+
     //setter pour les tests
     void setRepoFactory(RepoFactory repoFactory) {
         this.repoFactory = repoFactory;
@@ -35,7 +39,7 @@ public class BoardController {
         SwimlaneRepo swimlaneRepo = repoFactory.getSwimlaneRepo();
         Project project = repoFactory.getProjectRepo().find(projectId);
         if (project == null) {
-            return new ModelAndView("redirect:/project/list");
+            return pathHelper.redirectView("/project/list");
         }
 
         //récupère toutes les colonnes du projet
@@ -193,7 +197,7 @@ public class BoardController {
             @RequestParam(required = false, defaultValue = "false") boolean hasSubColumns) {
         //si name pas fourni, redirige vers le board avec param pour afficher le formulaire
         if (name == null || name.trim().isEmpty()) {
-            return "redirect:/board/" + projectId + "?showAddColumn=true";
+            return pathHelper.redirect("/board/" + projectId + "?showAddColumn=true");
         }
         return addColumn(projectId, name, maxCapacity, hasSubColumns);
     }
@@ -208,7 +212,7 @@ public class BoardController {
 
         Project project = repoFactory.getProjectRepo().find(projectId);
         if (project == null) {
-            return "redirect:/project/list";
+            return pathHelper.redirect("/project/list");
         }
 
         //validation: limite le nom à 25 caractères
@@ -251,7 +255,7 @@ public class BoardController {
 
         repoFactory.getColumnRepo().persist(column);
 
-        return "redirect:/board/" + projectId;
+        return pathHelper.redirect("/board/" + projectId);
     }
     
     //réordonne les stories dans une colonne (ajax)
@@ -286,23 +290,23 @@ public class BoardController {
         
         Column column = repoFactory.getColumnRepo().find(columnId);
         if (column == null) {
-            return "redirect:/board/" + projectId + "?error=Column not found";
+            return pathHelper.redirect("/board/" + projectId + "?error=Column not found");
         }
         
         //interdit la suppression de BACKLOG et DONE
         String columnName = column.getName().toUpperCase(Locale.ROOT).replace(" ", "_");
         if ("BACKLOG".equals(columnName) || "DONE".equals(columnName)) {
-            return "redirect:/board/" + projectId + "?error=Cannot delete " + column.getName() + " column";
+            return pathHelper.redirect("/board/" + projectId + "?error=Cannot delete " + column.getName() + " column");
         }
         
         //vérifie si la colonne contient des stories
         Collection<Story> storiesInColumn = repoFactory.getStoryRepo().findByColumn(columnId);
         if (!storiesInColumn.isEmpty()) {
-            return "redirect:/board/" + projectId + "?error=Cannot delete column with stories. Please move stories first";
+            return pathHelper.redirect("/board/" + projectId + "?error=Cannot delete column with stories. Please move stories first");
         }
         
         repoFactory.getColumnRepo().remove(columnId);
-        return "redirect:/board/" + projectId;
+        return pathHelper.redirect("/board/" + projectId);
     }
     
     //supprime une colonne avec toutes ses stories
@@ -395,20 +399,20 @@ public class BoardController {
         try {
             Column column = repoFactory.getColumnRepo().find(columnId);
             if (column == null) {
-                return "redirect:/board/" + projectId + "?error=Column not found";
+                return pathHelper.redirect("/board/" + projectId + "?error=Column not found");
             }
             
             //validation du nom
             if (newName == null || newName.trim().isEmpty()) {
-                return "redirect:/board/" + projectId + "?error=Column name cannot be empty";
+                return pathHelper.redirect("/board/" + projectId + "?error=Column name cannot be empty");
             }
             
             column.setName(newName.trim());
             repoFactory.getColumnRepo().persist(column);
         } catch (Exception e) {
-            return "redirect:/board/" + projectId + "?error=" + e.getMessage();
+            return pathHelper.redirect("/board/" + projectId + "?error=" + e.getMessage());
         }
-        return "redirect:/board/" + projectId;
+        return pathHelper.redirect("/board/" + projectId);
     }
     
     //met à jour le nom d'une colonne (ajax)

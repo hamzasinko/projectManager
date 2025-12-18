@@ -2,6 +2,7 @@ package fr.uha.ensisa.gl.tarnished.controller;
 
 import fr.uha.ensisa.gl.entities.Project;
 import fr.uha.ensisa.gl.entities.User;
+import fr.uha.ensisa.gl.tarnished.config.PathHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +16,9 @@ import java.util.List;
 public class ProjectController {
     @Autowired
     public RepoFactory repoFactory;
+    
+    @Autowired
+    private PathHelper pathHelper;
     
     //affiche le formulaire de création de projet
     @GetMapping("/new")
@@ -30,10 +34,10 @@ public class ProjectController {
     ) throws IOException {
         //validation du nom
         if (name == null || name.trim().isEmpty()) {
-            return "redirect:/project/new?error=Project name is required";
+            return pathHelper.redirect("/project/new?error=Project name is required");
         }
         if (name.length() > 29) {
-            return "redirect:/project/new?error=Project name must be less than 29 characters";
+            return pathHelper.redirect("/project/new?error=Project name must be less than 29 characters");
         }
         
         Project project = new Project();
@@ -50,7 +54,7 @@ public class ProjectController {
         project.setOwner(repoFactory.getUserRepo().getAll().get(0));
         repoFactory.getProjectRepo().persist(project);
         
-        return "redirect:/project/list";
+        return pathHelper.redirect("/project/list");
     }
 
     @GetMapping("/info/{id}")
@@ -58,7 +62,7 @@ public class ProjectController {
         Project project = repoFactory.getProjectRepo().find(id);
 
         if (project == null) {
-            return new ModelAndView("redirect:/project/list"); //projet non trouvé
+            return pathHelper.redirectView("/project/list"); //projet non trouvé
         }
 
         ModelAndView mav = new ModelAndView("project-detail");
@@ -110,15 +114,15 @@ public class ProjectController {
     ) {
         //validation du nom
         if (name == null || name.trim().isEmpty()) {
-            return "redirect:/project/edit/" + id + "?error=Project name is required";
+            return pathHelper.redirect("/project/edit/" + id + "?error=Project name is required");
         }
         if (name.length() > 29) {
-            return "redirect:/project/edit/" + id + "?error=Project name must be less than 29 characters";
+            return pathHelper.redirect("/project/edit/" + id + "?error=Project name must be less than 29 characters");
         }
         
         Project project = repoFactory.getProjectRepo().find(id);
         if (project == null) {
-            return "redirect:/project/list";
+            return pathHelper.redirect("/project/list");
         }
         
         project.setName(name);
@@ -137,7 +141,7 @@ public class ProjectController {
         }
         
         repoFactory.getProjectRepo().update(project);
-        return "redirect:/project/info/" + project.getId();
+        return pathHelper.redirect("/project/info/" + project.getId());
     }
 
     @PostMapping("/delete/{id}")
@@ -152,7 +156,7 @@ public class ProjectController {
         );
         //enfin supprime le projet
         repoFactory.getProjectRepo().remove(id);
-        return "redirect:/project/list"; //page avec tous les projets
+        return pathHelper.redirect("/project/list"); //page avec tous les projets
     }
 
     @GetMapping("/{id}/stories")
@@ -160,7 +164,7 @@ public class ProjectController {
         Project project = repoFactory.getProjectRepo().find(id);
         
         if (project == null) {
-            return new ModelAndView("redirect:/");
+            return pathHelper.redirectView("/");
         }
         
         ModelAndView mav = new ModelAndView("project-stories");
