@@ -45,7 +45,7 @@
                  ondragover="allowDrop(event)"
                  ondragleave="dragLeave(event)">
 
-                <div class="column-header">
+                <div class="column-header" th:if="${lane == swimlanes[0]}">
                     <span th:text="${#strings.replace(column.name, '_', ' ')}"
                           th:id="'column-name-' + ${column.id}"
                           th:attr="draggable=${column.name != 'BACKLOG'}"

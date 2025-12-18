@@ -1088,6 +1088,27 @@
                 document.getElementById('deleteSwimlaneForm-' + swimlaneId).submit();
             }
         }
+
+        const containers = document.querySelectorAll('.kanban-container');
+        let isSyncingScroll = false;
+
+        containers.forEach(container => {
+            container.addEventListener('scroll', e => {
+                if (isSyncingScroll) return; // prevent recursive updates
+
+                const scrollLeft = e.target.scrollLeft;
+
+                isSyncingScroll = true;
+                requestAnimationFrame(() => {
+                    containers.forEach(c => {
+                        if (c !== e.target) {
+                            c.scrollLeft = scrollLeft;
+                        }
+                    });
+                    isSyncingScroll = false; // reset after updates
+                });
+            });
+        });
     </script>
 
     <script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
