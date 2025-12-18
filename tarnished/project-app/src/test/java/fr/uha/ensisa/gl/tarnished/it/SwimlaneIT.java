@@ -28,7 +28,7 @@ public class SwimlaneIT {
         if (driver != null) return;
         
         host = System.getProperty("host", "localhost");
-        port = System.getProperty("servlet.port", "8080");
+        port = System.getProperty("servlet.port", "8090");
         
         driver = WebDriverFactory.createChromeDriver();
         wait = new WebDriverWait(driver, Duration.ofSeconds(10));
@@ -233,11 +233,15 @@ public class SwimlaneIT {
         
         //essayer de supprimer si la fonctionnalité delete est disponible
         try {
-            WebElement deleteLink = driver.findElement(By.xpath("//a[contains(@href,'/swimlane/delete/')]"));
-            String href = deleteLink.getAttribute("href");
-            Long swimlaneIdToDelete = Long.parseLong(href.split("/swimlane/delete/")[1].split("\\?")[0]);
+            //chercher le bouton de suppression dans un formulaire (type button maintenant, pas submit)
+            WebElement deleteButton = driver.findElement(By.xpath("//form[contains(@action,'/swimlane/delete/')]//button[@type='button']"));
             
-            deleteLink.click();
+            //cliquer sur le bouton, ce qui déclenchera la confirmation
+            deleteButton.click();
+            
+            //attendre et accepter la confirmation JavaScript
+            wait.until(ExpectedConditions.alertIsPresent());
+            driver.switchTo().alert().accept();
             
             wait.until(ExpectedConditions.urlContains("/board/" + testProjectId));
             assertTrue(driver.getCurrentUrl().contains("/board/" + testProjectId));

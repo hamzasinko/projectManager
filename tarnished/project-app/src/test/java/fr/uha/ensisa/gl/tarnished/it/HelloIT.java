@@ -21,7 +21,7 @@ public class HelloIT {
     @BeforeAll
     public static void init() {
         host = System.getProperty("host", "localhost");
-        port = System.getProperty("servlet.port", "8080");
+        port = System.getProperty("servlet.port", "8090");
     }
 
     @Test

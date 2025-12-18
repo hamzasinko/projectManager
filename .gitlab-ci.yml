@@ -68,7 +68,7 @@ integration-test:
     - echo "Using CHROME_BIN=${CHROME_BIN}"
     - cd tarnished
     - mvn $MAVEN_CLI_OPTS clean install -DskipTests
-    - mvn $MAVEN_CLI_OPTS verify -f project-app/ -Dsurefire.skip=true -Dselenium.remote.browser=false -Dservlet.port=8080
+    - mvn $MAVEN_CLI_OPTS verify -f project-app/ -Dsurefire.skip=true -Dselenium.remote.browser=false -Dservlet.port=8090
   artifacts:
     reports:
       junit:
@@ -103,7 +103,7 @@ deploy-docker:
     - cp "$WARFILE" myapp.war
     - |
       echo "FROM jetty:9.4-jre17
-      EXPOSE 8080
+      EXPOSE 8090
       ADD myapp.war /var/lib/jetty/webapps/ROOT.war" > Dockerfile
 
     - /kaniko/executor --cleanup --context $CI_PROJECT_DIR --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME"
@@ -151,7 +151,7 @@ deploy-docker:
                 name: $APP_NAME
                 ports:
                   - name: http
-                    containerPort: 8080
+                    containerPort: 8090
             imagePullSecrets:
               - name: $APP_NAME-registry-secret
       ---
@@ -168,7 +168,7 @@ deploy-docker:
           - name: http
             protocol: TCP
             port: 80
-            targetPort: 8080
+            targetPort: 8090
       ---
       apiVersion: networking.k8s.io/v1
       kind: Ingress

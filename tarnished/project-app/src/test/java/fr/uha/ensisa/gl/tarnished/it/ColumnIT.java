@@ -20,7 +20,7 @@ class ColumnIT {
 
     private static WebDriver driver;
     private static WebDriverWait wait;
-    private static final String BASE_URL = "http://localhost:8080";
+    private static final String BASE_URL = "http://localhost:8090";
 
     @BeforeAll
     static void setUpClass() {

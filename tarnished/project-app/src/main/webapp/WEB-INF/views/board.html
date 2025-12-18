@@ -1074,6 +1074,12 @@
                 });
             }
         }
+        
+        function confirmDeleteSwimlane(swimlaneId) {
+            if (confirm('Are you sure you want to delete this swimlane? This action cannot be undone.')) {
+                document.getElementById('deleteSwimlaneForm-' + swimlaneId).submit();
+            }
+        }
     </script>
 
     <script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>

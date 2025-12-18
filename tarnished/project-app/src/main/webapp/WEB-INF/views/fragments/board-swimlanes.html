@@ -19,11 +19,15 @@
                 </button>
 
                 <!--bouton Delete-->
-                <form th:action="@{/swimlane/delete/{id}(id=${lane.id})}" method="post" style="display:inline;">
-                    <button type="submit"
+                <form th:id="'deleteSwimlaneForm-' + ${lane.id}"
+                      th:action="@{/swimlane/delete/{id}(id=${lane.id})}" 
+                      method="post" 
+                      style="display:inline;">
+                    <button type="button"
                             class="btn btn-sm btn-outline-danger"
                             style="padding: 2px 8px; font-size: 0.8em;"
-                            title="Delete swimlane">
+                            title="Delete swimlane"
+                            th:onclick="'confirmDeleteSwimlane(' + ${lane.id} + ')'">
                         <i class="bi bi-trash"></i>
                     </button>
                 </form>

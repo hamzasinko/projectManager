@@ -52,8 +52,7 @@ public class BoardController {
                 column.setHasSubColumns(true);
                 repoFactory.getColumnRepo().persist(column);
             }
-            
-            //forcer BLOCKED à ne PAS avoir de sous-colonnes (même si elle en avait avant)
+                        //forcer BLOCKED à ne PAS avoir de sous-colonnes (même si elle en avait avant)
             if (columnName.equals("BLOCKED") && column.isHasSubColumns()) {
                 column.setHasSubColumns(false);
                 repoFactory.getColumnRepo().persist(column);
