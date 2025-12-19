@@ -343,17 +343,20 @@
     <div id="editSwimlaneModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999;">
         <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:30px; border-radius:8px; max-width:500px; width:90%;">
             <h4>Edit Swimlane</h4>
-            <form id="editSwimlaneForm" onsubmit="return false;">
+            <!-- Normal form submission to backend -->
+            <form id="editSwimlaneForm" method="post" th:action="@{/swimlane/update}">
+                <input type="hidden" name="id" id="editSwimlaneId">
                 <div class="mb-3">
                     <label for="editSwimlaneName" class="form-label"><strong>Swimlane Name *</strong></label>
-                    <input type="text" 
-                           id="editSwimlaneName" 
-                           class="form-control" 
-                           required>
+                    <input type="text"
+                           id="editSwimlaneName"
+                           name="name"
+                        class="form-control"
+                        required>
                 </div>
                 <div style="text-align:right; margin-top:20px;">
                     <button type="button" onclick="cancelEditSwimlane()" class="btn btn-secondary">Cancel</button>
-                    <button type="button" onclick="confirmEditSwimlane()" class="btn btn-primary" style="margin-left:10px;">Save Changes</button>
+                    <button type="submit" class="btn btn-primary" style="margin-left:10px;">Save Changes</button>
                 </div>
             </form>
         </div>
@@ -1991,64 +1994,66 @@
         }
 
         let swimlaneToEdit = null;
-        
-        function editSwimlane(swimlaneId, currentName) {
-            swimlaneToEdit = {
-                id: swimlaneId,
-                name: currentName
-            };
-            document.getElementById('editSwimlaneName').value = currentName;
-            document.getElementById('editSwimlaneModal').style.display = 'block';
+
+        function editSwimlane(swimlaneId) {
+            const url = `${window.location.origin}${window.location.pathname.split('/board')[0]}/swimlane/edit/${swimlaneId}`;
+
+            fetch(url)
+                .then(res => {
+                    if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+                    return res.json(); // backend should return JSON {id, name, projectId}
+                })
+                .then(data => {
+                    // Populate modal inputs
+                    document.getElementById('editSwimlaneId').value = data.id;
+                    document.getElementById('editSwimlaneName').value = data.name;
+
+                    // Show modal
+                    document.getElementById('editSwimlaneModal').style.display = 'block';
+                })
+                .catch(err => console.error('Error fetching swimlane:', err));
         }
-        
+
         function cancelEditSwimlane() {
             document.getElementById('editSwimlaneModal').style.display = 'none';
-            swimlaneToEdit = null;
         }
-        
+
         function confirmEditSwimlane() {
             if (!swimlaneToEdit) return;
-            
+
             const newName = document.getElementById('editSwimlaneName').value.trim();
-            if (!newName || newName.length === 0) {
+            if (!newName) {
                 alert('Swimlane name is required!');
                 return;
             }
-            
-            // mettre à jour le nom dans le DOM directement (optimistic update)
+
+            // Optimistic update in DOM
             const swimlaneRow = document.querySelector(`[data-swimlane-id="${swimlaneToEdit.id}"]`);
             if (swimlaneRow) {
                 const nameSpan = swimlaneRow.querySelector('.swimlane-label span');
-                if (nameSpan) {
-                    nameSpan.textContent = newName;
-                }
+                if (nameSpan) nameSpan.textContent = newName;
             }
+
             cancelEditSwimlane();
-            
-            // mettre à jour via AJAX sans recharger
-            const swimlaneFormData = new URLSearchParams();
-            swimlaneFormData.append('id', swimlaneToEdit.id);
-            swimlaneFormData.append('name', newName);
-            
-            const baseUpdateUrl = /*[[@{/swimlane/update}]]*/ '/swimlane/update';
-            fetch(baseUpdateUrl, {
+
+            // Send POST request
+            const formData = new URLSearchParams();
+            formData.append('id', swimlaneToEdit.id);
+            formData.append('name', newName);
+
+            const baseUrl = `${window.location.origin}${window.location.pathname.split('/board')[0]}/swimlane/update`;
+
+            fetch(baseUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: swimlaneFormData,
-                redirect: 'manual'
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData
             })
-            .then(response => {
-                // l'endpoint redirige, donc on considère 302/301 comme succès
-                // le DOM est déjà mis à jour, donc on ne fait rien
-                if (response.status !== 302 && response.status !== 301 && !response.ok) {
-                    console.error('Error updating swimlane, status:', response.status);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                    // Redirect manually to the board page using the correct projectId
+                    window.location.href = `/board/${swimlaneToEdit.projectId}`;
+                })
+                .catch(error => console.error('Error updating swimlane:', error));
         }
 
     </script>

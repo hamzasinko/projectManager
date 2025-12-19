@@ -8,13 +8,17 @@ import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
 import fr.uha.ensisa.gl.tarnished.repos.StoryRepo;
 import fr.uha.ensisa.gl.tarnished.repos.SwimlaneRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/swimlane")
@@ -124,19 +128,22 @@ public class SwimlaneController {
         return pathHelper.redirectView("/board/" + projectId);
     }
 
-    //optionnel: édite une swimlane
     @GetMapping("/edit/{id}")
-    public ModelAndView editSwimlaneForm(@PathVariable long id) {
+    @ResponseBody
+    public Map<String, Object> editSwimlane(@PathVariable long id) {
         SwimlaneRepo swimlaneRepo = repoFactory.getSwimlaneRepo();
-
         Swimlane swimlane = swimlaneRepo.find(id);
+
         if (swimlane == null) {
-            return pathHelper.redirectView("/");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Swimlane not found");
         }
 
-        ModelAndView mav = new ModelAndView("swimlane-edit");
-        mav.addObject("swimlane", swimlane);
-        return mav;
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", swimlane.getId());
+        response.put("name", swimlane.getName());
+        response.put("projectId", swimlane.getProjectId()); // needed for redirect
+
+        return response;
     }
 
     @PostMapping("/update")

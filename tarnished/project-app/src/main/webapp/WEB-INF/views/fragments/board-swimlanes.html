@@ -16,8 +16,7 @@
                         style="padding: 2px 8px; font-size: 0.8em;"
                         title="Edit swimlane"
                         th:data-swimlane-id="${lane.id}"
-                        th:data-swimlane-name="${lane.name}"
-                        onclick="editSwimlane(this.getAttribute('data-swimlane-id'), this.getAttribute('data-swimlane-name'))">
+                        th:onclick="|editSwimlane(this.getAttribute('data-swimlane-id'))|">
                     <i class="bi bi-pencil"></i>
                 </button>
 
