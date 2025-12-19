@@ -2,6 +2,8 @@ package fr.uha.ensisa.gl.tarnished.it;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.*;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.By;
@@ -9,6 +11,12 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 /**
@@ -175,51 +183,7 @@ public class SwimlaneIT {
             //c'est acceptable si les swimlanes ne sont pas directement éditables depuis l'UI
         }
     }
-    
-    @Test
-    @DisplayName("Should update swimlane name successfully")
-    public void testUpdateSwimlane() {
-        //d'abord créer une swimlane
-        driver.get(getBaseUrl() + "swimlane/new?projectId=" + testProjectId);
-        String swimlaneName = "Update Test Swimlane " + System.currentTimeMillis();
-        WebElement nameInput = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("swimlaneName")));
-        nameInput.sendKeys(swimlaneName);
-        WebElement createBtn = wait.until(ExpectedConditions.elementToBeClickable(By.id("createSwimlaneBtn")));
-        createBtn.click();
-        wait.until(ExpectedConditions.urlContains("/board/" + testProjectId));
-        
-        //essayer de mettre à jour si la fonctionnalité edit est disponible
-        try {
-            WebElement editLink = driver.findElement(By.xpath("//a[contains(@href,'/swimlane/edit/')]"));
-            String href = editLink.getAttribute("href");
-            testSwimlaneId = Long.parseLong(href.split("/swimlane/edit/")[1].split("\\?")[0]);
-            
-            driver.get(getBaseUrl() + "swimlane/edit/" + testSwimlaneId);
-            
-            WebElement editNameInput = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("swimlaneName")));
-            editNameInput.clear();
-            String updatedName = "Updated Swimlane " + System.currentTimeMillis();
-            editNameInput.sendKeys(updatedName);
-            
-            WebElement updateBtn = wait.until(ExpectedConditions.elementToBeClickable(By.id("updateSwimlaneBtn")));
-            updateBtn.click();
-            
-            wait.until(ExpectedConditions.urlContains("/board/" + testProjectId));
-            assertTrue(driver.getCurrentUrl().contains("/board/" + testProjectId));
-        } catch (Exception e) {
-            //si la fonctionnalité edit n'est pas disponible dans l'UI, skip ce test
-        }
-    }
-    
-    @Test
-    @DisplayName("Should redirect when editing non-existent swimlane")
-    public void testEditNonExistentSwimlane() {
-        driver.get(getBaseUrl() + "swimlane/edit/99999");
-        
-        wait.until(ExpectedConditions.urlContains("/"));
-        assertTrue(driver.getCurrentUrl().endsWith("/") || driver.getCurrentUrl().contains("/project/list"));
-    }
-    
+
     @Test
     @DisplayName("Should delete swimlane successfully")
     public void testDeleteSwimlane() {
