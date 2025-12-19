@@ -1,9 +1,9 @@
 <div class="swimlane-board-wrapper">
 <div class="swimlane-board" th:fragment="swimlaneBoard">
     <!--les lignes de swimlane iront ici-->
-    <div th:each="lane : ${swimlanes}"
-         class="swimlane-row"
-         th:data-swimlane-id="${lane.id}">
+    <div th:each="lane, iterStat : ${swimlanes}">
+        <div class="swimlane-row"
+             th:data-swimlane-id="${lane.id}">
 
         <!--label de swimlane-->
         <div class="swimlane-label">
@@ -378,6 +378,10 @@
                 </form>
             </div>
         </div>
+        </div>
+        
+        <!-- Ligne de séparation entre les swimlanes -->
+        <div th:if="${!iterStat.last}" class="swimlane-divider"></div>
     </div>
 </div>
 </div>
