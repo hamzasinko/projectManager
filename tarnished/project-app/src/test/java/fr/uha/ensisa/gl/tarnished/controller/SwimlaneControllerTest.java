@@ -110,7 +110,7 @@ class SwimlaneControllerTest {
         when(projectRepo.find(1L)).thenReturn(project);
         when(storyRepo.findAll()).thenReturn(new ArrayList<>());
 
-        ModelAndView mav = controller.deleteSwimlane(1L);
+        ModelAndView mav = controller.deleteSwimlane(1L,null);
 
         verify(swimlaneRepo, times(1)).remove(1L);
         verify(projectRepo, times(1)).update(project);

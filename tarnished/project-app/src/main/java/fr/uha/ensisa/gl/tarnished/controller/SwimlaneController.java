@@ -86,7 +86,8 @@ public class SwimlaneController {
     }
 
     @PostMapping("/delete/{id}")
-    public ModelAndView deleteSwimlane(@PathVariable long id) {
+    public ModelAndView deleteSwimlane(@PathVariable long id,
+            @RequestParam(required = false) Long targetSwimlaneId) {
         SwimlaneRepo swimlaneRepo = repoFactory.getSwimlaneRepo();
         ProjectRepo projectRepo = repoFactory.getProjectRepo();
         StoryRepo storyRepo = repoFactory.getStoryRepo();
@@ -111,7 +112,7 @@ public class SwimlaneController {
                 .filter(story -> story.getSwimlaneId() != null && story.getSwimlaneId() == id)
                 .forEach(story -> {
                     if (!remainingSwimlanes.isEmpty()) {
-                        story.setSwimlaneId(remainingSwimlanes.get(0).getId());
+                        story.setSwimlaneId(targetSwimlaneId);
                     } else {
                         story.setSwimlaneId(null);
                     }

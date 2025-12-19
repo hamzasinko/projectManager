@@ -392,7 +392,49 @@
         </div>
     </div>
 
+    <div id="deleteSwimlaneModal"
+         style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,0.5); z-index:9999;">
+
+        <div style="position:absolute; top:50%; left:50%;
+                transform:translate(-50%, -50%);
+                background:white; padding:30px;
+                border-radius:8px; max-width:500px; width:90%;">
+
+            <h4>Delete Swimlane</h4>
+
+            <p id="deleteSwimlaneMessage"></p>
+
+            <!-- selection container -->
+            <div id="swimlaneSelectionContainer" style="margin:20px 0; display:none;">
+                <label for="targetSwimlaneSelect">Move stories to:</label>
+                <select id="targetSwimlaneSelect" style="width:100%; padding:8px;">
+                </select>
+            </div>
+
+            <form id="deleteSwimlaneModalForm" method="post">
+                <input type="hidden" name="targetSwimlaneId" id="targetSwimlaneInput">
+                <div style="text-align:right; margin-top:20px;">
+                    <button type="button"
+                            onclick="cancelDeleteSwimlane()"
+                            class="btn btn-secondary">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="btn btn-danger"
+                            style="margin-left:10px;">
+                        Confirm Delete
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script th:inline="javascript">
+        const swimlanes = /*[[${swimlanes}]]*/ [];
+
+
+
         function formatDuration(minutes) {
             if (minutes < 60) {
                 return minutes + ' min';
@@ -1888,13 +1930,66 @@
                 });
             }
         }
-        
-        function confirmDeleteSwimlane(swimlaneId) {
-            if (confirm('Are you sure you want to delete this swimlane? This action cannot be undone.')) {
-                document.getElementById('deleteSwimlaneForm-' + swimlaneId).submit();
+
+        function confirmDeleteSwimlane(button) {
+
+            const deleteUrl = button.dataset.deleteUrl;
+            const swimlaneId = deleteUrl.split('/').pop(); // needed for your logic
+
+            const remaining = swimlanes.filter(s => s.id != swimlaneId);
+            const modal = document.getElementById('deleteSwimlaneModal');
+            const message = document.getElementById('deleteSwimlaneMessage');
+            const selection = document.getElementById('swimlaneSelectionContainer');
+            const select = document.getElementById('targetSwimlaneSelect');
+            const hiddenInput = document.getElementById('targetSwimlaneInput');
+            const form = document.getElementById('deleteSwimlaneModalForm');
+
+            // ✅ portable action
+            form.action = deleteUrl;
+
+            select.innerHTML = '';
+            hiddenInput.value = '';
+
+            if (remaining.length > 1) {
+                message.textContent =
+                    'This swimlane will be deleted. Please choose where to move its stories.';
+
+                selection.style.display = 'block';
+
+                remaining.forEach(s => {
+                    const option = document.createElement('option');
+                    option.value = s.id;
+                    option.textContent = s.name;
+                    select.appendChild(option);
+                });
+
+                hiddenInput.value = remaining[0].id;
+
+                select.onchange = () => {
+                    hiddenInput.value = select.value;
+                };
+
+            } else if (remaining.length === 1) {
+                message.textContent =
+                    'This swimlane will be deleted. All stories will be moved to the remaining swimlane.';
+
+                selection.style.display = 'none';
+                hiddenInput.value = remaining[0].id;
+
+            } else {
+                message.textContent =
+                    'This is the last swimlane. It will be deleted but its stories will still be in the board.';
+
+                selection.style.display = 'none';
             }
+
+            modal.style.display = 'block';
         }
-        
+
+        function cancelDeleteSwimlane() {
+            document.getElementById('deleteSwimlaneModal').style.display = 'none';
+        }
+
         let swimlaneToEdit = null;
         
         function editSwimlane(swimlaneId, currentName) {
