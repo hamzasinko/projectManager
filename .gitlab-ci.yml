@@ -83,6 +83,9 @@ deploy-docker:
 
   needs:
     - job: build
+    - job: unit-tests
+    - job: static-analysis
+    - job: integration-tests
       artifacts: true
 
   rules:
