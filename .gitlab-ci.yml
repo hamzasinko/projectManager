@@ -11,9 +11,7 @@ cache:
 
 stages:
   - build
-  - unit-test
-  - static-analysis
-  - integration-test
+  - tests-and-coverage
   - deploy
   - run
 
@@ -32,50 +30,27 @@ build:
       - tarnished/project-repomem/target/*.jar
 
 # ============================
-# 2️⃣ UNIT TESTS
+# TESTS
 # ============================
-unit-test:
-  stage: unit-test
-  script:
-    - cd tarnished
-    - mvn test -pl project-model,project-repomem -am
-  artifacts:
-    reports:
-      junit:
-        - "**/target/surefire-reports/TEST-*.xml"
-
-# ============================
-# 3️⃣ STATIC ANALYSIS (SpotBugs)
-# ============================
-static-analysis:
-  stage: static-analysis
-  script:
-    - cd tarnished
-    - mvn $MAVEN_CLI_OPTS install -DskipTests -Djacoco.skip=true spotbugs:spotbugs
-  artifacts:
-    paths:
-      - "**/target/spotbugsXml.xml"
-
-# ============================
-# 4️⃣ INTEGRATION TESTS
-# ============================
-integration-test:
-  stage: integration-test
+tests-and-coverage:
+  stage: tests-and-coverage
   image: maven:3-eclipse-temurin-21-alpine
   script:
     - apk add --no-cache chromium chromium-chromedriver
     - export CHROME_BIN="$(command -v chromium-browser || command -v chromium || true)"
     - echo "Using CHROME_BIN=${CHROME_BIN}"
     - cd tarnished
-    - mvn $MAVEN_CLI_OPTS clean install -DskipTests
-    - mvn $MAVEN_CLI_OPTS verify -f project-app/ -Dsurefire.skip=true -Dselenium.remote.browser=false -Dservlet.port=8080
+    - mvn $MAVEN_CLI_OPTS verify -Dselenium.remote.browser=false -Dservlet.port=8080 spotbugs:spotbugs
   artifacts:
-    reports:
-      junit:
-        - "**/target/failsafe-reports/TEST-*.xml"
     paths:
+      - "**/target/site/jacoco"
+      - "**/target/spotbugsXml.xml"
       - "**/target/*.jar"
       - "**/target/*.war"
+    reports:
+      junit:
+        - "**/target/surefire-reports/TEST-*.xml"
+        - "**/target/failsafe-reports/TEST-*.xml"
     expire_in: 1 hour
 
 # ============================
@@ -244,12 +219,16 @@ stop-prod:
 
 pages:
   stage: deploy
+  needs:
+    - job: tests-and-coverage
+      artifacts: true
   script:
     - cd tarnished
-    - mvn $MAVEN_CLI_OPTS install -DskipTests
-    - mvn $MAVEN_CLI_OPTS site
-    - cd ..
-    - mv tarnished/target/site public
+    - mvn $MAVEN_CLI_OPTS site -DskipTests
+    - mkdir -p public
+    - cp -r target/site/jacoco public/jacoco
+    - cp -r target/spotbugsXml.xml public/spotbugs.xml
+    - cp -r target/site/* public/
   artifacts:
     paths:
       - public
