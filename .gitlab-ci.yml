@@ -224,8 +224,8 @@ pages:
       artifacts: true
   script:
     - mkdir -p public
-    - cp -r tarnished/**/target/site/jacoco public/jacoco
-    - cp -r tarnished/**/target/spotbugsXml.xml public/spotbugs.xml
+    - cp -r **/target/site/* public/ || true
+    - cp -r **/target/spotbugsXml.xml public/spotbugs.xml || true
   artifacts:
     paths:
       - public
