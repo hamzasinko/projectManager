@@ -225,27 +225,31 @@ pages:
   script:
     - mkdir -p public
     - |
-        JACOCO_DIR=$(find . -type d -path "*/target/site/jacoco" | head -n 1)
-        if [ -n "$JACOCO_DIR" ]; then
-          cp -r "$JACOCO_DIR" public/jacoco
-        fi
+      JACOCO_DIR=$(find . -type d -path "*/target/site/jacoco" | head -n 1)
+      if [ -n "$JACOCO_DIR" ]; then
+        cp -r "$JACOCO_DIR" public/jacoco
+      else
+        echo "Jacoco report not found"
+      fi
     - |
-        SPOTBUGS_FILE=$(find . -type f -name "spotbugsXml.xml" | head -n 1)
-        if [ -n "$SPOTBUGS_FILE" ]; then
-          cp "$SPOTBUGS_FILE" public/spotbugs.xml
-        fi
+      SPOTBUGS_FILE=$(find . -type f -name "spotbugsXml.xml" | head -n 1)
+      if [ -n "$SPOTBUGS_FILE" ]; then
+        cp "$SPOTBUGS_FILE" public/spotbugs.xml
+      else
+        echo "SpotBugs report not found"
+      fi
     - |
-        echo "<!DOCTYPE html>
-        <html lang='en'>
-        <head><meta charset='UTF-8'><title>Reports</title></head>
-        <body>
-        <h1>Project Reports</h1>
-        <ul>
-        <li><a href='jacoco/index.html'>Jacoco Coverage</a></li>
-        <li><a href='spotbugs.xml'>SpotBugs XML</a></li>
-        </ul>
-        </body>
-        </html>" > public/index.html
+      echo "<!DOCTYPE html>
+      <html lang='en'>
+      <head><meta charset='UTF-8'><title>Reports</title></head>
+      <body>
+      <h1>Project Reports</h1>
+      <ul>
+      <li><a href='jacoco/index.html'>Jacoco Coverage</a></li>
+      <li><a href='spotbugs.xml'>SpotBugs XML</a></li>
+      </ul>
+      </body>
+      </html>" > public/index.html
   artifacts:
     paths:
       - public
