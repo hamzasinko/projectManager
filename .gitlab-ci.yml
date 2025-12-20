@@ -40,7 +40,7 @@ tests-and-coverage:
     - export CHROME_BIN="$(command -v chromium-browser || command -v chromium || true)"
     - echo "Using CHROME_BIN=${CHROME_BIN}"
     - cd tarnished
-    - mvn $MAVEN_CLI_OPTS verify -Dselenium.remote.browser=false -Dservlet.port=8080 spotbugs:spotbugs
+    - mvn $MAVEN_CLI_OPTS verify -Dselenium.remote.browser=false -Dservlet.port=8080 spotbugs:spotbugs jacoco:report
   artifacts:
     paths:
       - "**/target/site/jacoco"
@@ -224,10 +224,20 @@ pages:
       artifacts: true
   script:
     - mkdir -p public
+    - cp -r **/target/site/jacoco public/jacoco || true
+    - cp -r **/target/spotbugsXml.xml public/spotbugs.xml || true
     - |
-      find tarnished -type d -path "*/target/site" -exec cp -r {}/* public/ \; || true
-    - |
-      find tarnished -type f -name "spotbugsXml.xml" -exec cp {} public/ \; || true
+    echo "<!DOCTYPE html>
+    <html lang='en'>
+    <head><meta charset='UTF-8'><title>Reports</title></head>
+    <body>
+    <h1>Project Reports</h1>
+    <ul>
+    <li><a href='jacoco/index.html'>Jacoco Coverage</a></li>
+    <li><a href='spotbugs.xml'>SpotBugs XML</a></li>
+    </ul>
+    </body>
+    </html>" > public/index.html
   artifacts:
     paths:
       - public
