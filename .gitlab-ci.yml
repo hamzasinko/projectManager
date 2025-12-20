@@ -11,7 +11,8 @@ cache:
 
 stages:
   - build
-  - tests-and-coverage
+  - tests
+  - integration-tests
   - deploy
   - run
 
@@ -32,26 +33,44 @@ build:
 # ============================
 # TESTS
 # ============================
-tests-and-coverage:
-  stage: tests-and-coverage
+unit-tests:
+  stage: tests
+  image: maven:3-eclipse-temurin-21-alpine
+  script:
+    - cd tarnished
+    - mvn $MAVEN_CLI_OPTS test jacoco:report
+  artifacts:
+    paths:
+      - "**/target/site/jacoco"
+    reports:
+      junit:
+        - "**/target/surefire-reports/TEST-*.xml"
+    expire_in: 1 hour
+integration-tests:
+  stage: integration-tests
   image: maven:3-eclipse-temurin-21-alpine
   script:
     - apk add --no-cache chromium chromium-chromedriver
     - export CHROME_BIN="$(command -v chromium-browser || command -v chromium || true)"
     - echo "Using CHROME_BIN=${CHROME_BIN}"
     - cd tarnished
-    - mvn $MAVEN_CLI_OPTS verify -Dselenium.remote.browser=false -Dservlet.port=8080 spotbugs:spotbugs jacoco:report
+    - mvn $MAVEN_CLI_OPTS verify -DskipUnitTests=true -Dselenium.remote.browser=false -Dservlet.port=8080
   artifacts:
-    paths:
-      - "**/target/site/jacoco"
-      - "**/target/spotbugsXml.xml"
-      - "**/target/*.jar"
-      - "**/target/*.war"
     reports:
       junit:
-        - "**/target/surefire-reports/TEST-*.xml"
         - "**/target/failsafe-reports/TEST-*.xml"
     expire_in: 1 hour
+static-analysis:
+  stage: tests
+  image: maven:3-eclipse-temurin-21-alpine
+  script:
+    - cd tarnished
+    - mvn $MAVEN_CLI_OPTS spotbugs:spotbugs
+  artifacts:
+    paths:
+      - "**/target/spotbugsXml.xml"
+    expire_in: 1 hour
+
 
 # ============================
 # 5️⃣ DOCKER BUILD (KANIKO)
@@ -220,7 +239,9 @@ stop-prod:
 pages:
   stage: deploy
   needs:
-    - job: tests-and-coverage
+    - job: unit-tests
+      artifacts: true
+    - job: static-analysis
       artifacts: true
   script:
     - mkdir -p public
@@ -250,7 +271,6 @@ pages:
       </ul>
       </body>
       </html>" > public/index.html
-
   artifacts:
     paths:
       - public
