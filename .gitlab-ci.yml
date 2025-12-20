@@ -224,8 +224,10 @@ pages:
       artifacts: true
   script:
     - mkdir -p public
-    - cp -r **/target/site/* public/ || true
-    - cp -r **/target/spotbugsXml.xml public/spotbugs.xml || true
+    - |
+      find tarnished -type d -path "*/target/site" -exec cp -r {}/* public/ \; || true
+    - |
+      find tarnished -type f -name "spotbugsXml.xml" -exec cp {} public/ \; || true
   artifacts:
     paths:
       - public
