@@ -225,14 +225,14 @@ pages:
   script:
     - mkdir -p public
     - |
-      JACOCO_DIR=$(find . -type d -path "*/target/site/jacoco" | head -n 1)
+      JACOCO_DIR=$(find . -type d -path "*/target/site/jacoco" | head -n 1 || true)
       if [ -n "$JACOCO_DIR" ]; then
         cp -r "$JACOCO_DIR" public/jacoco
       else
         echo "Jacoco report not found"
       fi
     - |
-      SPOTBUGS_FILE=$(find . -type f -name "spotbugsXml.xml" | head -n 1)
+      SPOTBUGS_FILE=$(find . -type f -name "spotbugsXml.xml" | head -n 1 || true)
       if [ -n "$SPOTBUGS_FILE" ]; then
         cp "$SPOTBUGS_FILE" public/spotbugs.xml
       else
@@ -250,6 +250,7 @@ pages:
       </ul>
       </body>
       </html>" > public/index.html
+
   artifacts:
     paths:
       - public
