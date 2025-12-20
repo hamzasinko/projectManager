@@ -210,7 +210,7 @@ deploy-prod:
     ACTION: apply
   environment:
     name: production
-    url: $DYNAMIC_URL
+    url: https://prod.cluster.ensisa.uha.fr/gl2526-tarnished
     on_stop: stop-prod
   rules:
     - if: '$CI_COMMIT_REF_NAME == "main"'
