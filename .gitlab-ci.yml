@@ -224,8 +224,16 @@ pages:
       artifacts: true
   script:
     - mkdir -p public
-    - cp -r **/target/site/jacoco public/jacoco || true
-    - cp -r **/target/spotbugsXml.xml public/spotbugs.xml || true
+    - |
+        JACOCO_DIR=$(find . -type d -path "*/target/site/jacoco" | head -n 1)
+        if [ -n "$JACOCO_DIR" ]; then
+          cp -r "$JACOCO_DIR" public/jacoco
+        fi
+    - |
+        SPOTBUGS_FILE=$(find . -type f -name "spotbugsXml.xml" | head -n 1)
+        if [ -n "$SPOTBUGS_FILE" ]; then
+          cp "$SPOTBUGS_FILE" public/spotbugs.xml
+        fi
     - |
         echo "<!DOCTYPE html>
         <html lang='en'>
