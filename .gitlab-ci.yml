@@ -227,17 +227,17 @@ pages:
     - cp -r **/target/site/jacoco public/jacoco || true
     - cp -r **/target/spotbugsXml.xml public/spotbugs.xml || true
     - |
-    echo "<!DOCTYPE html>
-    <html lang='en'>
-    <head><meta charset='UTF-8'><title>Reports</title></head>
-    <body>
-    <h1>Project Reports</h1>
-    <ul>
-    <li><a href='jacoco/index.html'>Jacoco Coverage</a></li>
-    <li><a href='spotbugs.xml'>SpotBugs XML</a></li>
-    </ul>
-    </body>
-    </html>" > public/index.html
+        echo "<!DOCTYPE html>
+        <html lang='en'>
+        <head><meta charset='UTF-8'><title>Reports</title></head>
+        <body>
+        <h1>Project Reports</h1>
+        <ul>
+        <li><a href='jacoco/index.html'>Jacoco Coverage</a></li>
+        <li><a href='spotbugs.xml'>SpotBugs XML</a></li>
+        </ul>
+        </body>
+        </html>" > public/index.html
   artifacts:
     paths:
       - public
