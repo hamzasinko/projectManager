@@ -1647,5 +1647,17 @@ public class BoardControllerTest {
         verify(columnRepo, never()).persist(any(Column.class));
     }
 
+    @Test
+    @DisplayName("addColumnGet should redirect to addColumn page when name is empty or blank")
+    void testAddColumnGetNameEmpty() {
+        Long projectId = 1L;
+
+        String result = controller.addColumnGet(projectId, "   ", 2, true);
+
+        assertTrue(result.contains("redirect:"));
+        assertTrue(result.contains("showAddColumn=true"));
+        verify(columnRepo, never()).persist(any(Column.class));
+    }
+
 }
 
