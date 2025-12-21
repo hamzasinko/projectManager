@@ -19,6 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.web.servlet.ModelAndView;
+import java.lang.reflect.Method;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1726,6 +1727,21 @@ public class BoardControllerTest {
 
         assertNotNull(result);
         assertTrue(result.toLowerCase().contains("error"));
+    }
+
+    @Test
+    @DisplayName("mapColumnNameToStatus should map REVIEW, DONE, BLOCKED correctly")
+    void testMapColumnNameToStatusReviewDoneBlocked() throws Exception {
+        Method m = BoardController.class.getDeclaredMethod("mapColumnNameToStatus", String.class);
+        m.setAccessible(true);
+
+        Object review = m.invoke(controller, "REVIEW");
+        Object done = m.invoke(controller, "DONE");
+        Object blocked = m.invoke(controller, "BLOCKED");
+
+        assertEquals(StoryStatus.REVIEW, review);
+        assertEquals(StoryStatus.DONE, done);
+        assertEquals(StoryStatus.BLOCKED, blocked);
     }
 
 }
