@@ -203,32 +203,32 @@ static-analysis:
             echo "  ⚠️  Aucune donnée de mutation dans le CSV"
           fi
         else
-    # Try to extract from HTML index - look for summary statistics
-    PITEST_INDEX="$PITEST_DIR/index.html"
-    if [ -f "$PITEST_INDEX" ]; then
-      echo "  📄 HTML trouvé: $PITEST_INDEX"
-      # Extract from HTML - look for "355/489" pattern in mutation coverage line
-      MUTATION_LINE=$(grep -i "mutation coverage" "$PITEST_INDEX" 2>/dev/null | head -n 1)
-      if [ -n "$MUTATION_LINE" ]; then
-        # Extract percentage and numbers like "73% ... 355/489"
-        COVERAGE_PCT=$(echo "$MUTATION_LINE" | grep -oE '[0-9]+%' | head -n 1 || echo "")
-        MUTATION_RATIO=$(echo "$MUTATION_LINE" | grep -oE '[0-9]+/[0-9]+' | head -n 1 || echo "")
-        if [ -n "$MUTATION_RATIO" ]; then
-          KILLED_HTML=$(echo "$MUTATION_RATIO" | cut -d'/' -f1)
-          TOTAL_HTML=$(echo "$MUTATION_RATIO" | cut -d'/' -f2)
-          SURVIVED_HTML=$((TOTAL_HTML - KILLED_HTML))
-          echo "  📊 Couverture de mutation: ${COVERAGE_PCT:-"N/A"}"
-          echo "    ✅ Mutants tués: $KILLED_HTML"
-          echo "    ❌ Mutants survivants: $SURVIVED_HTML"
-          echo "    📈 Total de mutations: $TOTAL_HTML"
-        else
-          echo "  ⚠️  Impossible d'extraire le ratio depuis HTML"
-          echo "    📁 Voir le rapport complet: $PITEST_INDEX"
-        fi
-      else
-        echo "  ⚠️  Ligne 'Mutation Coverage' non trouvée dans HTML"
-        echo "    📁 Voir le rapport complet: $PITEST_INDEX"
-      fi
+          # Try to extract from HTML index - look for summary statistics
+          PITEST_INDEX="$PITEST_DIR/index.html"
+          if [ -f "$PITEST_INDEX" ]; then
+            echo "  📄 HTML trouvé: $PITEST_INDEX"
+            # Extract from HTML - look for "355/489" pattern in mutation coverage line
+            MUTATION_LINE=$(grep -i "mutation coverage" "$PITEST_INDEX" 2>/dev/null | head -n 1)
+            if [ -n "$MUTATION_LINE" ]; then
+              # Extract percentage and numbers like "73% ... 355/489"
+              COVERAGE_PCT=$(echo "$MUTATION_LINE" | grep -oE '[0-9]+%' | head -n 1 || echo "")
+              MUTATION_RATIO=$(echo "$MUTATION_LINE" | grep -oE '[0-9]+/[0-9]+' | head -n 1 || echo "")
+              if [ -n "$MUTATION_RATIO" ]; then
+                KILLED_HTML=$(echo "$MUTATION_RATIO" | cut -d'/' -f1)
+                TOTAL_HTML=$(echo "$MUTATION_RATIO" | cut -d'/' -f2)
+                SURVIVED_HTML=$((TOTAL_HTML - KILLED_HTML))
+                echo "  📊 Couverture de mutation: ${COVERAGE_PCT:-"N/A"}"
+                echo "    ✅ Mutants tués: $KILLED_HTML"
+                echo "    ❌ Mutants survivants: $SURVIVED_HTML"
+                echo "    📈 Total de mutations: $TOTAL_HTML"
+              else
+                echo "  ⚠️  Impossible d'extraire le ratio depuis HTML"
+                echo "    📁 Voir le rapport complet: $PITEST_INDEX"
+              fi
+            else
+              echo "  ⚠️  Ligne 'Mutation Coverage' non trouvée dans HTML"
+              echo "    📁 Voir le rapport complet: $PITEST_INDEX"
+            fi
           else
             echo "  ⚠️  Fichiers de rapport PiTest non trouvés dans $PITEST_DIR"
             ls -la "$PITEST_DIR" 2>/dev/null | head -n 10 || echo "    Répertoire vide ou inaccessible"
