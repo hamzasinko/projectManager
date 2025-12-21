@@ -323,6 +323,7 @@
                             <goal>check</goal>
                         </goals>
                         <configuration>
+                            <skip>${skip.tests}</skip>
                             <outputDirectory>${project.build.directory}/site/jacoco</outputDirectory>
                             <excludes>
                                 <exclude>**/config/**</exclude>
@@ -339,6 +340,16 @@
                                     </limits>
                                 </rule>
                             </rules>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>report-aggregate</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report-aggregate</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skip.tests}</skip>
                         </configuration>
                     </execution>
                 </executions>

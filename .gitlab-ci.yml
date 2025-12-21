@@ -1,7 +1,23 @@
-image: maven:3-eclipse-temurin-21-alpine
+image: maven:3-eclipse-temurin-17-alpine
 
 variables:
-  MAVEN_CLI_OPTS: "--batch-mode -Dmaven.repo.local=libs"
+  MAVEN_CLI_OPTS: "--batch-mode -s settings.xml -Dmaven.repo.local=libs"
+
+before_script:
+  - |
+    echo '<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+     https://maven.apache.org/xsd/settings-1.0.0.xsd">
+     <mirrors>
+       <mirror>
+         <id>ensisa</id>
+         <name>Nexus ENSISA</name>
+         <url>https://nexus.cluster.ensisa.uha.fr/repository/maven-public/</url>
+         <mirrorOf>*</mirrorOf>
+       </mirror>
+     </mirrors>
+    </settings>' > settings.xml
 
 cache:
   key: default-cache
@@ -22,8 +38,12 @@ stages:
 build:
   stage: build
   script:
+    - apk add --no-cache chromium chromium-chromedriver
+    - export CHROME_BIN="$(command -v chromium-browser || command -v chromium || true)"
+    - echo "Using CHROME_BIN=${CHROME_BIN}"
+    - cp settings.xml tarnished/settings.xml || true
     - cd tarnished
-    - mvn clean install -DskipTests -DskipITs
+    - mvn $MAVEN_CLI_OPTS clean install -Dselenium.remote.browser=false -Dservlet.port=8080
   artifacts:
     paths:
       - tarnished/project-app/target/*.war
@@ -35,26 +55,34 @@ build:
 # ============================
 unit-tests:
   stage: tests
-  image: maven:3-eclipse-temurin-21-alpine
+  image: maven:3-eclipse-temurin-17-alpine
   script:
     - cd tarnished
     - mvn $MAVEN_CLI_OPTS test jacoco:report
+    - cd project-app
+    - mvn $MAVEN_CLI_OPTS jacoco:report-aggregate || true
+    - |
+      if [ -f target/site/jacoco-aggregate/jacoco.csv ]; then
+        grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' target/site/jacoco-aggregate/jacoco.csv | awk -F, '{missed += $10 ; covered += $11} END {print "Jacoco Coverage:",100*covered/(covered+missed),"%"}'
+      fi
+  coverage: '/Jacoco Coverage:\s+\d+[,\.]?\d+\s+\%/'
   artifacts:
     paths:
       - "**/target/site/jacoco"
+      - "**/target/site/jacoco-aggregate"
     reports:
       junit:
         - "**/target/surefire-reports/TEST-*.xml"
     expire_in: 1 hour
 integration-tests:
   stage: integration-tests
-  image: maven:3-eclipse-temurin-21-alpine
+  image: maven:3-eclipse-temurin-17-alpine
   script:
     - apk add --no-cache chromium chromium-chromedriver
     - export CHROME_BIN="$(command -v chromium-browser || command -v chromium || true)"
     - echo "Using CHROME_BIN=${CHROME_BIN}"
     - cd tarnished
-    - mvn $MAVEN_CLI_OPTS verify -DskipUnitTests=true -Dselenium.remote.browser=false -Dservlet.port=8080
+    - mvn $MAVEN_CLI_OPTS verify -Dskip.tests=true -Dsurefire.skip=true -Dselenium.remote.browser=false -Dservlet.port=8080
   artifacts:
     reports:
       junit:
@@ -62,13 +90,19 @@ integration-tests:
     expire_in: 1 hour
 static-analysis:
   stage: tests
-  image: maven:3-eclipse-temurin-21-alpine
+  image: maven:3-eclipse-temurin-17-alpine
   script:
     - cd tarnished
-    - mvn $MAVEN_CLI_OPTS spotbugs:spotbugs
+    - mvn $MAVEN_CLI_OPTS clean verify -Dskip.tests=false -DskipITs=true
+    - cd project-app
+    - mvn $MAVEN_CLI_OPTS jacoco:report-aggregate || true
   artifacts:
     paths:
       - "**/target/spotbugsXml.xml"
+      - "**/target/site/spotbugs.html"
+      - "**/target/site/jacoco"
+      - "**/target/site/jacoco-aggregate"
+      - "**/target/pit-reports"
     expire_in: 1 hour
 
 
@@ -260,7 +294,23 @@ pages:
       if [ -n "$SPOTBUGS_FILE" ]; then
         cp "$SPOTBUGS_FILE" public/spotbugs.xml
       else
-        echo "SpotBugs report not found"
+        echo "SpotBugs XML report not found"
+      fi
+    - |
+      SPOTBUGS_HTML=$(find . -type f -name "spotbugs.html" -path "*/target/site/*" | head -n 1 || true)
+      if [ -n "$SPOTBUGS_HTML" ]; then
+        SPOTBUGS_DIR=$(dirname "$SPOTBUGS_HTML")
+        mkdir -p public/spotbugs
+        cp -r "$SPOTBUGS_DIR"/* public/spotbugs/ 2>/dev/null || cp "$SPOTBUGS_HTML" public/spotbugs/
+      else
+        echo "SpotBugs HTML report not found"
+      fi
+    - |
+      PITEST_DIR=$(find . -type d -name "pit-reports" -path "*/target/*" | head -n 1 || true)
+      if [ -n "$PITEST_DIR" ]; then
+        cp -r "$PITEST_DIR" public/pit-reports
+      else
+        echo "PiTest report not found"
       fi
     - |
       echo "<!DOCTYPE html>
@@ -270,7 +320,9 @@ pages:
       <h1>Project Reports</h1>
       <ul>
       <li><a href='jacoco/index.html'>Jacoco Coverage</a></li>
+      <li><a href='spotbugs/spotbugs.html'>SpotBugs Report</a></li>
       <li><a href='spotbugs.xml'>SpotBugs XML</a></li>
+      <li><a href='pit-reports/index.html'>PiTest Mutation Coverage</a></li>
       </ul>
       </body>
       </html>" > public/index.html

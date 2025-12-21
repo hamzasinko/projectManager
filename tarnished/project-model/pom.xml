@@ -102,6 +102,7 @@
               <goal>check</goal>
             </goals>
             <configuration>
+              <skip>${skip.tests}</skip>
               <outputDirectory>${project.build.directory}/site/jacoco</outputDirectory>
               <excludes>
                 <exclude>**/config/**</exclude>
