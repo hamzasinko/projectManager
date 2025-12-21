@@ -1,24 +1,7 @@
-image: maven:3-eclipse-temurin-17-alpine
+image: maven:3-eclipse-temurin-21-alpine
 
 variables:
-  MAVEN_CLI_OPTS: "--batch-mode -s settings.xml -Dmaven.repo.local=libs"
-
-before_script:
-  - |
-    echo '<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
-     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-     xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
-     https://maven.apache.org/xsd/settings-1.0.0.xsd">
-     <mirrors>
-       <mirror>
-         <id>ensisa</id>
-         <name>Nexus ENSISA</name>
-         <url>https://nexus.cluster.ensisa.uha.fr/repository/maven-public/</url>
-         <mirrorOf>*</mirrorOf>
-       </mirror>
-     </mirrors>
-    </settings>' > settings.xml
-  - cp settings.xml tarnished/settings.xml || true
+  MAVEN_CLI_OPTS: "--batch-mode -Dmaven.repo.local=libs"
 
 cache:
   key: default-cache
@@ -39,12 +22,8 @@ stages:
 build:
   stage: build
   script:
-    - apk add --no-cache chromium chromium-chromedriver
-    - export CHROME_BIN="$(command -v chromium-browser || command -v chromium || true)"
-    - echo "Using CHROME_BIN=${CHROME_BIN}"
-    - cp settings.xml tarnished/settings.xml || true
     - cd tarnished
-    - mvn $MAVEN_CLI_OPTS clean install -Dselenium.remote.browser=false -Dservlet.port=8080
+    - mvn clean install -DskipTests -DskipITs
   artifacts:
     paths:
       - tarnished/project-app/target/*.war
@@ -56,66 +35,26 @@ build:
 # ============================
 unit-tests:
   stage: tests
-  image: maven:3-eclipse-temurin-17-alpine
+  image: maven:3-eclipse-temurin-21-alpine
   script:
     - cd tarnished
-    - mvn $MAVEN_CLI_OPTS verify -DskipITs=true
-    - cd project-app
-    - cp ../settings.xml . || true
-    - mvn $MAVEN_CLI_OPTS -s settings.xml jacoco:report-aggregate || true
-    - |
-      # Calculer la couverture depuis le rapport agrégé ou depuis les CSVs individuels
-      if [ -f target/site/jacoco-aggregate/jacoco.csv ]; then
-        # Commande exacte du document (colonnes COMPLEXITY: 10 et 11)
-        COVERAGE_OUTPUT=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' target/site/jacoco-aggregate/jacoco.csv 2>/dev/null | awk -F, '{missed += $10 ; covered += $11} END {if(covered+missed>0) print "Jacoco Coverage:",100*covered/(covered+missed),"%"; else print ""}')
-        
-        # Si le rapport agrégé est vide, calculer depuis les CSVs individuels
-        if [ -z "$COVERAGE_OUTPUT" ] || echo "$COVERAGE_OUTPUT" | grep -q "0%"; then
-          TOTAL_MISSED=0
-          TOTAL_COVERED=0
-          for module in "../project-model" "../project-repomem" "."; do
-            MODULE_CSV=$(find "$module/target/site/jacoco" -name "jacoco.csv" -type f 2>/dev/null | head -n 1)
-            if [ -n "$MODULE_CSV" ] && [ -f "$MODULE_CSV" ]; then
-              MODULE_DATA=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$MODULE_CSV" 2>/dev/null | awk -F',' 'NR>1 {missed += ($10+0); covered += ($11+0)} END {print missed " " covered}' 2>/dev/null)
-              if [ -n "$MODULE_DATA" ]; then
-                MODULE_MISSED=$(echo "$MODULE_DATA" | cut -d' ' -f1)
-                MODULE_COVERED=$(echo "$MODULE_DATA" | cut -d' ' -f2)
-                TOTAL_MISSED=$((TOTAL_MISSED + MODULE_MISSED))
-                TOTAL_COVERED=$((TOTAL_COVERED + MODULE_COVERED))
-              fi
-            fi
-          done
-          
-          if [ $((TOTAL_MISSED + TOTAL_COVERED)) -gt 0 ]; then
-            COVERAGE_PCT=$(awk "BEGIN {printf \"%.2f\", 100*$TOTAL_COVERED/($TOTAL_MISSED+$TOTAL_COVERED)}" 2>/dev/null || echo "0")
-            COVERAGE_OUTPUT="Jacoco Coverage: ${COVERAGE_PCT} %"
-          else
-            COVERAGE_OUTPUT="Jacoco Coverage: 0%"
-          fi
-        fi
-        
-        echo "$COVERAGE_OUTPUT"
-      else
-        echo "Jacoco Coverage: 0%"
-      fi
-  coverage: '/Jacoco Coverage:\s+\d+[,\.]?\d+\s+\%/' 
+    - mvn $MAVEN_CLI_OPTS test jacoco:report
   artifacts:
     paths:
       - "**/target/site/jacoco"
-      - "**/target/site/jacoco-aggregate"
     reports:
       junit:
         - "**/target/surefire-reports/TEST-*.xml"
     expire_in: 1 hour
 integration-tests:
   stage: integration-tests
-  image: maven:3-eclipse-temurin-17-alpine
+  image: maven:3-eclipse-temurin-21-alpine
   script:
     - apk add --no-cache chromium chromium-chromedriver
     - export CHROME_BIN="$(command -v chromium-browser || command -v chromium || true)"
     - echo "Using CHROME_BIN=${CHROME_BIN}"
     - cd tarnished
-    - mvn $MAVEN_CLI_OPTS verify -Dskip.tests=true -Dsurefire.skip=true -Dselenium.remote.browser=false -Dservlet.port=8080
+    - mvn $MAVEN_CLI_OPTS verify -DskipUnitTests=true -Dselenium.remote.browser=false -Dservlet.port=8080
   artifacts:
     reports:
       junit:
@@ -123,216 +62,13 @@ integration-tests:
     expire_in: 1 hour
 static-analysis:
   stage: tests
-  image: maven:3-eclipse-temurin-17-alpine
+  image: maven:3-eclipse-temurin-21-alpine
   script:
     - cd tarnished
-    - mvn $MAVEN_CLI_OPTS clean verify -Dskip.tests=false -DskipITs=true
-    - cd project-app
-    - cp ../settings.xml . || true
-    - mvn --batch-mode -s settings.xml -Dmaven.repo.local=../libs jacoco:report-aggregate || true
-    - cd ..
-    - |
-      set +e
-      echo ""
-      echo "╔══════════════════════════════════════════════════════════════╗"
-      echo "║         📊 RAPPORT DE QUALITÉ DU CODE                      ║"
-      echo "╚══════════════════════════════════════════════════════════════╝"
-      echo ""
-      
-      # ============================================
-      # JACOCO - COUVERTURE DE CODE
-      # ============================================
-      echo "📈 JACOCO - COUVERTURE DE CODE"
-      echo "──────────────────────────────────────────────────────────────"
-      
-      # Méthode 1: Utiliser la commande exacte du document sur le rapport agrégé
-      AGGREGATE_CSV="project-app/target/site/jacoco-aggregate/jacoco.csv"
-      if [ -f "$AGGREGATE_CSV" ]; then
-        # Commande exacte du document (colonnes COMPLEXITY: 10 et 11)
-        COVERAGE_OUTPUT=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$AGGREGATE_CSV" 2>/dev/null | awk -F',' '{missed += $10 ; covered += $11} END {if(covered+missed>0) print "Jacoco Coverage:",100*covered/(covered+missed),"%"; else print "Jacoco Coverage: 0%"}' 2>/dev/null)
-        
-        # Si le rapport agrégé ne contient pas de données (tous à 0), calculer depuis les CSVs individuels
-        if [ -z "$COVERAGE_OUTPUT" ] || echo "$COVERAGE_OUTPUT" | grep -q "0%"; then
-          # Méthode 2: Agréger manuellement depuis les CSVs individuels
-          TOTAL_MISSED=0
-          TOTAL_COVERED=0
-          for module in "project-model" "project-repomem" "project-app"; do
-            MODULE_CSV=$(find "$module/target/site/jacoco" -name "jacoco.csv" -type f 2>/dev/null | head -n 1)
-            if [ -n "$MODULE_CSV" ] && [ -f "$MODULE_CSV" ]; then
-              # Utiliser COMPLEXITY (colonnes 10 et 11) comme dans le document
-              MODULE_DATA=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$MODULE_CSV" 2>/dev/null | awk -F',' 'NR>1 {missed += ($10+0); covered += ($11+0)} END {print missed " " covered}' 2>/dev/null)
-              if [ -n "$MODULE_DATA" ]; then
-                MODULE_MISSED=$(echo "$MODULE_DATA" | cut -d' ' -f1)
-                MODULE_COVERED=$(echo "$MODULE_DATA" | cut -d' ' -f2)
-                TOTAL_MISSED=$((TOTAL_MISSED + MODULE_MISSED))
-                TOTAL_COVERED=$((TOTAL_COVERED + MODULE_COVERED))
-              fi
-            fi
-          done
-          
-          if [ $((TOTAL_MISSED + TOTAL_COVERED)) -gt 0 ]; then
-            COVERAGE_PCT=$(awk "BEGIN {printf \"%.2f\", 100*$TOTAL_COVERED/($TOTAL_MISSED+$TOTAL_COVERED)}" 2>/dev/null || echo "0")
-            # Format exact du document : "Jacoco Coverage: XX.XX %" (avec espace avant %)
-            COVERAGE_OUTPUT="Jacoco Coverage: ${COVERAGE_PCT} %"
-          fi
-        fi
-        
-        if [ -n "$COVERAGE_OUTPUT" ] && ! echo "$COVERAGE_OUTPUT" | grep -q "0%"; then
-          echo "  $COVERAGE_OUTPUT"
-          # Extraire le pourcentage pour l'affichage détaillé
-          COVERAGE_PCT=$(echo "$COVERAGE_OUTPUT" | grep -oE '[0-9]+\.?[0-9]*' | head -n 1)
-          COVERAGE_INT=$(echo "$COVERAGE_PCT" | cut -d'.' -f1)
-          
-          # Calculer les totaux pour affichage
-          TOTAL_MISSED=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$AGGREGATE_CSV" 2>/dev/null | awk -F',' 'NR>1 {missed += ($10+0)} END {print missed+0}' 2>/dev/null || echo "0")
-          TOTAL_COVERED=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$AGGREGATE_CSV" 2>/dev/null | awk -F',' 'NR>1 {covered += ($11+0)} END {print covered+0}' 2>/dev/null || echo "0")
-          
-          # Si COMPLEXITY est vide, utiliser INSTRUCTION
-          if [ "$TOTAL_MISSED" = "0" ] && [ "$TOTAL_COVERED" = "0" ]; then
-            TOTAL_MISSED=$(awk -F',' 'NR>1 && $4 ~ /^[0-9]+$/ {missed+=$4} END {print missed+0}' "$AGGREGATE_CSV" 2>/dev/null || echo "0")
-            TOTAL_COVERED=$(awk -F',' 'NR>1 && $5 ~ /^[0-9]+$/ {covered+=$5} END {print covered+0}' "$AGGREGATE_CSV" 2>/dev/null || echo "0")
-          fi
-          
-          TOTAL=$((TOTAL_MISSED + TOTAL_COVERED))
-          if [ "$TOTAL" -gt 0 ]; then
-            echo "     Complexité couverte: $TOTAL_COVERED / $TOTAL"
-            echo "     Complexité manquante: $TOTAL_MISSED"
-          fi
-          
-          if [ -n "$COVERAGE_INT" ] && [ "$COVERAGE_INT" -ge 90 ]; then
-            echo "     🎯 Objectif 90%: ✅ ATTEINT"
-          else
-            echo "     🎯 Objectif 90%: ❌ NON ATTEINT"
-          fi
-          echo "  📄 Rapport CSV agrégé: $AGGREGATE_CSV"
-          
-          # Afficher les détails par module
-          echo ""
-          echo "  📊 Détails par module:"
-          for module in "project-model" "project-repomem" "project-app"; do
-            MODULE_CSV=$(find "$module/target/site/jacoco" -name "jacoco.csv" -type f 2>/dev/null | head -n 1)
-            if [ -n "$MODULE_CSV" ] && [ -f "$MODULE_CSV" ]; then
-              MODULE_COV=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$MODULE_CSV" 2>/dev/null | awk -F',' 'NR>1 {missed += ($10+0); covered += ($11+0)} END {if(covered+missed>0) printf "%.2f", 100*covered/(covered+missed); else print "0"}' 2>/dev/null)
-              if [ -z "$MODULE_COV" ] || [ "$MODULE_COV" = "0" ]; then
-                MODULE_MISSED=$(awk -F',' 'NR>1 && $4 ~ /^[0-9]+$/ {missed+=$4} END {print missed+0}' "$MODULE_CSV" 2>/dev/null || echo "0")
-                MODULE_COVERED=$(awk -F',' 'NR>1 && $5 ~ /^[0-9]+$/ {covered+=$5} END {print covered+0}' "$MODULE_CSV" 2>/dev/null || echo "0")
-                MODULE_TOTAL=$((MODULE_MISSED + MODULE_COVERED))
-                if [ "$MODULE_TOTAL" -gt 0 ]; then
-                  MODULE_COV=$(awk "BEGIN {printf \"%.2f\", 100*$MODULE_COVERED/$MODULE_TOTAL}" 2>/dev/null || echo "0")
-                fi
-              fi
-              echo "     • $module: ${MODULE_COV}%"
-            fi
-          done
-        else
-          echo "  ⚠️  Aucune donnée de couverture trouvée dans le rapport agrégé"
-        fi
-      else
-        echo "  ⚠️  Rapport JaCoCo agrégé non trouvé: $AGGREGATE_CSV"
-      fi
-      echo ""
-      
-      # ============================================
-      # SPOTBUGS - ANALYSE STATIQUE
-      # ============================================
-      echo "🐛 SPOTBUGS - ANALYSE STATIQUE"
-      echo "──────────────────────────────────────────────────────────────"
-      SPOTBUGS_XML=$(find . -name "spotbugsXml.xml" -type f -path "*/target/*" 2>/dev/null | head -n 1)
-      if [ -n "$SPOTBUGS_XML" ] && [ -f "$SPOTBUGS_XML" ]; then
-        BUG_COUNT=$(grep -c "<BugInstance" "$SPOTBUGS_XML" 2>/dev/null || echo "0")
-        ERROR_COUNT=$(grep -c 'priority="1"' "$SPOTBUGS_XML" 2>/dev/null || echo "0")
-        WARNING_COUNT=$(grep -c 'priority="2"' "$SPOTBUGS_XML" 2>/dev/null || echo "0")
-        INFO_COUNT=$(grep -c 'priority="3"' "$SPOTBUGS_XML" 2>/dev/null || echo "0")
-        
-        echo "  📊 Total de bugs détectés: $BUG_COUNT"
-        if [ "$BUG_COUNT" = "0" ]; then
-          echo "     ✅ Aucun bug détecté !"
-        else
-          echo "     🔴 Erreurs (priorité 1): $ERROR_COUNT"
-          echo "     🟠 Avertissements (priorité 2): $WARNING_COUNT"
-          echo "     🔵 Informations (priorité 3): $INFO_COUNT"
-        fi
-        echo "  📄 Rapport XML: $SPOTBUGS_XML"
-      else
-        echo "  ⚠️  Rapport SpotBugs non trouvé"
-      fi
-      echo ""
-      
-      # ============================================
-      # PITEST - TESTS PAR MUTATION
-      # ============================================
-      echo "🧬 PITEST - COUVERTURE PAR MUTATION"
-      echo "──────────────────────────────────────────────────────────────"
-      PITEST_DIR=$(find . -type d -name "pit-reports" -path "*/target/*" 2>/dev/null | head -n 1)
-      if [ -n "$PITEST_DIR" ] && [ -d "$PITEST_DIR" ]; then
-        # Chercher mutations.csv
-        PITEST_CSV=$(find "$PITEST_DIR" -name "mutations.csv" -type f 2>/dev/null | head -n 1)
-        if [ -n "$PITEST_CSV" ] && [ -f "$PITEST_CSV" ]; then
-          KILLED_COUNT=$(awk -F, 'NR>1 && $5=="true" {killed++} END {print killed+0}' "$PITEST_CSV" 2>/dev/null || echo "0")
-          SURVIVED_COUNT=$(awk -F, 'NR>1 && $5=="false" {survived++} END {print survived+0}' "$PITEST_CSV" 2>/dev/null || echo "0")
-          TOTAL_MUT=$(awk -F, 'NR>1 {total++} END {print total+0}' "$PITEST_CSV" 2>/dev/null || echo "0")
-          
-          if [ "$TOTAL_MUT" -gt "0" ]; then
-            COVERAGE_PCT=$(awk "BEGIN {printf \"%.2f\", 100*$KILLED_COUNT/$TOTAL_MUT}" 2>/dev/null || echo "0")
-            echo "  ✅ Couverture de mutation: ${COVERAGE_PCT}%"
-            echo "     Mutants tués: $KILLED_COUNT / $TOTAL_MUT"
-            echo "     Mutants survivants: $SURVIVED_COUNT"
-            COVERAGE_INT=$(echo "$COVERAGE_PCT" | awk -F'.' '{print int($1)}')
-            if [ "$COVERAGE_INT" -ge 90 ]; then
-              echo "     🎯 Objectif 90%: ✅ ATTEINT"
-            else
-              echo "     🎯 Objectif 90%: ❌ NON ATTEINT"
-            fi
-          else
-            echo "  ⚠️  Aucune donnée de mutation dans le CSV"
-          fi
-          echo "  📄 Rapport CSV: $PITEST_CSV"
-        else
-          # Fallback: extraire depuis HTML
-          PITEST_INDEX="$PITEST_DIR/index.html"
-          if [ -f "$PITEST_INDEX" ]; then
-            MUTATION_TD=$(grep -A 15 "Mutation Coverage" "$PITEST_INDEX" 2>/dev/null | grep -E '<td>[0-9]+%' | head -n 1)
-            if [ -n "$MUTATION_TD" ]; then
-              COVERAGE_PCT=$(echo "$MUTATION_TD" | sed 's/.*<td>\([0-9]*\)%.*/\1/' | head -n 1 || echo "0")
-              MUTATION_RATIO=$(echo "$MUTATION_TD" | grep -oE '[0-9]+/[0-9]+' | head -n 1 || echo "")
-              if [ -n "$MUTATION_RATIO" ]; then
-                KILLED_HTML=$(echo "$MUTATION_RATIO" | cut -d'/' -f1)
-                TOTAL_HTML=$(echo "$MUTATION_RATIO" | cut -d'/' -f2)
-                SURVIVED_HTML=$((TOTAL_HTML - KILLED_HTML))
-                echo "  ✅ Couverture de mutation: ${COVERAGE_PCT}%"
-                echo "     Mutants tués: $KILLED_HTML / $TOTAL_HTML"
-                echo "     Mutants survivants: $SURVIVED_HTML"
-                if [ "$COVERAGE_PCT" -ge 90 ]; then
-                  echo "     🎯 Objectif 90%: ✅ ATTEINT"
-                else
-                  echo "     🎯 Objectif 90%: ❌ NON ATTEINT"
-                fi
-              fi
-            fi
-            echo "  📄 Rapport HTML: $PITEST_INDEX"
-          fi
-        fi
-      else
-        echo "  ⚠️  Répertoire PiTest non trouvé"
-      fi
-      echo ""
-      echo "╔══════════════════════════════════════════════════════════════╗"
-      echo "║  📁 Rapports détaillés disponibles dans les artifacts       ║"
-      echo "║     • JaCoCo HTML: target/site/jacoco-aggregate/          ║"
-      echo "║     • SpotBugs HTML: target/site/spotbugs.html              ║"
-      echo "║     • PiTest HTML: target/pit-reports/index.html           ║"
-      echo "╚══════════════════════════════════════════════════════════════╝"
-      echo ""
-      set -e
+    - mvn $MAVEN_CLI_OPTS spotbugs:spotbugs
   artifacts:
     paths:
       - "**/target/spotbugsXml.xml"
-      - "**/target/site/spotbugs.html"
-      - "**/target/site/jacoco"
-      - "**/target/site/jacoco-aggregate"
-      - "**/target/pit-reports"
-      - "**/target/site/jacoco-aggregate/jacoco.csv"
-      - "**/target/site/jacoco/jacoco.csv"
     expire_in: 1 hour
 
 
@@ -524,23 +260,7 @@ pages:
       if [ -n "$SPOTBUGS_FILE" ]; then
         cp "$SPOTBUGS_FILE" public/spotbugs.xml
       else
-        echo "SpotBugs XML report not found"
-      fi
-    - |
-      SPOTBUGS_HTML=$(find . -type f -name "spotbugs.html" -path "*/target/site/*" | head -n 1 || true)
-      if [ -n "$SPOTBUGS_HTML" ]; then
-        SPOTBUGS_DIR=$(dirname "$SPOTBUGS_HTML")
-        mkdir -p public/spotbugs
-        cp -r "$SPOTBUGS_DIR"/* public/spotbugs/ 2>/dev/null || cp "$SPOTBUGS_HTML" public/spotbugs/
-      else
-        echo "SpotBugs HTML report not found"
-      fi
-    - |
-      PITEST_DIR=$(find . -type d -name "pit-reports" -path "*/target/*" | head -n 1 || true)
-      if [ -n "$PITEST_DIR" ]; then
-        cp -r "$PITEST_DIR" public/pit-reports
-      else
-        echo "PiTest report not found"
+        echo "SpotBugs report not found"
       fi
     - |
       echo "<!DOCTYPE html>
@@ -550,9 +270,7 @@ pages:
       <h1>Project Reports</h1>
       <ul>
       <li><a href='jacoco/index.html'>Jacoco Coverage</a></li>
-      <li><a href='spotbugs/spotbugs.html'>SpotBugs Report</a></li>
       <li><a href='spotbugs.xml'>SpotBugs XML</a></li>
-      <li><a href='pit-reports/index.html'>PiTest Mutation Coverage</a></li>
       </ul>
       </body>
       </html>" > public/index.html

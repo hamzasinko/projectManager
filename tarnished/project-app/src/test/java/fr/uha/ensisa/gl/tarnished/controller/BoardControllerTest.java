@@ -19,6 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.web.servlet.ModelAndView;
+import java.lang.reflect.Method;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -112,11 +113,11 @@ public class BoardControllerTest {
 
         verify(projectRepo).find(projectId);
         verify(columnRepo).findByProject(projectId);
-        
+
         // Verify setStories was called
         ArgumentCaptor<Column> columnCaptor = ArgumentCaptor.forClass(Column.class);
         verify(columnRepo, atLeastOnce()).persist(columnCaptor.capture());
-        
+
         Collection<Column> capturedColumns = columnCaptor.getAllValues();
         assertTrue(capturedColumns.stream().anyMatch(col -> col.getStories() != null));
     }
@@ -1690,15 +1691,15 @@ public class BoardControllerTest {
     void testAddColumn_WithExact25Characters() {
         Long projectId = 1L;
         String nameExactly25 = "A".repeat(25); // exactly 25 chars
-        
+
         Project project = new Project();
         project.setId(projectId.intValue());
-        
+
         when(projectRepo.find(projectId)).thenReturn(project);
         when(columnRepo.findByProject(projectId)).thenReturn(List.of());
-        
+
         String result = controller.addColumn(projectId, nameExactly25, 0, false);
-        
+
         assertEquals("redirect:/board/" + projectId, result);
         ArgumentCaptor<Column> columnCaptor = ArgumentCaptor.forClass(Column.class);
         verify(columnRepo).persist(columnCaptor.capture());
@@ -1711,19 +1712,19 @@ public class BoardControllerTest {
     void testReorderColumns_WithNonBacklogColumn() {
         Long projectId = 1L;
         String columnOrder = "1,2";
-        
+
         Column col1 = new Column();
         col1.setId(1);
         col1.setName("Column 1"); // Not BACKLOG
-        
+
         Column col2 = new Column();
         col2.setId(2);
         col2.setName("Column 2");
-        
+
         when(columnRepo.findByProject(projectId)).thenReturn(List.of(col1, col2));
-        
+
         String result = controller.reorderColumns(projectId, columnOrder);
-        
+
         assertTrue(result.contains("success"));
         // Since backlog doesn't exist, columns should be reordered starting from position 1
         verify(columnRepo).reorder(1L, 1);
@@ -1736,21 +1737,21 @@ public class BoardControllerTest {
         Long projectId = 1L;
         Long storyId = 1L;
         Long toColumnId = 2L;
-        
+
         Column targetColumn = new Column();
         targetColumn.setId(2);
         targetColumn.setName(null); // Null name to test mapColumnNameToStatus with null
-        
+
         Story story = new Story();
         story.setId(1);
         story.setProjectId(projectId);
-        
+
         when(columnRepo.find(toColumnId)).thenReturn(targetColumn);
         when(storyRepo.find(storyId)).thenReturn(story);
         when(storyRepo.findByColumn(toColumnId)).thenReturn(new ArrayList<>());
-        
+
         String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null, null);
-        
+
         assertTrue(result.contains("success"));
         verify(storyRepo).persist(story);
     }
@@ -1761,14 +1762,14 @@ public class BoardControllerTest {
         Long projectId = 1L;
         Long columnId = 1L;
         String storyOrder = "1"; // Single story to test boundary condition i < storyIds.length
-        
+
         Story story1 = new Story();
         story1.setId(1);
-        
+
         when(storyRepo.find(1L)).thenReturn(story1);
-        
+
         String result = controller.reorderStories(projectId, columnId, storyOrder);
-        
+
         assertTrue(result.contains("success"));
         assertEquals(0, story1.getPosition(), "Single story should have position 0");
         verify(storyRepo, times(1)).persist(story1);
@@ -1779,17 +1780,17 @@ public class BoardControllerTest {
     void testAddColumn_VerifiesSetProjectCalled() {
         Long projectId = 1L;
         String name = "New Column";
-        
+
         Project project = new Project();
         project.setId(1);
-        
+
         when(projectRepo.find(projectId)).thenReturn(project);
         when(columnRepo.findByProject(projectId)).thenReturn(new ArrayList<>());
-        
+
         ArgumentCaptor<Column> columnCaptor = ArgumentCaptor.forClass(Column.class);
-        
+
         String result = controller.addColumn(projectId, name, 0, false);
-        
+
         assertEquals("redirect:/board/" + projectId, result);
         verify(columnRepo).persist(columnCaptor.capture());
         assertEquals(project, columnCaptor.getValue().getProject(), "setProject should be called with the project");
@@ -1801,22 +1802,22 @@ public class BoardControllerTest {
         Long projectId = 1L;
         String name = "New Column";
         int donePosition = 5;
-        
+
         Project project = new Project();
         project.setId(1);
-        
+
         Column doneColumn = new Column();
         doneColumn.setId(10);
         doneColumn.setName("DONE");
         doneColumn.setPosition(donePosition);
-        
+
         when(projectRepo.find(projectId)).thenReturn(project);
         when(columnRepo.findByProject(projectId)).thenReturn(Arrays.asList(doneColumn));
-        
+
         ArgumentCaptor<Column> columnCaptor = ArgumentCaptor.forClass(Column.class);
-        
+
         String result = controller.addColumn(projectId, name, 0, false);
-        
+
         assertEquals("redirect:/board/" + projectId, result);
         verify(columnRepo, times(2)).persist(columnCaptor.capture());
         // First call is for doneColumn (position shifted), second call is for new column
@@ -1830,28 +1831,28 @@ public class BoardControllerTest {
         Long projectId = 1L;
         String name = "New Column";
         int donePosition = 5;
-        
+
         Project project = new Project();
         project.setId(1);
-        
+
         Column doneColumn = new Column();
         doneColumn.setId(10);
         doneColumn.setName("DONE");
         doneColumn.setPosition(donePosition);
-        
+
         Column colAtDonePosition = new Column();
         colAtDonePosition.setId(20);
         colAtDonePosition.setPosition(donePosition); // Exactly at donePosition
-        
+
         Column colAfterDonePosition = new Column();
         colAfterDonePosition.setId(30);
         colAfterDonePosition.setPosition(donePosition + 1);
-        
+
         when(projectRepo.find(projectId)).thenReturn(project);
         when(columnRepo.findByProject(projectId)).thenReturn(Arrays.asList(doneColumn, colAtDonePosition, colAfterDonePosition));
-        
+
         String result = controller.addColumn(projectId, name, 0, false);
-        
+
         assertEquals("redirect:/board/" + projectId, result);
         // Verify that columns at or after donePosition have their position incremented
         assertEquals(donePosition + 1, colAtDonePosition.getPosition(), "Column at donePosition should be incremented");
@@ -1864,17 +1865,17 @@ public class BoardControllerTest {
     void testAddColumn_WithExactly26Characters() {
         Long projectId = 1L;
         String name26Chars = "A".repeat(26); // exactly 26 chars, should be truncated
-        
+
         Project project = new Project();
         project.setId(1);
-        
+
         when(projectRepo.find(projectId)).thenReturn(project);
         when(columnRepo.findByProject(projectId)).thenReturn(new ArrayList<>());
-        
+
         ArgumentCaptor<Column> columnCaptor = ArgumentCaptor.forClass(Column.class);
-        
+
         String result = controller.addColumn(projectId, name26Chars, 0, false);
-        
+
         assertEquals("redirect:/board/" + projectId, result);
         verify(columnRepo).persist(columnCaptor.capture());
         assertEquals(25, columnCaptor.getValue().getName().length(), "Name should be truncated to 25 characters");
@@ -1886,20 +1887,20 @@ public class BoardControllerTest {
         Long projectId = 1L;
         Long columnId = 1L;
         String storyOrder = "1,2,3";
-        
+
         Story story1 = new Story();
         story1.setId(1);
         Story story2 = new Story();
         story2.setId(2);
         Story story3 = new Story();
         story3.setId(3);
-        
+
         when(storyRepo.find(1L)).thenReturn(story1);
         when(storyRepo.find(2L)).thenReturn(story2);
         when(storyRepo.find(3L)).thenReturn(story3);
-        
+
         String result = controller.reorderStories(projectId, columnId, storyOrder);
-        
+
         assertTrue(result.contains("success"));
         assertEquals(0, story1.getPosition());
         assertEquals(1, story2.getPosition());
@@ -1912,20 +1913,20 @@ public class BoardControllerTest {
     void testReorderColumns_WithNullBacklogId() {
         Long projectId = 1L;
         String columnOrder = "1,2";
-        
+
         // No BACKLOG column exists, so backlogId will be null
         Column col1 = new Column();
         col1.setId(1);
         col1.setName("Column 1");
-        
+
         Column col2 = new Column();
         col2.setId(2);
         col2.setName("Column 2");
-        
+
         when(columnRepo.findByProject(projectId)).thenReturn(Arrays.asList(col1, col2));
-        
+
         String result = controller.reorderColumns(projectId, columnOrder);
-        
+
         assertTrue(result.contains("success"));
         // Should still reorder columns even if backlog doesn't exist
         verify(columnRepo, atLeastOnce()).reorder(anyLong(), anyInt());
@@ -1936,17 +1937,17 @@ public class BoardControllerTest {
     void testAddColumn_WithBoundaryCondition26Chars() {
         Long projectId = 1L;
         String name26Chars = "A".repeat(26); // exactly 26 chars, should trigger truncation
-        
+
         Project project = new Project();
         project.setId(1);
-        
+
         when(projectRepo.find(projectId)).thenReturn(project);
         when(columnRepo.findByProject(projectId)).thenReturn(new ArrayList<>());
-        
+
         ArgumentCaptor<Column> columnCaptor = ArgumentCaptor.forClass(Column.class);
-        
+
         String result = controller.addColumn(projectId, name26Chars, 0, false);
-        
+
         assertEquals("redirect:/board/" + projectId, result);
         verify(columnRepo).persist(columnCaptor.capture());
         assertEquals(25, columnCaptor.getValue().getName().length(), "Name should be truncated from 26 to 25");
@@ -1958,15 +1959,15 @@ public class BoardControllerTest {
         Long projectId = 1L;
         Long columnId = 1L;
         int maxCapacity = 10;
-        
+
         Column column = new Column();
         column.setId(1);
         column.setMaxCapacity(5); // Initial capacity
-        
+
         when(columnRepo.find(columnId)).thenReturn(column);
-        
+
         String result = controller.updateColumn(projectId, columnId, null, maxCapacity);
-        
+
         assertTrue(result.contains("success"));
         assertEquals(maxCapacity, column.getMaxCapacity(), "setMaxCapacity should be called");
         verify(columnRepo).persist(column);
@@ -1978,25 +1979,25 @@ public class BoardControllerTest {
         Long projectId = 1L;
         Long columnId = 1L;
         String storyOrder = "10,20,30";
-        
+
         Story story1 = new Story();
         story1.setId(10);
         story1.setPosition(99); // Initial position
-        
+
         Story story2 = new Story();
         story2.setId(20);
         story2.setPosition(99);
-        
+
         Story story3 = new Story();
         story3.setId(30);
         story3.setPosition(99);
-        
+
         when(storyRepo.find(10L)).thenReturn(story1);
         when(storyRepo.find(20L)).thenReturn(story2);
         when(storyRepo.find(30L)).thenReturn(story3);
-        
+
         String result = controller.reorderStories(projectId, columnId, storyOrder);
-        
+
         assertTrue(result.contains("success"));
         assertEquals(0, story1.getPosition(), "First story should have position 0");
         assertEquals(1, story2.getPosition(), "Second story should have position 1");
@@ -2008,22 +2009,22 @@ public class BoardControllerTest {
     @DisplayName("showBoard should force BLOCKED column to have hasSubColumns=false even if it was true")
     void testShowBoard_ForcesBlockedColumnToNoSubColumns() {
         Long projectId = 1L;
-        
+
         Project project = new Project();
         project.setId(1);
-        
+
         Column blockedColumn = new Column();
         blockedColumn.setId(5);
         blockedColumn.setName("BLOCKED");
         blockedColumn.setHasSubColumns(true); // Initially true, should be forced to false
-        
+
         when(projectRepo.find(projectId)).thenReturn(project);
         when(columnRepo.findByProject(projectId)).thenReturn(List.of(blockedColumn));
         when(storyRepo.findByColumn(5L)).thenReturn(List.of());
         when(swimlaneRepo.findAll()).thenReturn(List.of());
-        
+
         ModelAndView mav = controller.showBoard(projectId);
-        
+
         assertNotNull(mav);
         assertEquals("board", mav.getViewName());
         assertFalse(blockedColumn.isHasSubColumns(), "BLOCKED column should have hasSubColumns=false");
@@ -2036,11 +2037,11 @@ public class BoardControllerTest {
         Long projectId = 1L;
         Long columnId = 1L;
         String newName = "New Name";
-        
+
         when(columnRepo.find(columnId)).thenThrow(new RuntimeException("Database error"));
-        
+
         String result = controller.updateColumnName(projectId, columnId, newName);
-        
+
         assertTrue(result.contains("success\":false"));
         assertTrue(result.contains("error"));
     }
@@ -2050,16 +2051,16 @@ public class BoardControllerTest {
     void testDeleteColumnWithStories_WithEmptyStories() {
         Long projectId = 1L;
         Long columnId = 1L;
-        
+
         Column column = new Column();
         column.setId(1);
         column.setName("Custom Column");
-        
+
         when(columnRepo.find(columnId)).thenReturn(column);
         when(storyRepo.findByColumn(columnId)).thenReturn(new ArrayList<>());
-        
+
         String result = controller.deleteColumnWithStories(projectId, columnId);
-        
+
         assertEquals("success", result);
         verify(storyRepo, never()).remove(anyLong()); // No stories to remove
         verify(columnRepo).remove(columnId); // Column should still be removed
@@ -2069,9 +2070,9 @@ public class BoardControllerTest {
     @DisplayName("addColumnGet should redirect when name is null")
     void testAddColumnGet_WithNullName() {
         Long projectId = 1L;
-        
+
         String result = controller.addColumnGet(projectId, null, 0, false);
-        
+
         assertTrue(result.contains("redirect:/board/" + projectId));
         assertTrue(result.contains("showAddColumn=true"));
     }
@@ -2080,9 +2081,9 @@ public class BoardControllerTest {
     @DisplayName("addColumnGet should redirect when name is empty")
     void testAddColumnGet_WithEmptyName() {
         Long projectId = 1L;
-        
+
         String result = controller.addColumnGet(projectId, "", 0, false);
-        
+
         assertTrue(result.contains("redirect:/board/" + projectId));
         assertTrue(result.contains("showAddColumn=true"));
     }
@@ -2092,11 +2093,11 @@ public class BoardControllerTest {
     void testUpdateColumn_WithException() {
         Long projectId = 1L;
         Long columnId = 1L;
-        
+
         when(columnRepo.find(columnId)).thenThrow(new RuntimeException("Database error"));
-        
+
         String result = controller.updateColumn(projectId, columnId, "New Name", 10);
-        
+
         assertTrue(result.contains("success\":false"));
         assertTrue(result.contains("error"));
     }
@@ -2107,16 +2108,16 @@ public class BoardControllerTest {
         Long projectId = 1L;
         Long columnId = 1L;
         int maxCapacity = 15;
-        
+
         Column column = new Column();
         column.setId(1);
         column.setName("Original Name");
         column.setMaxCapacity(5);
-        
+
         when(columnRepo.find(columnId)).thenReturn(column);
-        
+
         String result = controller.updateColumn(projectId, columnId, null, maxCapacity);
-        
+
         assertTrue(result.contains("success"));
         assertEquals("Original Name", column.getName(), "Name should remain unchanged");
         assertEquals(maxCapacity, column.getMaxCapacity(), "MaxCapacity should be updated");
@@ -2129,15 +2130,15 @@ public class BoardControllerTest {
         Long projectId = 1L;
         Long columnId = 1L;
         int maxCapacity = 20;
-        
+
         Column column = new Column();
         column.setId(1);
         column.setName("Original Name");
-        
+
         when(columnRepo.find(columnId)).thenReturn(column);
-        
+
         String result = controller.updateColumn(projectId, columnId, "   ", maxCapacity);
-        
+
         assertTrue(result.contains("success"));
         assertEquals("Original Name", column.getName(), "Name should remain unchanged when newName is only whitespace");
         verify(columnRepo).persist(column);
@@ -2149,20 +2150,20 @@ public class BoardControllerTest {
         Long projectId = 1L;
         Long storyId = 1L;
         Long toColumnId = 2L;
-        
+
         Column targetColumn = new Column();
         targetColumn.setId(2);
         targetColumn.setName("IN-PROGRESS"); // With hyphen
-        
+
         Story story = new Story();
         story.setId(1);
-        
+
         when(columnRepo.find(toColumnId)).thenReturn(targetColumn);
         when(storyRepo.find(storyId)).thenReturn(story);
         when(storyRepo.findByColumn(toColumnId)).thenReturn(new ArrayList<>());
-        
+
         String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null, null);
-        
+
         assertTrue(result.contains("success"));
         assertEquals(fr.uha.ensisa.gl.entities.StoryStatus.IN_PROGRESS, story.getStatus());
         verify(storyRepo).persist(story);
@@ -2174,20 +2175,20 @@ public class BoardControllerTest {
         Long projectId = 1L;
         Long storyId = 1L;
         Long toColumnId = 2L;
-        
+
         Column targetColumn = new Column();
         targetColumn.setId(2);
         targetColumn.setName("MY-BACKLOG-COLUMN"); // Contains BACKLOG
-        
+
         Story story = new Story();
         story.setId(1);
-        
+
         when(columnRepo.find(toColumnId)).thenReturn(targetColumn);
         when(storyRepo.find(storyId)).thenReturn(story);
         when(storyRepo.findByColumn(toColumnId)).thenReturn(new ArrayList<>());
-        
+
         String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null, null);
-        
+
         assertTrue(result.contains("success"));
         assertEquals(fr.uha.ensisa.gl.entities.StoryStatus.BACKLOG, story.getStatus());
         verify(storyRepo).persist(story);
@@ -2199,20 +2200,20 @@ public class BoardControllerTest {
         Long projectId = 1L;
         Long storyId = 1L;
         Long toColumnId = 2L;
-        
+
         Column targetColumn = new Column();
         targetColumn.setId(2);
         targetColumn.setName("INPROGRESS"); // No space
-        
+
         Story story = new Story();
         story.setId(1);
-        
+
         when(columnRepo.find(toColumnId)).thenReturn(targetColumn);
         when(storyRepo.find(storyId)).thenReturn(story);
         when(storyRepo.findByColumn(toColumnId)).thenReturn(new ArrayList<>());
-        
+
         String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null, null);
-        
+
         assertTrue(result.contains("success"));
         assertEquals(fr.uha.ensisa.gl.entities.StoryStatus.IN_PROGRESS, story.getStatus());
         verify(storyRepo).persist(story);
@@ -2225,21 +2226,21 @@ public class BoardControllerTest {
         Long storyId = 1L;
         Long toColumnId = 2L;
         StoryStatus originalStatus = fr.uha.ensisa.gl.entities.StoryStatus.BACKLOG;
-        
+
         Column targetColumn = new Column();
         targetColumn.setId(2);
         targetColumn.setName("UNKNOWN COLUMN"); // Doesn't match any status
-        
+
         Story story = new Story();
         story.setId(1);
         story.setStatus(originalStatus);
-        
+
         when(columnRepo.find(toColumnId)).thenReturn(targetColumn);
         when(storyRepo.find(storyId)).thenReturn(story);
         when(storyRepo.findByColumn(toColumnId)).thenReturn(new ArrayList<>());
-        
+
         String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null, null);
-        
+
         assertTrue(result.contains("success"));
         assertEquals(originalStatus, story.getStatus(), "Status should remain unchanged for unknown column");
         verify(storyRepo).persist(story);
@@ -2251,15 +2252,15 @@ public class BoardControllerTest {
         Long projectId = 1L;
         Long storyId = 1L;
         Long toColumnId = 2L;
-        
+
         Story story = new Story();
         story.setId(1);
-        
+
         when(columnRepo.find(toColumnId)).thenReturn(null);
         when(storyRepo.find(storyId)).thenReturn(story);
-        
+
         String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null, null);
-        
+
         assertTrue(result.contains("success"));
         verify(storyRepo).persist(story);
     }
@@ -2270,20 +2271,20 @@ public class BoardControllerTest {
         Long projectId = 1L;
         Long storyId = 1L;
         Long toColumnId = 2L;
-        
+
         Column targetColumn = new Column();
         targetColumn.setId(2);
         targetColumn.setName("DONE");
-        
+
         Story story = new Story();
         story.setId(1);
-        
+
         when(columnRepo.find(toColumnId)).thenReturn(targetColumn);
         when(storyRepo.find(storyId)).thenReturn(story);
         when(storyRepo.findByColumn(toColumnId)).thenReturn(new ArrayList<>());
-        
+
         String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null, null);
-        
+
         assertTrue(result.contains("success"));
         assertTrue(result.contains("newStatus"));
         assertTrue(result.contains("DONE"));
@@ -2297,20 +2298,20 @@ public class BoardControllerTest {
         Long storyId = 1L;
         Long toColumnId = 2L;
         String subColumn = "DOING";
-        
+
         Column targetColumn = new Column();
         targetColumn.setId(2);
         targetColumn.setName("Custom Column");
-        
+
         Story story = new Story();
         story.setId(1);
-        
+
         when(columnRepo.find(toColumnId)).thenReturn(targetColumn);
         when(storyRepo.find(storyId)).thenReturn(story);
         when(storyRepo.findByColumn(toColumnId)).thenReturn(new ArrayList<>());
-        
+
         String result = controller.moveStory(projectId, storyId, toColumnId, null, null, subColumn, null);
-        
+
         assertTrue(result.contains("success"));
         assertEquals(subColumn, story.getSubColumn());
         verify(storyRepo).persist(story);
@@ -2322,20 +2323,20 @@ public class BoardControllerTest {
         Long projectId = 1L;
         Long storyId = 1L;
         Long toColumnId = 2L;
-        
+
         Column targetColumn = new Column();
         targetColumn.setId(2);
         targetColumn.setName("Custom Column");
-        
+
         Story story = new Story();
         story.setId(1);
-        
+
         when(columnRepo.find(toColumnId)).thenReturn(targetColumn);
         when(storyRepo.find(storyId)).thenReturn(story);
         when(storyRepo.findByColumn(toColumnId)).thenReturn(new ArrayList<>());
-        
+
         String result = controller.moveStory(projectId, storyId, toColumnId, null, null, "", null);
-        
+
         assertTrue(result.contains("success"));
         assertEquals("BACKLOG", story.getSubColumn(), "Should default to BACKLOG for custom column");
         verify(storyRepo).persist(story);
@@ -2345,13 +2346,13 @@ public class BoardControllerTest {
     @DisplayName("addColumn should handle null name gracefully")
     void testAddColumn_WithNullName() {
         Long projectId = 1L;
-        
+
         Project project = new Project();
         project.setId(1);
-        
+
         when(projectRepo.find(projectId)).thenReturn(project);
         when(columnRepo.findByProject(projectId)).thenReturn(new ArrayList<>());
-        
+
         // Null name will cause NPE when calling name.trim() - this tests the boundary condition
         // name != null && name.length() > 25 - when name is null, first condition fails, so no crash
         // But then name.trim() will crash, which is expected behavior
@@ -2365,16 +2366,16 @@ public class BoardControllerTest {
     void testAddColumn_TrimsNameCorrectly() {
         Long projectId = 1L;
         String nameWithSpaces = "  Test Column  ";
-        
+
         Project project = new Project();
         project.setId(1);
-        
+
         when(projectRepo.find(projectId)).thenReturn(project);
         when(columnRepo.findByProject(projectId)).thenReturn(new ArrayList<>());
-        
+
         ArgumentCaptor<Column> columnCaptor = ArgumentCaptor.forClass(Column.class);
         String result = controller.addColumn(projectId, nameWithSpaces, 0, false);
-        
+
         assertEquals("redirect:/board/" + projectId, result);
         verify(columnRepo).persist(columnCaptor.capture());
         assertEquals("Test Column", columnCaptor.getValue().getName(), "Name should be trimmed");
@@ -2385,25 +2386,25 @@ public class BoardControllerTest {
     void testAddColumn_FindsDoneColumnCaseInsensitive() {
         Long projectId = 1L;
         String name = "New Column";
-        
+
         Project project = new Project();
         project.setId(1);
-        
+
         Column doneColumn = new Column();
         doneColumn.setId(10);
         doneColumn.setName("done"); // lowercase
         doneColumn.setPosition(5);
-        
+
         Column col1 = new Column();
         col1.setId(1);
         col1.setPosition(1);
-        
+
         when(projectRepo.find(projectId)).thenReturn(project);
         when(columnRepo.findByProject(projectId)).thenReturn(Arrays.asList(col1, doneColumn));
-        
+
         ArgumentCaptor<Column> columnCaptor = ArgumentCaptor.forClass(Column.class);
         String result = controller.addColumn(projectId, name, 0, false);
-        
+
         assertEquals("redirect:/board/" + projectId, result);
         verify(columnRepo, times(2)).persist(columnCaptor.capture());
         // First call is for doneColumn (position shifted), second call is for new column
@@ -2416,21 +2417,21 @@ public class BoardControllerTest {
     void testAddColumn_FindsDoneColumnWithSpaces() {
         Long projectId = 1L;
         String name = "New Column";
-        
+
         Project project = new Project();
         project.setId(1);
-        
+
         Column doneColumn = new Column();
         doneColumn.setId(10);
         doneColumn.setName("  DONE  "); // with spaces
         doneColumn.setPosition(5);
-        
+
         when(projectRepo.find(projectId)).thenReturn(project);
         when(columnRepo.findByProject(projectId)).thenReturn(Arrays.asList(doneColumn));
-        
+
         ArgumentCaptor<Column> columnCaptor = ArgumentCaptor.forClass(Column.class);
         String result = controller.addColumn(projectId, name, 0, false);
-        
+
         assertEquals("redirect:/board/" + projectId, result);
         verify(columnRepo, times(2)).persist(columnCaptor.capture());
         // First call is for doneColumn (position shifted), second call is for new column
@@ -2443,21 +2444,21 @@ public class BoardControllerTest {
     void testAddColumn_HandlesColumnWithNullNameInLoop() {
         Long projectId = 1L;
         String name = "New Column";
-        
+
         Project project = new Project();
         project.setId(1);
-        
+
         Column colWithNullName = new Column();
         colWithNullName.setId(1);
         colWithNullName.setName(null);
         colWithNullName.setPosition(1);
-        
+
         when(projectRepo.find(projectId)).thenReturn(project);
         when(columnRepo.findByProject(projectId)).thenReturn(Arrays.asList(colWithNullName));
-        
+
         ArgumentCaptor<Column> columnCaptor = ArgumentCaptor.forClass(Column.class);
         String result = controller.addColumn(projectId, name, 0, false);
-        
+
         assertEquals("redirect:/board/" + projectId, result);
         verify(columnRepo).persist(columnCaptor.capture());
         assertEquals(2, columnCaptor.getValue().getPosition(), "Should be placed at end when no DONE column");
@@ -2469,20 +2470,20 @@ public class BoardControllerTest {
         Long projectId = 1L;
         Long storyId = 1L;
         Long toColumnId = 2L;
-        
+
         Column targetColumn = new Column();
         targetColumn.setId(2);
         targetColumn.setName("MY-REVIEW-COLUMN");
-        
+
         Story story = new Story();
         story.setId(1);
-        
+
         when(columnRepo.find(toColumnId)).thenReturn(targetColumn);
         when(storyRepo.find(storyId)).thenReturn(story);
         when(storyRepo.findByColumn(toColumnId)).thenReturn(new ArrayList<>());
-        
+
         String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null, null);
-        
+
         assertTrue(result.contains("success"));
         assertEquals(fr.uha.ensisa.gl.entities.StoryStatus.REVIEW, story.getStatus());
         verify(storyRepo).persist(story);
@@ -2494,20 +2495,20 @@ public class BoardControllerTest {
         Long projectId = 1L;
         Long storyId = 1L;
         Long toColumnId = 2L;
-        
+
         Column targetColumn = new Column();
         targetColumn.setId(2);
         targetColumn.setName("ALREADY-DONE");
-        
+
         Story story = new Story();
         story.setId(1);
-        
+
         when(columnRepo.find(toColumnId)).thenReturn(targetColumn);
         when(storyRepo.find(storyId)).thenReturn(story);
         when(storyRepo.findByColumn(toColumnId)).thenReturn(new ArrayList<>());
-        
+
         String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null, null);
-        
+
         assertTrue(result.contains("success"));
         assertEquals(fr.uha.ensisa.gl.entities.StoryStatus.DONE, story.getStatus());
         verify(storyRepo).persist(story);
@@ -2519,20 +2520,20 @@ public class BoardControllerTest {
         Long projectId = 1L;
         Long storyId = 1L;
         Long toColumnId = 2L;
-        
+
         Column targetColumn = new Column();
         targetColumn.setId(2);
         targetColumn.setName("BLOCKED-ISSUE");
-        
+
         Story story = new Story();
         story.setId(1);
-        
+
         when(columnRepo.find(toColumnId)).thenReturn(targetColumn);
         when(storyRepo.find(storyId)).thenReturn(story);
         when(storyRepo.findByColumn(toColumnId)).thenReturn(new ArrayList<>());
-        
+
         String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null, null);
-        
+
         assertTrue(result.contains("success"));
         assertEquals(fr.uha.ensisa.gl.entities.StoryStatus.BLOCKED, story.getStatus());
         verify(storyRepo).persist(story);
@@ -2544,20 +2545,20 @@ public class BoardControllerTest {
         Long projectId = 1L;
         Long storyId = 1L;
         Long toColumnId = 2L;
-        
+
         Column targetColumn = new Column();
         targetColumn.setId(2);
         targetColumn.setName("in progress"); // lowercase with space
-        
+
         Story story = new Story();
         story.setId(1);
-        
+
         when(columnRepo.find(toColumnId)).thenReturn(targetColumn);
         when(storyRepo.find(storyId)).thenReturn(story);
         when(storyRepo.findByColumn(toColumnId)).thenReturn(new ArrayList<>());
-        
+
         String result = controller.moveStory(projectId, storyId, toColumnId, null, null, null, null);
-        
+
         assertTrue(result.contains("success"));
         assertEquals(fr.uha.ensisa.gl.entities.StoryStatus.IN_PROGRESS, story.getStatus());
         verify(storyRepo).persist(story);
@@ -2567,22 +2568,22 @@ public class BoardControllerTest {
     @DisplayName("showBoard should initialize hasSubColumns for REVIEW column when false")
     void testShowBoard_InitializesHasSubColumnsForReview() {
         Long projectId = 1L;
-        
+
         Project project = new Project();
         project.setId(1);
-        
+
         Column reviewColumn = new Column();
         reviewColumn.setId(3);
         reviewColumn.setName("review"); // lowercase
         reviewColumn.setHasSubColumns(false);
-        
+
         when(projectRepo.find(projectId)).thenReturn(project);
         when(columnRepo.findByProject(projectId)).thenReturn(List.of(reviewColumn));
         when(storyRepo.findByColumn(3L)).thenReturn(List.of());
         when(swimlaneRepo.findAll()).thenReturn(List.of());
-        
+
         ModelAndView mav = controller.showBoard(projectId);
-        
+
         assertNotNull(mav);
         assertEquals("board", mav.getViewName());
         assertTrue(reviewColumn.isHasSubColumns(), "REVIEW column should have hasSubColumns=true");
@@ -2593,24 +2594,239 @@ public class BoardControllerTest {
     @DisplayName("showBoard should handle column with null name in loop")
     void testShowBoard_HandlesColumnWithNullName() {
         Long projectId = 1L;
-        
+
         Project project = new Project();
         project.setId(1);
-        
+
         Column colWithNullName = new Column();
         colWithNullName.setId(1);
         colWithNullName.setName(null);
-        
+
         when(projectRepo.find(projectId)).thenReturn(project);
         when(columnRepo.findByProject(projectId)).thenReturn(List.of(colWithNullName));
         when(storyRepo.findByColumn(1L)).thenReturn(List.of());
         when(swimlaneRepo.findAll()).thenReturn(List.of());
-        
+
         ModelAndView mav = controller.showBoard(projectId);
-        
+
         assertNotNull(mav);
         assertEquals("board", mav.getViewName());
         // Should not crash, column with null name should be skipped in hasSubColumns logic
     }
+
+    @Test
+    @DisplayName("showBoard should force BLOCKED to have no sub-columns and persist the change")
+    void testShowBoardForcesBlockedNoSubColumnsAndPersists() {
+        Long projectId = 1L;
+
+        Project project = new Project();
+        project.setId(1);
+        project.setName("Test Project");
+
+        Column blockedColumn = new Column();
+        blockedColumn.setId(5);
+        blockedColumn.setName("BLOCKED");
+        blockedColumn.setHasSubColumns(true);
+
+        when(projectRepo.find(projectId)).thenReturn(project);
+        when(columnRepo.findByProject(projectId)).thenReturn(List.of(blockedColumn));
+        when(storyRepo.findByColumn(5L)).thenReturn(List.of());
+        when(swimlaneRepo.findAll()).thenReturn(List.of());
+
+        ModelAndView mav = controller.showBoard(projectId);
+
+        assertNotNull(mav);
+
+        // false + persist
+        assertFalse(blockedColumn.isHasSubColumns());
+        verify(columnRepo).persist(blockedColumn);
+    }
+
+    @Test
+    @DisplayName("addColumnGet should redirect to addColumn page when name is null")
+    void testAddColumnGetNameNull() {
+        Long projectId = 1L;
+
+        String result = controller.addColumnGet(projectId, null, 3, false);
+
+        assertTrue(result.contains("redirect:"));
+        assertTrue(result.contains("showAddColumn=true"));
+        verify(columnRepo, never()).persist(any(Column.class));
+    }
+
+    @Test
+    @DisplayName("addColumnGet should redirect to addColumn page when name is empty or blank")
+    void testAddColumnGetNameEmpty() {
+        Long projectId = 1L;
+
+        String result = controller.addColumnGet(projectId, "   ", 2, true);
+
+        assertTrue(result.contains("redirect:"));
+        assertTrue(result.contains("showAddColumn=true"));
+        verify(columnRepo, never()).persist(any(Column.class));
+    }
+
+    @Test
+    @DisplayName("updateColumnName should return error when column is null")
+    void testUpdateColumnNameColumnNull() {
+        Long projectId = 1L;
+        Long columnId = 99L;
+
+        when(columnRepo.find(columnId)).thenReturn(null);
+
+        String result = controller.updateColumnName(projectId, columnId, "NEWNAME");
+
+        assertNotNull(result);
+        assertTrue(result.toLowerCase().contains("error")); // garde ce check simple/robuste
+        verify(columnRepo, never()).persist(any(Column.class));
+    }
+
+    @Test
+    @DisplayName("updateColumnName should return error when persist throws exception")
+    void testUpdateColumnNameErrorOnPersist() {
+        Long projectId = 1L;
+        Long columnId = 10L;
+
+        Column column = new Column();
+        column.setId(10);
+        column.setName("OLD");
+
+        when(columnRepo.find(columnId)).thenReturn(column);
+        doThrow(new RuntimeException("DB error")).when(columnRepo).persist(column);
+
+        String result = controller.updateColumnName(projectId, columnId, "NEW");
+
+        assertNotNull(result);
+        assertTrue(result.toLowerCase().contains("error"));
+    }
+
+    @Test
+    @DisplayName("updateColumn should return error when column is null")
+    void testUpdateColumnColumnNull() {
+        Long projectId = 1L;
+        Long columnId = 404L;
+
+        when(columnRepo.find(columnId)).thenReturn(null);
+
+        String result = controller.updateColumn(projectId, columnId, "NEWNAME", 7);
+
+        assertNotNull(result);
+        assertTrue(result.toLowerCase().contains("error"));
+        verify(columnRepo, never()).persist(any(Column.class));
+    }
+
+    @Test
+    @DisplayName("updateColumn should return error when persist throws exception")
+    void testUpdateColumnErrorOnPersist() {
+        Long projectId = 1L;
+        Long columnId = 12L;
+
+        Column column = new Column();
+        column.setId(12);
+        column.setName("TODO");
+        column.setMaxCapacity(3);
+
+        when(columnRepo.find(columnId)).thenReturn(column);
+        doThrow(new RuntimeException("DB error")).when(columnRepo).persist(column);
+
+        String result = controller.updateColumn(projectId, columnId, "IN_PROGRESS", 5);
+
+        assertNotNull(result);
+        assertTrue(result.toLowerCase().contains("error"));
+    }
+
+    @Test
+    @DisplayName("mapColumnNameToStatus should map REVIEW, DONE, BLOCKED correctly")
+    void testMapColumnNameToStatusReviewDoneBlocked() throws Exception {
+        Method m = BoardController.class.getDeclaredMethod("mapColumnNameToStatus", String.class);
+        m.setAccessible(true);
+
+        Object review = m.invoke(controller, "REVIEW");
+        Object done = m.invoke(controller, "DONE");
+        Object blocked = m.invoke(controller, "BLOCKED");
+
+        assertEquals(StoryStatus.REVIEW, review);
+        assertEquals(StoryStatus.DONE, done);
+        assertEquals(StoryStatus.BLOCKED, blocked);
+    }
+
+    @Test
+    @DisplayName("showBoard should fetch stories for each column (REVIEW/DONE/BLOCKED)")
+    void testShowBoardFetchStoriesForEachColumn() {
+        Long projectId = 1L;
+
+        Project project = new Project();
+        project.setId(1);
+        project.setName("P");
+
+        Column reviewCol = new Column(); reviewCol.setId(1); reviewCol.setName("REVIEW"); reviewCol.setHasSubColumns(false);
+        Column doneCol   = new Column(); doneCol.setId(2);   doneCol.setName("DONE");   doneCol.setHasSubColumns(false);
+        Column blockedCol= new Column(); blockedCol.setId(3);blockedCol.setName("BLOCKED");blockedCol.setHasSubColumns(false);
+
+        when(projectRepo.find(projectId)).thenReturn(project);
+        when(columnRepo.findByProject(projectId)).thenReturn(List.of(reviewCol, doneCol, blockedCol));
+        when(storyRepo.findByColumn(1L)).thenReturn(List.of(new Story()));
+        when(storyRepo.findByColumn(2L)).thenReturn(List.of(new Story(), new Story()));
+        when(storyRepo.findByColumn(3L)).thenReturn(List.of());
+        when(swimlaneRepo.findAll()).thenReturn(List.of());
+
+        ModelAndView mav = controller.showBoard(projectId);
+
+        assertNotNull(mav);
+
+        verify(storyRepo).findByColumn(1L);
+        verify(storyRepo).findByColumn(2L);
+        verify(storyRepo).findByColumn(3L);
+    }
+
+    @Test
+    @DisplayName("addColumnGet should persist column with maxCapacity=0 and hasSubColumns=false")
+    void testAddColumnGetDefaultValuesPersisted() {
+        Long projectId = 1L;
+
+        Project project = new Project();
+        project.setId(1);
+        project.setName("P");
+
+        when(projectRepo.find(projectId)).thenReturn(project);
+
+        String result = controller.addColumnGet(projectId, "TODO", 0, false);
+
+        assertNotNull(result);
+        assertTrue(result.startsWith("redirect:"));
+
+        ArgumentCaptor<Column> captor = ArgumentCaptor.forClass(Column.class);
+        verify(columnRepo).persist(captor.capture());
+
+        Column saved = captor.getValue();
+        assertEquals("TODO", saved.getName());
+        assertEquals(0, saved.getMaxCapacity());
+        assertFalse(saved.isHasSubColumns());
+        assertEquals(project, saved.getProject());
+    }
+
+    @Test
+    @DisplayName("updateColumn should update only maxCapacity when newName is null")
+    void testUpdateColumnNullNewNameUpdatesOnlyCapacity() {
+        Long projectId = 1L;
+        Long columnId = 7L;
+
+        Column column = new Column();
+        column.setId(7);
+        column.setName("IN_PROGRESS");
+        column.setMaxCapacity(2);
+
+        when(columnRepo.find(columnId)).thenReturn(column);
+
+        String result = controller.updateColumn(projectId, columnId, null, 10);
+
+        assertNotNull(result);
+        assertTrue(result.toLowerCase().contains("success") || result.startsWith("redirect:") || !result.toLowerCase().contains("error"));
+
+        assertEquals("IN_PROGRESS", column.getName()); // inchangé
+        assertEquals(10, column.getMaxCapacity());     // modifié
+        verify(columnRepo).persist(column);
+    }
+
 }
 

@@ -759,4 +759,18 @@ public class StoryRepoMemTest {
         
         assertNull(stopped, "Should return null for non-existent work log ID");
     }
+    @Test
+    @DisplayName("Should safely handle null work log")
+    void testAddWorkLogNullSafe() {
+        storyRepo.persist(testStory);
+        long storyId = testStory.getId();
+
+        assertDoesNotThrow(() -> storyRepo.addWorkLog(storyId, null));
+
+        Story found = storyRepo.find(storyId);
+
+        assertNotNull(found.getWorkLogs());
+        assertEquals(1, found.getWorkLogs().size());
+        assertNull(found.getWorkLogs().get(0));
+    }
 }
