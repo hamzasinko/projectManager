@@ -1744,5 +1744,34 @@ public class BoardControllerTest {
         assertEquals(StoryStatus.BLOCKED, blocked);
     }
 
+    @Test
+    @DisplayName("showBoard should fetch stories for each column (REVIEW/DONE/BLOCKED)")
+    void testShowBoardFetchStoriesForEachColumn() {
+        Long projectId = 1L;
+
+        Project project = new Project();
+        project.setId(1);
+        project.setName("P");
+
+        Column reviewCol = new Column(); reviewCol.setId(1); reviewCol.setName("REVIEW"); reviewCol.setHasSubColumns(false);
+        Column doneCol   = new Column(); doneCol.setId(2);   doneCol.setName("DONE");   doneCol.setHasSubColumns(false);
+        Column blockedCol= new Column(); blockedCol.setId(3);blockedCol.setName("BLOCKED");blockedCol.setHasSubColumns(false);
+
+        when(projectRepo.find(projectId)).thenReturn(project);
+        when(columnRepo.findByProject(projectId)).thenReturn(List.of(reviewCol, doneCol, blockedCol));
+        when(storyRepo.findByColumn(1L)).thenReturn(List.of(new Story()));
+        when(storyRepo.findByColumn(2L)).thenReturn(List.of(new Story(), new Story()));
+        when(storyRepo.findByColumn(3L)).thenReturn(List.of());
+        when(swimlaneRepo.findAll()).thenReturn(List.of());
+
+        ModelAndView mav = controller.showBoard(projectId);
+
+        assertNotNull(mav);
+
+        verify(storyRepo).findByColumn(1L);
+        verify(storyRepo).findByColumn(2L);
+        verify(storyRepo).findByColumn(3L);
+    }
+
 }
 
