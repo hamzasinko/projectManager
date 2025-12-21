@@ -120,12 +120,14 @@ static-analysis:
         echo "  📄 Fichier trouvé: $JACOCO_CSV"
         # Extract from CSV - skip header line (starts with GROUP,PACKAGE,CLASS)
         # Columns: GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED(4),INSTRUCTION_COVERED(5),BRANCH_MISSED(6),BRANCH_COVERED(7),LINE_MISSED(8),LINE_COVERED(9)
-        awk -F, '
-          BEGIN {missed_i=0; covered_i=0; missed_b=0; covered_b=0; missed_l=0; covered_l=0}
-          NR>1 && !/^GROUP,PACKAGE,CLASS/ && NF>=9 {
-            missed_i += int($4); covered_i += int($5)
-            missed_b += int($6); covered_b += int($7)
-            missed_l += int($8); covered_l += int($9)
+        awk -F',' '
+          BEGIN {missed_i=0; covered_i=0; missed_b=0; covered_b=0; missed_l=0; covered_l=0; count=0}
+          NR==1 {next}
+          NF>=9 && $1!="" && $1!~/^GROUP/ {
+            missed_i += ($4+0); covered_i += ($5+0)
+            missed_b += ($6+0); covered_b += ($7+0)
+            missed_l += ($8+0); covered_l += ($9+0)
+            count++
           }
           END {
             total_i=missed_i+covered_i
@@ -135,7 +137,7 @@ static-analysis:
               printf "  ✅ Couverture globale: %.2f%%\n", 100*covered_i/total_i
               printf "  📝 Instructions: %d couvertes / %d totales\n", covered_i, total_i
             } else {
-              print "  ⚠️  Aucune instruction trouvée"
+              printf "  ⚠️  Aucune instruction trouvée (lignes traitées: %d)\n", count
             }
             if(total_b>0) {
               printf "  🌿 Branches: %.2f%% (%d/%d)\n", 100*covered_b/total_b, covered_b, total_b
@@ -148,7 +150,7 @@ static-analysis:
               print "  📄 Lignes: N/A"
             }
           }
-        ' "$JACOCO_CSV" 2>/dev/null || echo "  ⚠️  Erreur lors du parsing du CSV"
+        ' "$JACOCO_CSV" 2>&1
       else
         echo "  ⚠️  Rapport JaCoCo CSV non trouvé"
         echo "  🔍 Recherche dans:"
