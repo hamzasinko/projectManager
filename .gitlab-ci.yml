@@ -65,9 +65,10 @@ unit-tests:
     - mvn $MAVEN_CLI_OPTS -s settings.xml jacoco:report-aggregate || true
     - |
       if [ -f target/site/jacoco-aggregate/jacoco.csv ]; then
-        awk -F',' 'NR>1 && NF>=9 {missed += ($4+0); covered += ($5+0)} END {if(covered+missed>0) print "Jacoco Coverage:",100*covered/(covered+missed),"%"; else print "Jacoco Coverage: 0%"}' target/site/jacoco-aggregate/jacoco.csv
+        # Commande exacte du document : utiliser COMPLEXITY (colonnes 10 et 11)
+        grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' target/site/jacoco-aggregate/jacoco.csv | awk -F, '{missed += $10 ; covered += $11} END {if(covered+missed>0) printf "Jacoco Coverage: %.2f%%\n", 100*covered/(covered+missed); else print "Jacoco Coverage: 0%"}'
       fi
-  coverage: '/Jacoco Coverage:\s+\d+[,\.]?\d+\s+\%/'
+  coverage: '/Jacoco Coverage:\s+\d+[,\.]?\d+\s*\%/' 
   artifacts:
     paths:
       - "**/target/site/jacoco"
@@ -113,40 +114,90 @@ static-analysis:
       # ============================================
       echo "📈 JACOCO - COUVERTURE DE CODE"
       echo "──────────────────────────────────────────────────────────────"
-      JACOCO_CSV=""
-      for path in "project-app/target/site/jacoco-aggregate/jacoco.csv" "project-app/target/site/jacoco/jacoco.csv"; do
-        if [ -f "$path" ]; then
-          JACOCO_CSV="$path"
-          break
-        fi
-      done
-      if [ -z "$JACOCO_CSV" ]; then
-        JACOCO_CSV=$(find . -name "jacoco.csv" -type f 2>/dev/null | head -n 1)
-      fi
       
-      if [ -n "$JACOCO_CSV" ] && [ -f "$JACOCO_CSV" ]; then
-        # Calculer la couverture totale depuis le CSV avec awk
-        TOTAL_MISSED=$(awk -F',' 'NR>1 && $4 ~ /^[0-9]+$/ {missed+=$4} END {print missed+0}' "$JACOCO_CSV" 2>/dev/null || echo "0")
-        TOTAL_COVERED=$(awk -F',' 'NR>1 && $5 ~ /^[0-9]+$/ {covered+=$5} END {print covered+0}' "$JACOCO_CSV" 2>/dev/null || echo "0")
-        TOTAL_INSTRUCTIONS=$((TOTAL_MISSED + TOTAL_COVERED))
+      # Méthode 1: Utiliser la commande exacte du document sur le rapport agrégé
+      AGGREGATE_CSV="project-app/target/site/jacoco-aggregate/jacoco.csv"
+      if [ -f "$AGGREGATE_CSV" ]; then
+        # Commande exacte du document (colonnes COMPLEXITY: 10 et 11)
+        COVERAGE_OUTPUT=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$AGGREGATE_CSV" 2>/dev/null | awk -F',' '{missed += $10 ; covered += $11} END {if(covered+missed>0) printf "Jacoco Coverage: %.2f%%\n", 100*covered/(covered+missed); else print "Jacoco Coverage: 0%"}' 2>/dev/null)
         
-        if [ "$TOTAL_INSTRUCTIONS" -gt 0 ]; then
-          COVERAGE_PCT=$(awk "BEGIN {printf \"%.2f\", 100*$TOTAL_COVERED/$TOTAL_INSTRUCTIONS}" 2>/dev/null || echo "0")
-          echo "  ✅ Couverture globale: ${COVERAGE_PCT}%"
-          echo "     Instructions couvertes: $TOTAL_COVERED / $TOTAL_INSTRUCTIONS"
-          echo "     Instructions manquantes: $TOTAL_MISSED"
+        # Si le rapport agrégé ne contient pas de données (tous à 0), calculer depuis les CSVs individuels
+        if [ -z "$COVERAGE_OUTPUT" ] || echo "$COVERAGE_OUTPUT" | grep -q "0%"; then
+          # Méthode 2: Agréger manuellement depuis les CSVs individuels
+          TOTAL_MISSED=0
+          TOTAL_COVERED=0
+          for module in "project-model" "project-repomem" "project-app"; do
+            MODULE_CSV=$(find "$module/target/site/jacoco" -name "jacoco.csv" -type f 2>/dev/null | head -n 1)
+            if [ -n "$MODULE_CSV" ] && [ -f "$MODULE_CSV" ]; then
+              # Utiliser COMPLEXITY (colonnes 10 et 11) comme dans le document
+              MODULE_DATA=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$MODULE_CSV" 2>/dev/null | awk -F',' 'NR>1 {missed += ($10+0); covered += ($11+0)} END {print missed " " covered}' 2>/dev/null)
+              if [ -n "$MODULE_DATA" ]; then
+                MODULE_MISSED=$(echo "$MODULE_DATA" | cut -d' ' -f1)
+                MODULE_COVERED=$(echo "$MODULE_DATA" | cut -d' ' -f2)
+                TOTAL_MISSED=$((TOTAL_MISSED + MODULE_MISSED))
+                TOTAL_COVERED=$((TOTAL_COVERED + MODULE_COVERED))
+              fi
+            fi
+          done
+          
+          if [ $((TOTAL_MISSED + TOTAL_COVERED)) -gt 0 ]; then
+            COVERAGE_PCT=$(awk "BEGIN {printf \"%.2f\", 100*$TOTAL_COVERED/($TOTAL_MISSED+$TOTAL_COVERED)}" 2>/dev/null || echo "0")
+            COVERAGE_OUTPUT="Jacoco Coverage: ${COVERAGE_PCT}%"
+          fi
+        fi
+        
+        if [ -n "$COVERAGE_OUTPUT" ] && ! echo "$COVERAGE_OUTPUT" | grep -q "0%"; then
+          echo "  $COVERAGE_OUTPUT"
+          # Extraire le pourcentage pour l'affichage détaillé
+          COVERAGE_PCT=$(echo "$COVERAGE_OUTPUT" | grep -oE '[0-9]+\.?[0-9]*' | head -n 1)
           COVERAGE_INT=$(echo "$COVERAGE_PCT" | cut -d'.' -f1)
-          if [ "$COVERAGE_INT" -ge 90 ]; then
+          
+          # Calculer les totaux pour affichage
+          TOTAL_MISSED=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$AGGREGATE_CSV" 2>/dev/null | awk -F',' 'NR>1 {missed += ($10+0)} END {print missed+0}' 2>/dev/null || echo "0")
+          TOTAL_COVERED=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$AGGREGATE_CSV" 2>/dev/null | awk -F',' 'NR>1 {covered += ($11+0)} END {print covered+0}' 2>/dev/null || echo "0")
+          
+          # Si COMPLEXITY est vide, utiliser INSTRUCTION
+          if [ "$TOTAL_MISSED" = "0" ] && [ "$TOTAL_COVERED" = "0" ]; then
+            TOTAL_MISSED=$(awk -F',' 'NR>1 && $4 ~ /^[0-9]+$/ {missed+=$4} END {print missed+0}' "$AGGREGATE_CSV" 2>/dev/null || echo "0")
+            TOTAL_COVERED=$(awk -F',' 'NR>1 && $5 ~ /^[0-9]+$/ {covered+=$5} END {print covered+0}' "$AGGREGATE_CSV" 2>/dev/null || echo "0")
+          fi
+          
+          TOTAL=$((TOTAL_MISSED + TOTAL_COVERED))
+          if [ "$TOTAL" -gt 0 ]; then
+            echo "     Complexité couverte: $TOTAL_COVERED / $TOTAL"
+            echo "     Complexité manquante: $TOTAL_MISSED"
+          fi
+          
+          if [ -n "$COVERAGE_INT" ] && [ "$COVERAGE_INT" -ge 90 ]; then
             echo "     🎯 Objectif 90%: ✅ ATTEINT"
           else
             echo "     🎯 Objectif 90%: ❌ NON ATTEINT"
           fi
+          echo "  📄 Rapport CSV agrégé: $AGGREGATE_CSV"
+          
+          # Afficher les détails par module
+          echo ""
+          echo "  📊 Détails par module:"
+          for module in "project-model" "project-repomem" "project-app"; do
+            MODULE_CSV=$(find "$module/target/site/jacoco" -name "jacoco.csv" -type f 2>/dev/null | head -n 1)
+            if [ -n "$MODULE_CSV" ] && [ -f "$MODULE_CSV" ]; then
+              MODULE_COV=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$MODULE_CSV" 2>/dev/null | awk -F',' 'NR>1 {missed += ($10+0); covered += ($11+0)} END {if(covered+missed>0) printf "%.2f", 100*covered/(covered+missed); else print "0"}' 2>/dev/null)
+              if [ -z "$MODULE_COV" ] || [ "$MODULE_COV" = "0" ]; then
+                MODULE_MISSED=$(awk -F',' 'NR>1 && $4 ~ /^[0-9]+$/ {missed+=$4} END {print missed+0}' "$MODULE_CSV" 2>/dev/null || echo "0")
+                MODULE_COVERED=$(awk -F',' 'NR>1 && $5 ~ /^[0-9]+$/ {covered+=$5} END {print covered+0}' "$MODULE_CSV" 2>/dev/null || echo "0")
+                MODULE_TOTAL=$((MODULE_MISSED + MODULE_COVERED))
+                if [ "$MODULE_TOTAL" -gt 0 ]; then
+                  MODULE_COV=$(awk "BEGIN {printf \"%.2f\", 100*$MODULE_COVERED/$MODULE_TOTAL}" 2>/dev/null || echo "0")
+                fi
+              fi
+              echo "     • $module: ${MODULE_COV}%"
+            fi
+          done
         else
-          echo "  ⚠️  Aucune donnée de couverture trouvée"
+          echo "  ⚠️  Aucune donnée de couverture trouvée dans le rapport agrégé"
         fi
-        echo "  📄 Rapport CSV: $JACOCO_CSV"
       else
-        echo "  ⚠️  Rapport JaCoCo CSV non trouvé"
+        echo "  ⚠️  Rapport JaCoCo agrégé non trouvé: $AGGREGATE_CSV"
       fi
       echo ""
       
