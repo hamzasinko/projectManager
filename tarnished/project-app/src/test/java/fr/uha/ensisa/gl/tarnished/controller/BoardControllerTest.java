@@ -1693,5 +1693,20 @@ public class BoardControllerTest {
         assertTrue(result.toLowerCase().contains("error"));
     }
 
+    @Test
+    @DisplayName("updateColumn should return error when column is null")
+    void testUpdateColumnColumnNull() {
+        Long projectId = 1L;
+        Long columnId = 404L;
+
+        when(columnRepo.find(columnId)).thenReturn(null);
+
+        String result = controller.updateColumn(projectId, columnId, "NEWNAME", 7);
+
+        assertNotNull(result);
+        assertTrue(result.toLowerCase().contains("error"));
+        verify(columnRepo, never()).persist(any(Column.class));
+    }
+
 }
 
