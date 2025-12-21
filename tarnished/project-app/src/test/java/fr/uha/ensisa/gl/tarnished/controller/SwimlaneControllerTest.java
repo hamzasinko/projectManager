@@ -11,6 +11,8 @@ import org.springframework.web.servlet.ModelAndView;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -86,6 +88,29 @@ class SwimlaneControllerTest {
         assertEquals("redirect:/board/1", mav.getViewName());
         assertEquals(1, project.getSwimlanes().size());
     }
+    
+    @Test
+    void testCreateSwimlane_ProjectWithoutSwimlane() {
+        Project project = new Project();
+        project.setId(1);
+        // project.getSwimlanes() is null
+    
+        when(projectRepo.find(1L)).thenReturn(project);
+        when(storyRepo.findAll()).thenReturn(new ArrayList<>());
+    
+        ModelAndView mav = controller.createSwimlane("First Lane", 1L);
+    
+        ArgumentCaptor<Swimlane> swimlaneCaptor = ArgumentCaptor.forClass(Swimlane.class);
+        verify(swimlaneRepo).persist(swimlaneCaptor.capture());
+        assertEquals("First Lane", swimlaneCaptor.getValue().getName());
+    
+        ArgumentCaptor<Project> projectCaptor = ArgumentCaptor.forClass(Project.class);
+        verify(projectRepo).update(projectCaptor.capture());
+        assertNotNull(projectCaptor.getValue().getSwimlanes());
+        assertEquals(1, projectCaptor.getValue().getSwimlanes().size());
+    
+        assertEquals("redirect:/board/1", mav.getViewName());
+    }
 
     @Test
     void testCreateSwimlane_WithInvalidProject() {
@@ -117,6 +142,96 @@ class SwimlaneControllerTest {
 
         assertEquals("redirect:/board/1", mav.getViewName());
     }
+    
+    @Test
+    void testDeleteSwimlane_NullSwimlane() {
+        when(swimlaneRepo.find(99L)).thenReturn(null);
+    
+        ModelAndView mav = controller.deleteSwimlane(99L, null);
+    
+        assertEquals("redirect:/", mav.getViewName());
+        verify(projectRepo, never()).update(any());
+    }
+    
+    @Test
+    void testDeleteSwimlane_NullProject() {
+        Swimlane swimlane = new Swimlane();
+        swimlane.setId(1);
+        swimlane.setProjectId(99); // Invalid project ID
+    
+        when(swimlaneRepo.find(1L)).thenReturn(swimlane);
+        when(projectRepo.find(99L)).thenReturn(null);
+    
+        ModelAndView mav = controller.deleteSwimlane(1L, null);
+    
+        assertEquals("redirect:/", mav.getViewName());
+        verify(swimlaneRepo, never()).remove(anyLong());
+    }
+    
+    @Test
+    void testDeleteSwimlane_WithOtherSwimlanes() {
+        Swimlane swimlaneToDelete = new Swimlane(1, "Delete Me", 1);
+        Swimlane otherSwimlane = new Swimlane(2, "Keep Me", 1);
+        Project project = new Project();
+        project.setId(1);
+        project.setSwimlanes(new ArrayList<>(List.of(swimlaneToDelete, otherSwimlane)));
+    
+        when(swimlaneRepo.find(1L)).thenReturn(swimlaneToDelete);
+        when(projectRepo.find(1L)).thenReturn(project);
+        when(storyRepo.findAll()).thenReturn(new ArrayList<>());
+    
+        ModelAndView mav = controller.deleteSwimlane(1L, 2L);
+    
+        verify(swimlaneRepo).remove(1L);
+        ArgumentCaptor<Project> projectCaptor = ArgumentCaptor.forClass(Project.class);
+        verify(projectRepo).update(projectCaptor.capture());
+    
+        assertEquals(1, projectCaptor.getValue().getSwimlanes().size());
+        assertEquals(2, projectCaptor.getValue().getSwimlanes().get(0).getId());
+        assertEquals("redirect:/board/1", mav.getViewName());
+    }
+
+    @Test
+    void testDeleteSwimlane_LastSwimlane() {
+        Swimlane lastSwimlane = new Swimlane(1, "Last One", 1);
+        Project project = new Project();
+        project.setId(1);
+        project.setSwimlanes(new ArrayList<>(List.of(lastSwimlane)));
+    
+        when(swimlaneRepo.find(1L)).thenReturn(lastSwimlane);
+        when(projectRepo.find(1L)).thenReturn(project);
+        when(storyRepo.findAll()).thenReturn(new ArrayList<>());
+    
+        ModelAndView mav = controller.deleteSwimlane(1L, null);
+    
+        verify(swimlaneRepo).remove(1L);
+        ArgumentCaptor<Project> projectCaptor = ArgumentCaptor.forClass(Project.class);
+        verify(projectRepo).update(projectCaptor.capture());
+    
+        assertTrue(projectCaptor.getValue().getSwimlanes().isEmpty());
+        assertEquals("redirect:/board/1", mav.getViewName());
+    }
+    
+    @Test
+    void testEditSwimlane_ValidId() {
+        Swimlane swimlane = new Swimlane(1, "Editable", 1);
+        when(swimlaneRepo.find(1L)).thenReturn(swimlane);
+    
+        Map<String, Object> response = controller.editSwimlane(1L);
+    
+        assertNotNull(response);
+        assertEquals(1L, response.get("id"));
+        assertEquals("Editable", response.get("name"));
+        assertEquals(1, response.get("projectId"));
+    }
+    
+    @Test
+    void testEditSwimlane_InvalidId() {
+        when(swimlaneRepo.find(99L)).thenReturn(null);
+        assertThrows(org.springframework.web.server.ResponseStatusException.class, () -> {
+            controller.editSwimlane(99L);
+        });
+    }
 
     @Test
     void testUpdateSwimlane() {
@@ -138,5 +253,15 @@ class SwimlaneControllerTest {
 
         assertEquals("Updated Name", swimlane.getName());
         assertEquals("redirect:/board/1", mav.getViewName());
+    }
+
+    @Test
+    void testUpdateSwimlane_NullSwimlane() {
+        when(swimlaneRepo.find(99L)).thenReturn(null);
+    
+        ModelAndView mav = controller.updateSwimlane(99L, "New Name");
+    
+        assertEquals("redirect:/", mav.getViewName());
+        verify(swimlaneRepo, never()).persist(any());
     }
 }
