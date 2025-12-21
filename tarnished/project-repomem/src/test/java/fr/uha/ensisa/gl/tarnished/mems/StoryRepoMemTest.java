@@ -772,6 +772,6 @@ public class StoryRepoMemTest {
         if (found.getWorkLogs() != null) {
             assertTrue(found.getWorkLogs().isEmpty());
         }
-    }
 
+    }
 }
