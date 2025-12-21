@@ -1635,5 +1635,17 @@ public class BoardControllerTest {
         verify(columnRepo).persist(blockedColumn);
     }
 
+    @Test
+    @DisplayName("addColumnGet should redirect to addColumn page when name is null")
+    void testAddColumnGetNameNull() {
+        Long projectId = 1L;
+
+        String result = controller.addColumnGet(projectId, null, 3, false);
+
+        assertTrue(result.contains("redirect:"));
+        assertTrue(result.contains("showAddColumn=true"));
+        verify(columnRepo, never()).persist(any(Column.class));
+    }
+
 }
 
