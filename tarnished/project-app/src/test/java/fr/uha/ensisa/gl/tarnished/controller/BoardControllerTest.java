@@ -1799,5 +1799,28 @@ public class BoardControllerTest {
         assertEquals(project, saved.getProject());
     }
 
+    @Test
+    @DisplayName("updateColumn should update only maxCapacity when newName is null")
+    void testUpdateColumnNullNewNameUpdatesOnlyCapacity() {
+        Long projectId = 1L;
+        Long columnId = 7L;
+
+        Column column = new Column();
+        column.setId(7);
+        column.setName("IN_PROGRESS");
+        column.setMaxCapacity(2);
+
+        when(columnRepo.find(columnId)).thenReturn(column);
+
+        String result = controller.updateColumn(projectId, columnId, null, 10);
+
+        assertNotNull(result);
+        assertTrue(result.toLowerCase().contains("success") || result.startsWith("redirect:") || !result.toLowerCase().contains("error"));
+
+        assertEquals("IN_PROGRESS", column.getName()); // inchangé
+        assertEquals(10, column.getMaxCapacity());     // modifié
+        verify(columnRepo).persist(column);
+    }
+
 }
 
