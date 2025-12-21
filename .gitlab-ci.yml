@@ -96,7 +96,78 @@ static-analysis:
     - cd tarnished
     - mvn $MAVEN_CLI_OPTS clean verify -Dskip.tests=false -DskipITs=true
     - cd project-app
-    - mvn $MAVEN_CLI_OPTS jacoco:report-aggregate || true
+    - mvn --batch-mode -s ../settings.xml -Dmaven.repo.local=../libs jacoco:report-aggregate || true
+    - |
+      echo "=========================================="
+      echo "📊 STATISTIQUES DE QUALITÉ DU CODE"
+      echo "=========================================="
+      echo ""
+      # JaCoCo Coverage Statistics
+      echo "📈 JACOCO - COUVERTURE DE CODE:"
+      JACOCO_CSV=$(find . -name "jacoco.csv" -path "*/target/site/jacoco-aggregate/*" | head -n 1)
+      if [ -n "$JACOCO_CSV" ]; then
+        COVERAGE=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$JACOCO_CSV" | awk -F, '{missed += $4; covered += $5} END {if (missed+covered > 0) printf "%.2f%%", 100*covered/(covered+missed); else print "N/A"}')
+        INSTRUCTIONS=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$JACOCO_CSV" | awk -F, '{missed += $4; covered += $5} END {print "Instructions: " covered " couvertes / " (covered+missed) " totales"}')
+        BRANCHES=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$JACOCO_CSV" | awk -F, '{missed += $6; covered += $7} END {if (missed+covered > 0) printf "Branches: %.2f%% (%d/%d)", 100*covered/(covered+missed), covered, covered+missed; else print "Branches: N/A"}')
+        LINES=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$JACOCO_CSV" | awk -F, '{missed += $8; covered += $9} END {if (missed+covered > 0) printf "Lignes: %.2f%% (%d/%d)", 100*covered/(covered+missed), covered, covered+missed; else print "Lignes: N/A"}')
+        echo "  ✅ Couverture globale: $COVERAGE"
+        echo "  📝 $INSTRUCTIONS"
+        echo "  🌿 $BRANCHES"
+        echo "  📄 $LINES"
+      else
+        echo "  ⚠️  Rapport JaCoCo non trouvé"
+      fi
+      echo ""
+      # SpotBugs Statistics
+      echo "🐛 SPOTBUGS - ANALYSE STATIQUE:"
+      SPOTBUGS_XML=$(find .. -name "spotbugsXml.xml" -path "*/target/*" | head -n 1)
+      if [ -n "$SPOTBUGS_XML" ]; then
+        BUG_COUNT=$(grep -c "<BugInstance" "$SPOTBUGS_XML" 2>/dev/null || echo "0")
+        ERROR_COUNT=$(grep -c 'priority="1"' "$SPOTBUGS_XML" 2>/dev/null || echo "0")
+        WARNING_COUNT=$(grep -c 'priority="2"' "$SPOTBUGS_XML" 2>/dev/null || echo "0")
+        INFO_COUNT=$(grep -c 'priority="3"' "$SPOTBUGS_XML" 2>/dev/null || echo "0")
+        echo "  📊 Total de bugs détectés: $BUG_COUNT"
+        echo "    🔴 Erreurs (priorité 1): $ERROR_COUNT"
+        echo "    🟠 Avertissements (priorité 2): $WARNING_COUNT"
+        echo "    🔵 Informations (priorité 3): $INFO_COUNT"
+        if [ "$BUG_COUNT" -eq "0" ]; then
+          echo "  ✅ Aucun bug détecté !"
+        fi
+      else
+        echo "  ⚠️  Rapport SpotBugs non trouvé"
+      fi
+      echo ""
+      # PiTest Mutation Testing Statistics
+      echo "🧬 PITEST - TESTS PAR MUTATION:"
+      PITEST_DIR=$(find .. -type d -name "pit-reports" -path "*/target/*" | head -n 1)
+      if [ -n "$PITEST_DIR" ]; then
+        PITEST_INDEX="$PITEST_DIR/index.html"
+        if [ -f "$PITEST_INDEX" ]; then
+          # Extract mutation coverage from HTML
+          MUTATION_COVERAGE=$(grep -oP 'Mutation Coverage[^<]*\K\d+\.\d+' "$PITEST_INDEX" 2>/dev/null | head -n 1 || echo "N/A")
+          KILLED=$(grep -oP 'Killed[^<]*\K\d+' "$PITEST_INDEX" 2>/dev/null | head -n 1 || echo "N/A")
+          SURVIVED=$(grep -oP 'Survived[^<]*\K\d+' "$PITEST_INDEX" 2>/dev/null | head -n 1 || echo "N/A")
+          TOTAL=$(grep -oP 'Total[^<]*\K\d+' "$PITEST_INDEX" 2>/dev/null | head -n 1 || echo "N/A")
+          echo "  📊 Couverture de mutation: ${MUTATION_COVERAGE}%"
+          echo "    ✅ Mutants tués: $KILLED"
+          echo "    ❌ Mutants survivants: $SURVIVED"
+          echo "    📈 Total de mutations: $TOTAL"
+        else
+          # Try to extract from CSV if available
+          PITEST_CSV=$(find "$PITEST_DIR" -name "mutations.csv" | head -n 1)
+          if [ -n "$PITEST_CSV" ]; then
+            KILLED=$(awk -F, 'NR>1 {killed+=$2; survived+=$3; total+=$2+$3} END {if(total>0) printf "%.2f%% (%d tués / %d total)", 100*killed/total, killed, total; else print "N/A"}' "$PITEST_CSV" 2>/dev/null || echo "N/A")
+            echo "  📊 Couverture de mutation: $KILLED"
+          else
+            echo "  ⚠️  Données PiTest non disponibles"
+          fi
+        fi
+      else
+        echo "  ⚠️  Rapport PiTest non trouvé"
+      fi
+      echo ""
+      echo "=========================================="
+    - cd ../..
   artifacts:
     paths:
       - "**/target/spotbugsXml.xml"
