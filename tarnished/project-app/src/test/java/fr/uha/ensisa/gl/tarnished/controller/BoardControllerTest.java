@@ -1606,5 +1606,34 @@ public class BoardControllerTest {
         assertTrue(result.contains("success"));
         verify(columnRepo).reorder(1L, 1);
     }
+
+    @Test
+    @DisplayName("showBoard should force BLOCKED to have no sub-columns and persist the change")
+    void testShowBoardForcesBlockedNoSubColumnsAndPersists() {
+        Long projectId = 1L;
+
+        Project project = new Project();
+        project.setId(1);
+        project.setName("Test Project");
+
+        Column blockedColumn = new Column();
+        blockedColumn.setId(5);
+        blockedColumn.setName("BLOCKED");
+        blockedColumn.setHasSubColumns(true);
+
+        when(projectRepo.find(projectId)).thenReturn(project);
+        when(columnRepo.findByProject(projectId)).thenReturn(List.of(blockedColumn));
+        when(storyRepo.findByColumn(5L)).thenReturn(List.of());
+        when(swimlaneRepo.findAll()).thenReturn(List.of());
+
+        ModelAndView mav = controller.showBoard(projectId);
+
+        assertNotNull(mav);
+
+        // false + persist
+        assertFalse(blockedColumn.isHasSubColumns());
+        verify(columnRepo).persist(blockedColumn);
+    }
+
 }
 
