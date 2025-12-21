@@ -1659,5 +1659,21 @@ public class BoardControllerTest {
         verify(columnRepo, never()).persist(any(Column.class));
     }
 
+    @Test
+    @DisplayName("updateColumnName should return error when column is null")
+    void testUpdateColumnNameColumnNull() {
+        Long projectId = 1L;
+        Long columnId = 99L;
+
+        when(columnRepo.find(columnId)).thenReturn(null);
+
+        String result = controller.updateColumnName(projectId, columnId, "NEWNAME");
+
+        assertNotNull(result);
+        assertTrue(result.toLowerCase().contains("error")); // garde ce check simple/robuste
+        verify(columnRepo, never()).persist(any(Column.class));
+    }
+
+
 }
 
