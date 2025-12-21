@@ -19,6 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.web.servlet.ModelAndView;
+import java.lang.reflect.Method;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1606,5 +1607,220 @@ public class BoardControllerTest {
         assertTrue(result.contains("success"));
         verify(columnRepo).reorder(1L, 1);
     }
+
+    @Test
+    @DisplayName("showBoard should force BLOCKED to have no sub-columns and persist the change")
+    void testShowBoardForcesBlockedNoSubColumnsAndPersists() {
+        Long projectId = 1L;
+
+        Project project = new Project();
+        project.setId(1);
+        project.setName("Test Project");
+
+        Column blockedColumn = new Column();
+        blockedColumn.setId(5);
+        blockedColumn.setName("BLOCKED");
+        blockedColumn.setHasSubColumns(true);
+
+        when(projectRepo.find(projectId)).thenReturn(project);
+        when(columnRepo.findByProject(projectId)).thenReturn(List.of(blockedColumn));
+        when(storyRepo.findByColumn(5L)).thenReturn(List.of());
+        when(swimlaneRepo.findAll()).thenReturn(List.of());
+
+        ModelAndView mav = controller.showBoard(projectId);
+
+        assertNotNull(mav);
+
+        // false + persist
+        assertFalse(blockedColumn.isHasSubColumns());
+        verify(columnRepo).persist(blockedColumn);
+    }
+
+    @Test
+    @DisplayName("addColumnGet should redirect to addColumn page when name is null")
+    void testAddColumnGetNameNull() {
+        Long projectId = 1L;
+
+        String result = controller.addColumnGet(projectId, null, 3, false);
+
+        assertTrue(result.contains("redirect:"));
+        assertTrue(result.contains("showAddColumn=true"));
+        verify(columnRepo, never()).persist(any(Column.class));
+    }
+
+    @Test
+    @DisplayName("addColumnGet should redirect to addColumn page when name is empty or blank")
+    void testAddColumnGetNameEmpty() {
+        Long projectId = 1L;
+
+        String result = controller.addColumnGet(projectId, "   ", 2, true);
+
+        assertTrue(result.contains("redirect:"));
+        assertTrue(result.contains("showAddColumn=true"));
+        verify(columnRepo, never()).persist(any(Column.class));
+    }
+
+    @Test
+    @DisplayName("updateColumnName should return error when column is null")
+    void testUpdateColumnNameColumnNull() {
+        Long projectId = 1L;
+        Long columnId = 99L;
+
+        when(columnRepo.find(columnId)).thenReturn(null);
+
+        String result = controller.updateColumnName(projectId, columnId, "NEWNAME");
+
+        assertNotNull(result);
+        assertTrue(result.toLowerCase().contains("error")); // garde ce check simple/robuste
+        verify(columnRepo, never()).persist(any(Column.class));
+    }
+
+    @Test
+    @DisplayName("updateColumnName should return error when persist throws exception")
+    void testUpdateColumnNameErrorOnPersist() {
+        Long projectId = 1L;
+        Long columnId = 10L;
+
+        Column column = new Column();
+        column.setId(10);
+        column.setName("OLD");
+
+        when(columnRepo.find(columnId)).thenReturn(column);
+        doThrow(new RuntimeException("DB error")).when(columnRepo).persist(column);
+
+        String result = controller.updateColumnName(projectId, columnId, "NEW");
+
+        assertNotNull(result);
+        assertTrue(result.toLowerCase().contains("error"));
+    }
+
+    @Test
+    @DisplayName("updateColumn should return error when column is null")
+    void testUpdateColumnColumnNull() {
+        Long projectId = 1L;
+        Long columnId = 404L;
+
+        when(columnRepo.find(columnId)).thenReturn(null);
+
+        String result = controller.updateColumn(projectId, columnId, "NEWNAME", 7);
+
+        assertNotNull(result);
+        assertTrue(result.toLowerCase().contains("error"));
+        verify(columnRepo, never()).persist(any(Column.class));
+    }
+
+    @Test
+    @DisplayName("updateColumn should return error when persist throws exception")
+    void testUpdateColumnErrorOnPersist() {
+        Long projectId = 1L;
+        Long columnId = 12L;
+
+        Column column = new Column();
+        column.setId(12);
+        column.setName("TODO");
+        column.setMaxCapacity(3);
+
+        when(columnRepo.find(columnId)).thenReturn(column);
+        doThrow(new RuntimeException("DB error")).when(columnRepo).persist(column);
+
+        String result = controller.updateColumn(projectId, columnId, "IN_PROGRESS", 5);
+
+        assertNotNull(result);
+        assertTrue(result.toLowerCase().contains("error"));
+    }
+
+    @Test
+    @DisplayName("mapColumnNameToStatus should map REVIEW, DONE, BLOCKED correctly")
+    void testMapColumnNameToStatusReviewDoneBlocked() throws Exception {
+        Method m = BoardController.class.getDeclaredMethod("mapColumnNameToStatus", String.class);
+        m.setAccessible(true);
+
+        Object review = m.invoke(controller, "REVIEW");
+        Object done = m.invoke(controller, "DONE");
+        Object blocked = m.invoke(controller, "BLOCKED");
+
+        assertEquals(StoryStatus.REVIEW, review);
+        assertEquals(StoryStatus.DONE, done);
+        assertEquals(StoryStatus.BLOCKED, blocked);
+    }
+
+    @Test
+    @DisplayName("showBoard should fetch stories for each column (REVIEW/DONE/BLOCKED)")
+    void testShowBoardFetchStoriesForEachColumn() {
+        Long projectId = 1L;
+
+        Project project = new Project();
+        project.setId(1);
+        project.setName("P");
+
+        Column reviewCol = new Column(); reviewCol.setId(1); reviewCol.setName("REVIEW"); reviewCol.setHasSubColumns(false);
+        Column doneCol   = new Column(); doneCol.setId(2);   doneCol.setName("DONE");   doneCol.setHasSubColumns(false);
+        Column blockedCol= new Column(); blockedCol.setId(3);blockedCol.setName("BLOCKED");blockedCol.setHasSubColumns(false);
+
+        when(projectRepo.find(projectId)).thenReturn(project);
+        when(columnRepo.findByProject(projectId)).thenReturn(List.of(reviewCol, doneCol, blockedCol));
+        when(storyRepo.findByColumn(1L)).thenReturn(List.of(new Story()));
+        when(storyRepo.findByColumn(2L)).thenReturn(List.of(new Story(), new Story()));
+        when(storyRepo.findByColumn(3L)).thenReturn(List.of());
+        when(swimlaneRepo.findAll()).thenReturn(List.of());
+
+        ModelAndView mav = controller.showBoard(projectId);
+
+        assertNotNull(mav);
+
+        verify(storyRepo).findByColumn(1L);
+        verify(storyRepo).findByColumn(2L);
+        verify(storyRepo).findByColumn(3L);
+    }
+
+    @Test
+    @DisplayName("addColumnGet should persist column with maxCapacity=0 and hasSubColumns=false")
+    void testAddColumnGetDefaultValuesPersisted() {
+        Long projectId = 1L;
+
+        Project project = new Project();
+        project.setId(1);
+        project.setName("P");
+
+        when(projectRepo.find(projectId)).thenReturn(project);
+
+        String result = controller.addColumnGet(projectId, "TODO", 0, false);
+
+        assertNotNull(result);
+        assertTrue(result.startsWith("redirect:"));
+
+        ArgumentCaptor<Column> captor = ArgumentCaptor.forClass(Column.class);
+        verify(columnRepo).persist(captor.capture());
+
+        Column saved = captor.getValue();
+        assertEquals("TODO", saved.getName());
+        assertEquals(0, saved.getMaxCapacity());
+        assertFalse(saved.isHasSubColumns());
+        assertEquals(project, saved.getProject());
+    }
+
+    @Test
+    @DisplayName("updateColumn should update only maxCapacity when newName is null")
+    void testUpdateColumnNullNewNameUpdatesOnlyCapacity() {
+        Long projectId = 1L;
+        Long columnId = 7L;
+
+        Column column = new Column();
+        column.setId(7);
+        column.setName("IN_PROGRESS");
+        column.setMaxCapacity(2);
+
+        when(columnRepo.find(columnId)).thenReturn(column);
+
+        String result = controller.updateColumn(projectId, columnId, null, 10);
+
+        assertNotNull(result);
+        assertTrue(result.toLowerCase().contains("success") || result.startsWith("redirect:") || !result.toLowerCase().contains("error"));
+
+        assertEquals("IN_PROGRESS", column.getName()); // inchangé
+        assertEquals(10, column.getMaxCapacity());     // modifié
+        verify(columnRepo).persist(column);
+    }
+
 }
 
