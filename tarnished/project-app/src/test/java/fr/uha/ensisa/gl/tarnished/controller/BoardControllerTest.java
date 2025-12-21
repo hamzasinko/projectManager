@@ -1674,6 +1674,24 @@ public class BoardControllerTest {
         verify(columnRepo, never()).persist(any(Column.class));
     }
 
+    @Test
+    @DisplayName("updateColumnName should return error when persist throws exception")
+    void testUpdateColumnNameErrorOnPersist() {
+        Long projectId = 1L;
+        Long columnId = 10L;
+
+        Column column = new Column();
+        column.setId(10);
+        column.setName("OLD");
+
+        when(columnRepo.find(columnId)).thenReturn(column);
+        doThrow(new RuntimeException("DB error")).when(columnRepo).persist(column);
+
+        String result = controller.updateColumnName(projectId, columnId, "NEW");
+
+        assertNotNull(result);
+        assertTrue(result.toLowerCase().contains("error"));
+    }
 
 }
 
