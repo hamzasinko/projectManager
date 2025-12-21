@@ -64,11 +64,41 @@ unit-tests:
     - cp ../settings.xml . || true
     - mvn $MAVEN_CLI_OPTS -s settings.xml jacoco:report-aggregate || true
     - |
+      # Calculer la couverture depuis le rapport agrégé ou depuis les CSVs individuels
       if [ -f target/site/jacoco-aggregate/jacoco.csv ]; then
-        # Commande exacte du document : utiliser COMPLEXITY (colonnes 10 et 11)
-        grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' target/site/jacoco-aggregate/jacoco.csv | awk -F, '{missed += $10 ; covered += $11} END {if(covered+missed>0) printf "Jacoco Coverage: %.2f%%\n", 100*covered/(covered+missed); else print "Jacoco Coverage: 0%"}'
+        # Commande exacte du document (colonnes COMPLEXITY: 10 et 11)
+        COVERAGE_OUTPUT=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' target/site/jacoco-aggregate/jacoco.csv 2>/dev/null | awk -F, '{missed += $10 ; covered += $11} END {if(covered+missed>0) print "Jacoco Coverage:",100*covered/(covered+missed),"%"; else print ""}')
+        
+        # Si le rapport agrégé est vide, calculer depuis les CSVs individuels
+        if [ -z "$COVERAGE_OUTPUT" ] || echo "$COVERAGE_OUTPUT" | grep -q "0%"; then
+          TOTAL_MISSED=0
+          TOTAL_COVERED=0
+          for module in "../project-model" "../project-repomem" "."; do
+            MODULE_CSV=$(find "$module/target/site/jacoco" -name "jacoco.csv" -type f 2>/dev/null | head -n 1)
+            if [ -n "$MODULE_CSV" ] && [ -f "$MODULE_CSV" ]; then
+              MODULE_DATA=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$MODULE_CSV" 2>/dev/null | awk -F',' 'NR>1 {missed += ($10+0); covered += ($11+0)} END {print missed " " covered}' 2>/dev/null)
+              if [ -n "$MODULE_DATA" ]; then
+                MODULE_MISSED=$(echo "$MODULE_DATA" | cut -d' ' -f1)
+                MODULE_COVERED=$(echo "$MODULE_DATA" | cut -d' ' -f2)
+                TOTAL_MISSED=$((TOTAL_MISSED + MODULE_MISSED))
+                TOTAL_COVERED=$((TOTAL_COVERED + MODULE_COVERED))
+              fi
+            fi
+          done
+          
+          if [ $((TOTAL_MISSED + TOTAL_COVERED)) -gt 0 ]; then
+            COVERAGE_PCT=$(awk "BEGIN {printf \"%.2f\", 100*$TOTAL_COVERED/($TOTAL_MISSED+$TOTAL_COVERED)}" 2>/dev/null || echo "0")
+            COVERAGE_OUTPUT="Jacoco Coverage: ${COVERAGE_PCT} %"
+          else
+            COVERAGE_OUTPUT="Jacoco Coverage: 0%"
+          fi
+        fi
+        
+        echo "$COVERAGE_OUTPUT"
+      else
+        echo "Jacoco Coverage: 0%"
       fi
-  coverage: '/Jacoco Coverage:\s+\d+[,\.]?\d+\s*\%/' 
+  coverage: '/Jacoco Coverage:\s+\d+[,\.]?\d+\s+\%/' 
   artifacts:
     paths:
       - "**/target/site/jacoco"
@@ -119,7 +149,7 @@ static-analysis:
       AGGREGATE_CSV="project-app/target/site/jacoco-aggregate/jacoco.csv"
       if [ -f "$AGGREGATE_CSV" ]; then
         # Commande exacte du document (colonnes COMPLEXITY: 10 et 11)
-        COVERAGE_OUTPUT=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$AGGREGATE_CSV" 2>/dev/null | awk -F',' '{missed += $10 ; covered += $11} END {if(covered+missed>0) printf "Jacoco Coverage: %.2f%%\n", 100*covered/(covered+missed); else print "Jacoco Coverage: 0%"}' 2>/dev/null)
+        COVERAGE_OUTPUT=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$AGGREGATE_CSV" 2>/dev/null | awk -F',' '{missed += $10 ; covered += $11} END {if(covered+missed>0) print "Jacoco Coverage:",100*covered/(covered+missed),"%"; else print "Jacoco Coverage: 0%"}' 2>/dev/null)
         
         # Si le rapport agrégé ne contient pas de données (tous à 0), calculer depuis les CSVs individuels
         if [ -z "$COVERAGE_OUTPUT" ] || echo "$COVERAGE_OUTPUT" | grep -q "0%"; then
@@ -142,7 +172,8 @@ static-analysis:
           
           if [ $((TOTAL_MISSED + TOTAL_COVERED)) -gt 0 ]; then
             COVERAGE_PCT=$(awk "BEGIN {printf \"%.2f\", 100*$TOTAL_COVERED/($TOTAL_MISSED+$TOTAL_COVERED)}" 2>/dev/null || echo "0")
-            COVERAGE_OUTPUT="Jacoco Coverage: ${COVERAGE_PCT}%"
+            # Format exact du document : "Jacoco Coverage: XX.XX %" (avec espace avant %)
+            COVERAGE_OUTPUT="Jacoco Coverage: ${COVERAGE_PCT} %"
           fi
         fi
         
