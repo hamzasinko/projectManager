@@ -61,10 +61,11 @@ unit-tests:
     - cd tarnished
     - mvn $MAVEN_CLI_OPTS test jacoco:report
     - cd project-app
-    - mvn $MAVEN_CLI_OPTS jacoco:report-aggregate || true
+    - cp ../settings.xml . || true
+    - mvn $MAVEN_CLI_OPTS -s settings.xml jacoco:report-aggregate || true
     - |
       if [ -f target/site/jacoco-aggregate/jacoco.csv ]; then
-        grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' target/site/jacoco-aggregate/jacoco.csv | awk -F, '{missed += $10 ; covered += $11} END {print "Jacoco Coverage:",100*covered/(covered+missed),"%"}'
+        awk -F',' 'NR>1 && NF>=9 {missed += ($4+0); covered += ($5+0)} END {if(covered+missed>0) print "Jacoco Coverage:",100*covered/(covered+missed),"%"; else print "Jacoco Coverage: 0%"}' target/site/jacoco-aggregate/jacoco.csv
       fi
   coverage: '/Jacoco Coverage:\s+\d+[,\.]?\d+\s+\%/'
   artifacts:
@@ -96,7 +97,8 @@ static-analysis:
     - cd tarnished
     - mvn $MAVEN_CLI_OPTS clean verify -Dskip.tests=false -DskipITs=true
     - cd project-app
-    - mvn --batch-mode -s ../settings.xml -Dmaven.repo.local=../libs jacoco:report-aggregate || true
+    - cp ../settings.xml . || true
+    - mvn --batch-mode -s settings.xml -Dmaven.repo.local=../libs jacoco:report-aggregate || true
     - cd ..
     - |
       set +e
@@ -121,13 +123,12 @@ static-analysis:
         # Extract from CSV - skip header line (starts with GROUP,PACKAGE,CLASS)
         # Columns: GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED(4),INSTRUCTION_COVERED(5),BRANCH_MISSED(6),BRANCH_COVERED(7),LINE_MISSED(8),LINE_COVERED(9)
         awk -F',' '
-          BEGIN {missed_i=0; covered_i=0; missed_b=0; covered_b=0; missed_l=0; covered_l=0; count=0}
+          BEGIN {missed_i=0; covered_i=0; missed_b=0; covered_b=0; missed_l=0; covered_l=0}
           NR==1 {next}
-          NF>=9 && $1!="" && $1!~/^GROUP/ {
+          NF>=9 && length($0)>0 {
             missed_i += ($4+0); covered_i += ($5+0)
             missed_b += ($6+0); covered_b += ($7+0)
             missed_l += ($8+0); covered_l += ($9+0)
-            count++
           }
           END {
             total_i=missed_i+covered_i
@@ -137,7 +138,7 @@ static-analysis:
               printf "  ✅ Couverture globale: %.2f%%\n", 100*covered_i/total_i
               printf "  📝 Instructions: %d couvertes / %d totales\n", covered_i, total_i
             } else {
-              printf "  ⚠️  Aucune instruction trouvée (lignes traitées: %d)\n", count
+              print "  ⚠️  Aucune instruction trouvée"
             }
             if(total_b>0) {
               printf "  🌿 Branches: %.2f%% (%d/%d)\n", 100*covered_b/total_b, covered_b, total_b
@@ -150,7 +151,7 @@ static-analysis:
               print "  📄 Lignes: N/A"
             }
           }
-        ' "$JACOCO_CSV" 2>&1
+        ' "$JACOCO_CSV" 2>&1 || echo "  ⚠️  Erreur awk"
       else
         echo "  ⚠️  Rapport JaCoCo CSV non trouvé"
         echo "  🔍 Recherche dans:"
