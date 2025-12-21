@@ -107,17 +107,35 @@ static-analysis:
       # JaCoCo Coverage Statistics
       echo "📈 JACOCO - COUVERTURE DE CODE:"
       JACOCO_CSV=$(find . -name "jacoco.csv" -path "*/target/site/jacoco-aggregate/*" 2>/dev/null | head -n 1)
+      if [ -z "$JACOCO_CSV" ]; then
+        JACOCO_CSV=$(find . -name "jacoco.csv" -path "*/target/site/jacoco/*" 2>/dev/null | head -n 1)
+      fi
       if [ -n "$JACOCO_CSV" ] && [ -f "$JACOCO_CSV" ]; then
-        COVERAGE=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$JACOCO_CSV" 2>/dev/null | awk -F, '{missed += $4; covered += $5} END {if (missed+covered > 0) printf "%.2f%%", 100*covered/(covered+missed); else print "N/A"}' 2>/dev/null || echo "N/A")
-        INSTRUCTIONS=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$JACOCO_CSV" 2>/dev/null | awk -F, '{missed += $4; covered += $5} END {print "Instructions: " covered " couvertes / " (covered+missed) " totales"}' 2>/dev/null || echo "N/A")
-        BRANCHES=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$JACOCO_CSV" 2>/dev/null | awk -F, '{missed += $6; covered += $7} END {if (missed+covered > 0) printf "Branches: %.2f%% (%d/%d)", 100*covered/(covered+missed), covered, covered+missed; else print "Branches: N/A"}' 2>/dev/null || echo "N/A")
-        LINES=$(grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' "$JACOCO_CSV" 2>/dev/null | awk -F, '{missed += $8; covered += $9} END {if (missed+covered > 0) printf "Lignes: %.2f%% (%d/%d)", 100*covered/(covered+missed), covered, covered+missed; else print "Lignes: N/A"}' 2>/dev/null || echo "N/A")
-        echo "  ✅ Couverture globale: $COVERAGE"
-        echo "  📝 $INSTRUCTIONS"
-        echo "  🌿 $BRANCHES"
-        echo "  📄 $LINES"
+        # Extract from CSV - columns: GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED
+        TOTALS=$(grep -v '^GROUP,PACKAGE,CLASS' "$JACOCO_CSV" 2>/dev/null | grep -v 'COMPLEXITY_MISSED,COMPLEXITY_COVERED' | awk -F, 'BEGIN{missed_i=0;covered_i=0;missed_b=0;covered_b=0;missed_l=0;covered_l=0} {missed_i+=$4; covered_i+=$5; missed_b+=$6; covered_b+=$7; missed_l+=$8; covered_l+=$9} END {total_i=missed_i+covered_i; total_b=missed_b+covered_b; total_l=missed_l+covered_l; if(total_i>0) printf "%.2f|%d|%d|", 100*covered_i/total_i, covered_i, total_i; else printf "N/A|0|0|"; if(total_b>0) printf "%.2f|%d|%d|", 100*covered_b/total_b, covered_b, total_b; else printf "N/A|0|0|"; if(total_l>0) printf "%.2f|%d|%d", 100*covered_l/total_l, covered_l, total_l; else printf "N/A|0|0"}')
+        COVERAGE=$(echo "$TOTALS" | cut -d'|' -f1)
+        COV_INST=$(echo "$TOTALS" | cut -d'|' -f2)
+        TOT_INST=$(echo "$TOTALS" | cut -d'|' -f3)
+        COV_BRANCH=$(echo "$TOTALS" | cut -d'|' -f4)
+        COV_BRANCH_NUM=$(echo "$TOTALS" | cut -d'|' -f5)
+        TOT_BRANCH=$(echo "$TOTALS" | cut -d'|' -f6)
+        COV_LINE=$(echo "$TOTALS" | cut -d'|' -f7)
+        COV_LINE_NUM=$(echo "$TOTALS" | cut -d'|' -f8)
+        TOT_LINE=$(echo "$TOTALS" | cut -d'|' -f9)
+        echo "  ✅ Couverture globale: ${COVERAGE}%"
+        echo "  📝 Instructions: ${COV_INST} couvertes / ${TOT_INST} totales"
+        if [ "$COV_BRANCH" != "N/A" ]; then
+          echo "  🌿 Branches: ${COV_BRANCH}% (${COV_BRANCH_NUM}/${TOT_BRANCH})"
+        else
+          echo "  🌿 Branches: N/A"
+        fi
+        if [ "$COV_LINE" != "N/A" ]; then
+          echo "  📄 Lignes: ${COV_LINE}% (${COV_LINE_NUM}/${TOT_LINE})"
+        else
+          echo "  📄 Lignes: N/A"
+        fi
       else
-        echo "  ⚠️  Rapport JaCoCo non trouvé"
+        echo "  ⚠️  Rapport JaCoCo CSV non trouvé"
       fi
       echo ""
       # SpotBugs Statistics
@@ -139,33 +157,44 @@ static-analysis:
         echo "  ⚠️  Rapport SpotBugs non trouvé"
       fi
       echo ""
-      # PiTest Mutation Testing Statistics
+      # PiTest Mutation Testing Statistics - Extract from summary in logs or reports
       echo "🧬 PITEST - TESTS PAR MUTATION:"
       PITEST_DIR=$(find . -type d -name "pit-reports" -path "*/target/*" 2>/dev/null | head -n 1)
       if [ -n "$PITEST_DIR" ] && [ -d "$PITEST_DIR" ]; then
-        PITEST_INDEX="$PITEST_DIR/index.html"
-        if [ -f "$PITEST_INDEX" ]; then
-          # Extract mutation coverage from HTML
-          MUTATION_COVERAGE=$(grep -oP 'Mutation Coverage[^<]*\K\d+\.\d+' "$PITEST_INDEX" 2>/dev/null | head -n 1 || echo "N/A")
-          KILLED=$(grep -oP 'Killed[^<]*\K\d+' "$PITEST_INDEX" 2>/dev/null | head -n 1 || echo "N/A")
-          SURVIVED=$(grep -oP 'Survived[^<]*\K\d+' "$PITEST_INDEX" 2>/dev/null | head -n 1 || echo "N/A")
-          TOTAL=$(grep -oP 'Total[^<]*\K\d+' "$PITEST_INDEX" 2>/dev/null | head -n 1 || echo "N/A")
-          echo "  📊 Couverture de mutation: ${MUTATION_COVERAGE}%"
-          echo "    ✅ Mutants tués: $KILLED"
-          echo "    ❌ Mutants survivants: $SURVIVED"
-          echo "    📈 Total de mutations: $TOTAL"
-        else
-          # Try to extract from CSV if available
-          PITEST_CSV=$(find "$PITEST_DIR" -name "mutations.csv" 2>/dev/null | head -n 1)
-          if [ -n "$PITEST_CSV" ] && [ -f "$PITEST_CSV" ]; then
-            KILLED=$(awk -F, 'NR>1 {killed+=$2; survived+=$3; total+=$2+$3} END {if(total>0) printf "%.2f%% (%d tués / %d total)", 100*killed/total, killed, total; else print "N/A"}' "$PITEST_CSV" 2>/dev/null || echo "N/A")
-            echo "  📊 Couverture de mutation: $KILLED"
+        # Try to find mutations.csv in any subdirectory
+        PITEST_CSV=$(find "$PITEST_DIR" -name "mutations.csv" 2>/dev/null | head -n 1)
+        if [ -n "$PITEST_CSV" ] && [ -f "$PITEST_CSV" ]; then
+          # CSV format: Class,Mutator,Mutated Method,Line Number,Killed?,Description
+          KILLED_COUNT=$(awk -F, 'NR>1 && $5=="true" {killed++} END {print killed+0}' "$PITEST_CSV" 2>/dev/null || echo "0")
+          SURVIVED_COUNT=$(awk -F, 'NR>1 && $5=="false" {survived++} END {print survived+0}' "$PITEST_CSV" 2>/dev/null || echo "0")
+          TOTAL_MUT=$(awk -F, 'NR>1 {total++} END {print total+0}' "$PITEST_CSV" 2>/dev/null || echo "0")
+          if [ "$TOTAL_MUT" -gt "0" ]; then
+            COVERAGE_PCT=$(awk "BEGIN {printf \"%.1f\", 100*$KILLED_COUNT/$TOTAL_MUT}")
+            echo "  📊 Couverture de mutation: ${COVERAGE_PCT}%"
+            echo "    ✅ Mutants tués: $KILLED_COUNT"
+            echo "    ❌ Mutants survivants: $SURVIVED_COUNT"
+            echo "    📈 Total de mutations: $TOTAL_MUT"
           else
-            echo "  ⚠️  Données PiTest non disponibles"
+            echo "  ⚠️  Aucune donnée de mutation trouvée"
+          fi
+        else
+          # Try HTML index
+          PITEST_INDEX="$PITEST_DIR/index.html"
+          if [ -f "$PITEST_INDEX" ]; then
+            # Extract from HTML using sed/awk instead of grep -P (not available in Alpine)
+            MUTATION_LINE=$(grep -i "mutation coverage\|killed\|survived\|total" "$PITEST_INDEX" 2>/dev/null | head -n 5)
+            if [ -n "$MUTATION_LINE" ]; then
+              echo "  📊 Rapport PiTest HTML trouvé (détails dans le rapport)"
+              echo "    📁 Voir: $PITEST_DIR/index.html"
+            else
+              echo "  ⚠️  Données PiTest non extractibles depuis HTML"
+            fi
+          else
+            echo "  ⚠️  Fichiers de rapport PiTest non trouvés"
           fi
         fi
       else
-        echo "  ⚠️  Rapport PiTest non trouvé"
+        echo "  ⚠️  Répertoire PiTest non trouvé"
       fi
       echo ""
       echo "=========================================="
