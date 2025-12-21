@@ -18,6 +18,7 @@ before_script:
        </mirror>
      </mirrors>
     </settings>' > settings.xml
+  - cp settings.xml tarnished/settings.xml || true
 
 cache:
   key: default-cache
