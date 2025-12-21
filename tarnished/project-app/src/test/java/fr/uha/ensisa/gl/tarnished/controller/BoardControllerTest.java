@@ -1708,5 +1708,25 @@ public class BoardControllerTest {
         verify(columnRepo, never()).persist(any(Column.class));
     }
 
+    @Test
+    @DisplayName("updateColumn should return error when persist throws exception")
+    void testUpdateColumnErrorOnPersist() {
+        Long projectId = 1L;
+        Long columnId = 12L;
+
+        Column column = new Column();
+        column.setId(12);
+        column.setName("TODO");
+        column.setMaxCapacity(3);
+
+        when(columnRepo.find(columnId)).thenReturn(column);
+        doThrow(new RuntimeException("DB error")).when(columnRepo).persist(column);
+
+        String result = controller.updateColumn(projectId, columnId, "IN_PROGRESS", 5);
+
+        assertNotNull(result);
+        assertTrue(result.toLowerCase().contains("error"));
+    }
+
 }
 
