@@ -119,18 +119,13 @@ static-analysis:
       if [ -n "$JACOCO_CSV" ] && [ -f "$JACOCO_CSV" ]; then
         echo "  📄 Fichier trouvé: $JACOCO_CSV"
         # Extract from CSV - skip header line (starts with GROUP,PACKAGE,CLASS)
+        # Columns: GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED(4),INSTRUCTION_COVERED(5),BRANCH_MISSED(6),BRANCH_COVERED(7),LINE_MISSED(8),LINE_COVERED(9)
         awk -F, '
           BEGIN {missed_i=0; covered_i=0; missed_b=0; covered_b=0; missed_l=0; covered_l=0}
           NR>1 && !/^GROUP,PACKAGE,CLASS/ && NF>=9 {
-            if ($4+0 >= 0 && $5+0 >= 0) {
-              missed_i+=$4; covered_i+=$5
-            }
-            if ($6+0 >= 0 && $7+0 >= 0) {
-              missed_b+=$6; covered_b+=$7
-            }
-            if ($8+0 >= 0 && $9+0 >= 0) {
-              missed_l+=$8; covered_l+=$9
-            }
+            missed_i += int($4); covered_i += int($5)
+            missed_b += int($6); covered_b += int($7)
+            missed_l += int($8); covered_l += int($9)
           }
           END {
             total_i=missed_i+covered_i
@@ -164,10 +159,10 @@ static-analysis:
       echo "🐛 SPOTBUGS - ANALYSE STATIQUE:"
       SPOTBUGS_XML=$(find . -name "spotbugsXml.xml" -type f -path "*/target/*" 2>/dev/null | head -n 1)
       if [ -n "$SPOTBUGS_XML" ] && [ -f "$SPOTBUGS_XML" ]; then
-        BUG_COUNT=$(grep -c "<BugInstance" "$SPOTBUGS_XML" 2>/dev/null | tr -d ' ' || echo "0")
-        ERROR_COUNT=$(grep -c 'priority="1"' "$SPOTBUGS_XML" 2>/dev/null | tr -d ' ' || echo "0")
-        WARNING_COUNT=$(grep -c 'priority="2"' "$SPOTBUGS_XML" 2>/dev/null | tr -d ' ' || echo "0")
-        INFO_COUNT=$(grep -c 'priority="3"' "$SPOTBUGS_XML" 2>/dev/null | tr -d ' ' || echo "0")
+        BUG_COUNT=$(grep -c "<BugInstance" "$SPOTBUGS_XML" 2>/dev/null || echo "0")
+        ERROR_COUNT=$(grep -c 'priority="1"' "$SPOTBUGS_XML" 2>/dev/null || echo "0")
+        WARNING_COUNT=$(grep -c 'priority="2"' "$SPOTBUGS_XML" 2>/dev/null || echo "0")
+        INFO_COUNT=$(grep -c 'priority="3"' "$SPOTBUGS_XML" 2>/dev/null || echo "0")
         echo "  📊 Total de bugs détectés: $BUG_COUNT"
         echo "    🔴 Erreurs (priorité 1): $ERROR_COUNT"
         echo "    🟠 Avertissements (priorité 2): $WARNING_COUNT"
@@ -207,12 +202,19 @@ static-analysis:
           PITEST_INDEX="$PITEST_DIR/index.html"
           if [ -f "$PITEST_INDEX" ]; then
             echo "  📄 HTML trouvé: $PITEST_INDEX"
-            # Extract from HTML - look for "355/489" pattern in mutation coverage line
-            MUTATION_LINE=$(grep -i "mutation coverage" "$PITEST_INDEX" 2>/dev/null | head -n 1)
-            if [ -n "$MUTATION_LINE" ]; then
-              # Extract percentage and numbers like "73% ... 355/489"
-              COVERAGE_PCT=$(echo "$MUTATION_LINE" | grep -oE '[0-9]+%' | head -n 1 || echo "")
-              MUTATION_RATIO=$(echo "$MUTATION_LINE" | grep -oE '[0-9]+/[0-9]+' | head -n 1 || echo "")
+            # Extract from HTML - look for line with mutation coverage data
+            # Format: <td>XX% <div...><div class="coverage_legend">YY/ZZ</div></div></td>
+            # Find the <td> that contains both percentage and coverage_legend with ratio
+            MUTATION_TD=$(grep -A 15 "Mutation Coverage" "$PITEST_INDEX" 2>/dev/null | grep -E '<td>[0-9]+%.*coverage_legend' | head -n 1)
+            if [ -z "$MUTATION_TD" ]; then
+              # Fallback: find any <td> with percentage near "Mutation Coverage"
+              MUTATION_TD=$(grep -A 10 "Mutation Coverage" "$PITEST_INDEX" 2>/dev/null | grep -E '<td>[0-9]+%' | head -n 1)
+            fi
+            if [ -n "$MUTATION_TD" ]; then
+              # Extract percentage (first number followed by %)
+              COVERAGE_PCT=$(echo "$MUTATION_TD" | sed 's/.*<td>\([0-9]*\)%.*/\1%/' | head -n 1 || echo "")
+              # Extract ratio from coverage_legend or anywhere in the line
+              MUTATION_RATIO=$(echo "$MUTATION_TD" | grep -oE '[0-9]+/[0-9]+' | head -n 1 || echo "")
               if [ -n "$MUTATION_RATIO" ]; then
                 KILLED_HTML=$(echo "$MUTATION_RATIO" | cut -d'/' -f1)
                 TOTAL_HTML=$(echo "$MUTATION_RATIO" | cut -d'/' -f2)
@@ -226,7 +228,7 @@ static-analysis:
                 echo "    📁 Voir le rapport complet: $PITEST_INDEX"
               fi
             else
-              echo "  ⚠️  Ligne 'Mutation Coverage' non trouvée dans HTML"
+              echo "  ⚠️  Données de mutation non trouvées dans HTML"
               echo "    📁 Voir le rapport complet: $PITEST_INDEX"
             fi
           else
