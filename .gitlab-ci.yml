@@ -59,7 +59,7 @@ unit-tests:
   image: maven:3-eclipse-temurin-17-alpine
   script:
     - cd tarnished
-    - mvn $MAVEN_CLI_OPTS test jacoco:report jacoco:check
+    - mvn $MAVEN_CLI_OPTS verify -DskipITs=true
     - cd project-app
     - cp ../settings.xml . || true
     - mvn $MAVEN_CLI_OPTS -s settings.xml jacoco:report-aggregate || true
