@@ -1773,5 +1773,31 @@ public class BoardControllerTest {
         verify(storyRepo).findByColumn(3L);
     }
 
+    @Test
+    @DisplayName("addColumnGet should persist column with maxCapacity=0 and hasSubColumns=false")
+    void testAddColumnGetDefaultValuesPersisted() {
+        Long projectId = 1L;
+
+        Project project = new Project();
+        project.setId(1);
+        project.setName("P");
+
+        when(projectRepo.find(projectId)).thenReturn(project);
+
+        String result = controller.addColumnGet(projectId, "TODO", 0, false);
+
+        assertNotNull(result);
+        assertTrue(result.startsWith("redirect:"));
+
+        ArgumentCaptor<Column> captor = ArgumentCaptor.forClass(Column.class);
+        verify(columnRepo).persist(captor.capture());
+
+        Column saved = captor.getValue();
+        assertEquals("TODO", saved.getName());
+        assertEquals(0, saved.getMaxCapacity());
+        assertFalse(saved.isHasSubColumns());
+        assertEquals(project, saved.getProject());
+    }
+
 }
 
