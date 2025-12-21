@@ -27,6 +27,11 @@
         <!--module projet-->
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>project-model</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>project-repomem</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -350,6 +355,25 @@
                         </goals>
                         <configuration>
                             <skip>${skip.tests}</skip>
+                            <includeCurrentProject>true</includeCurrentProject>
+                            <dataFileIncludes>
+                                <dataFileInclude>${project.parent.basedir}/project-model/target/jacoco.exec</dataFileInclude>
+                                <dataFileInclude>${project.parent.basedir}/project-repomem/target/jacoco.exec</dataFileInclude>
+                                <dataFileInclude>${project.build.directory}/jacoco.exec</dataFileInclude>
+                                <dataFileInclude>${project.build.directory}/jacoco-merged.exec</dataFileInclude>
+                            </dataFileIncludes>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>INSTRUCTION</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.90</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
                         </configuration>
                     </execution>
                 </executions>
@@ -391,7 +415,7 @@
                     <excludedTestClasses>
                         <param>fr.uha.ensisa.gl.tarnished.it.*</param>
                     </excludedTestClasses>
-                    <mutationThreshold>70</mutationThreshold>
+                    <mutationThreshold>90</mutationThreshold>
                     <threads>2</threads>
                     <withHistory>true</withHistory>
                     <verbose>true</verbose>

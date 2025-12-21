@@ -132,6 +132,62 @@ public class ProjectControllerTest {
 
         verify(projectRepo).persist(any(Project.class));
     }
+
+    @Test
+    @DisplayName("createProject should accept name with exactly 29 characters")
+    public void testCreateProjectWith29Characters() throws IOException {
+        String name29Chars = "12345678901234567890123456789"; // exactly 29 chars
+        
+        User mockUser = new User();
+        mockUser.setId(1);
+        when(repoFactory.getUserRepo()).thenReturn(userRepo);
+        when(userRepo.getAll()).thenReturn(Arrays.asList(mockUser));
+        
+        String redirect = sut.createProject(name29Chars, "Description");
+        
+        assertEquals("redirect:/project/list", redirect);
+        verify(projectRepo).persist(any(Project.class));
+    }
+
+    @Test
+    @DisplayName("createProject should reject name with exactly 30 characters")
+    public void testCreateProjectWith30Characters() throws IOException {
+        String name30Chars = "123456789012345678901234567890"; // exactly 30 chars
+        
+        String redirect = sut.createProject(name30Chars, "Description");
+        
+        assertTrue(redirect.contains("error"));
+        verify(projectRepo, never()).persist(any(Project.class));
+    }
+
+    @Test
+    @DisplayName("createProject should create default user when userRepo is empty")
+    public void testCreateProjectCreatesDefaultUser() throws IOException {
+        User defaultUser = new User();
+        defaultUser.setId(1);
+        defaultUser.setName("user1");
+        defaultUser.setPassword("password1");
+        defaultUser.setEmail("email1@gmail.com");
+        
+        // First call returns empty list, second call (after add) returns list with user
+        when(userRepo.getAll())
+            .thenReturn(new ArrayList<>())
+            .thenReturn(Arrays.asList(defaultUser));
+        
+        org.mockito.ArgumentCaptor<User> userCaptor = org.mockito.ArgumentCaptor.forClass(User.class);
+        
+        String redirect = sut.createProject("Test Project", "Description");
+        
+        assertEquals("redirect:/project/list", redirect);
+        verify(userRepo).add(userCaptor.capture());
+        
+        User capturedUser = userCaptor.getValue();
+        assertEquals(1, capturedUser.getId());
+        assertEquals("user1", capturedUser.getName());
+        assertEquals("password1", capturedUser.getPassword());
+        assertEquals("email1@gmail.com", capturedUser.getEmail());
+        verify(projectRepo).persist(any(Project.class));
+    }
     
     @Test
     @DisplayName("listProjects should return view with empty list when mocked")
@@ -200,6 +256,42 @@ public class ProjectControllerTest {
 
         List<Integer> ids = (List<Integer>) mav.getModel().get("memberIds");
         assertTrue(ids.contains(10));
+    }
+
+    @Test
+    @DisplayName("editProject should create default user when userRepo is empty")
+    void testEditProjectCreatesDefaultUser() {
+        Project p = new Project();
+        p.setId(1);
+        p.setMembers(new ArrayList<>());
+
+        User defaultUser = new User();
+        defaultUser.setId(1);
+        defaultUser.setName("user1");
+        defaultUser.setPassword("password1");
+        defaultUser.setEmail("email1@gmail.com");
+
+        when(repoFactory.getProjectRepo()).thenReturn(projectRepo);
+        when(repoFactory.getUserRepo()).thenReturn(userRepo);
+        when(projectRepo.find(1L)).thenReturn(p);
+        
+        // First call returns empty, second call (after add) returns list with user
+        when(userRepo.getAll())
+            .thenReturn(new ArrayList<>())
+            .thenReturn(Arrays.asList(defaultUser));
+
+        org.mockito.ArgumentCaptor<User> userCaptor = org.mockito.ArgumentCaptor.forClass(User.class);
+        
+        ModelAndView mav = sut.editProject(1L);
+
+        assertEquals("project-edit", mav.getViewName());
+        verify(userRepo).add(userCaptor.capture());
+
+        User capturedUser = userCaptor.getValue();
+        assertEquals(1, capturedUser.getId());
+        assertEquals("user1", capturedUser.getName());
+        assertEquals("password1", capturedUser.getPassword());
+        assertEquals("email1@gmail.com", capturedUser.getEmail());
     }
 
     @Test
@@ -446,6 +538,36 @@ public class ProjectControllerTest {
         ModelAndView mav = sut.showProjectStories(projectId);
 
         assertEquals("redirect:/", mav.getViewName());
+    }
+
+    @Test
+    @DisplayName("editProject should handle null project")
+    void testEditProject_WithNullProject() {
+        Long projectId = 999L;
+        
+        when(projectRepo.find(projectId)).thenReturn(null);
+        
+        ModelAndView mav = sut.editProject(projectId);
+        
+        assertEquals("redirect:/project/list", mav.getViewName());
+    }
+
+    @Test
+    @DisplayName("editProject should handle project with null members")
+    void testEditProject_WithNullMembers() {
+        Long projectId = 1L;
+        Project project = new Project();
+        project.setId(1);
+        project.setMembers(null);
+        
+        when(projectRepo.find(projectId)).thenReturn(project);
+        when(userRepo.getAll()).thenReturn(List.of());
+        
+        ModelAndView mav = sut.editProject(projectId);
+        
+        assertEquals("project-edit", mav.getViewName());
+        List<Integer> memberIds = (List<Integer>) mav.getModel().get("memberIds");
+        assertTrue(memberIds.isEmpty(), "memberIds should be empty when members is null");
     }
 
     @Test

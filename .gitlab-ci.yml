@@ -59,7 +59,7 @@ unit-tests:
   image: maven:3-eclipse-temurin-17-alpine
   script:
     - cd tarnished
-    - mvn $MAVEN_CLI_OPTS test jacoco:report
+    - mvn $MAVEN_CLI_OPTS test jacoco:report jacoco:check
     - cd project-app
     - cp ../settings.xml . || true
     - mvn $MAVEN_CLI_OPTS -s settings.xml jacoco:report-aggregate || true
@@ -102,14 +102,19 @@ static-analysis:
     - cd ..
     - |
       set +e
-      echo "=========================================="
-      echo "📊 STATISTIQUES DE QUALITÉ DU CODE"
-      echo "=========================================="
       echo ""
-      # JaCoCo Coverage Statistics - Force search in all possible locations
-      echo "📈 JACOCO - COUVERTURE DE CODE:"
+      echo "╔══════════════════════════════════════════════════════════════╗"
+      echo "║         📊 RAPPORT DE QUALITÉ DU CODE                      ║"
+      echo "╚══════════════════════════════════════════════════════════════╝"
+      echo ""
+      
+      # ============================================
+      # JACOCO - COUVERTURE DE CODE
+      # ============================================
+      echo "📈 JACOCO - COUVERTURE DE CODE"
+      echo "──────────────────────────────────────────────────────────────"
       JACOCO_CSV=""
-      for path in "project-app/target/site/jacoco-aggregate/jacoco.csv" "project-app/target/site/jacoco/jacoco.csv" "*/target/site/jacoco-aggregate/jacoco.csv" "*/target/site/jacoco/jacoco.csv"; do
+      for path in "project-app/target/site/jacoco-aggregate/jacoco.csv" "project-app/target/site/jacoco/jacoco.csv"; do
         if [ -f "$path" ]; then
           JACOCO_CSV="$path"
           break
@@ -118,133 +123,124 @@ static-analysis:
       if [ -z "$JACOCO_CSV" ]; then
         JACOCO_CSV=$(find . -name "jacoco.csv" -type f 2>/dev/null | head -n 1)
       fi
+      
       if [ -n "$JACOCO_CSV" ] && [ -f "$JACOCO_CSV" ]; then
-        echo "  📄 Fichier trouvé: $JACOCO_CSV"
-        # Extract from CSV - skip header line (starts with GROUP,PACKAGE,CLASS)
-        # Columns: GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED(4),INSTRUCTION_COVERED(5),BRANCH_MISSED(6),BRANCH_COVERED(7),LINE_MISSED(8),LINE_COVERED(9)
-        awk -F',' '
-          BEGIN {missed_i=0; covered_i=0; missed_b=0; covered_b=0; missed_l=0; covered_l=0}
-          NR==1 {next}
-          NF>=9 && length($0)>0 {
-            missed_i += ($4+0); covered_i += ($5+0)
-            missed_b += ($6+0); covered_b += ($7+0)
-            missed_l += ($8+0); covered_l += ($9+0)
-          }
-          END {
-            total_i=missed_i+covered_i
-            total_b=missed_b+covered_b
-            total_l=missed_l+covered_l
-            if(total_i>0) {
-              printf "  ✅ Couverture globale: %.2f%%\n", 100*covered_i/total_i
-              printf "  📝 Instructions: %d couvertes / %d totales\n", covered_i, total_i
-            } else {
-              print "  ⚠️  Aucune instruction trouvée"
-            }
-            if(total_b>0) {
-              printf "  🌿 Branches: %.2f%% (%d/%d)\n", 100*covered_b/total_b, covered_b, total_b
-            } else {
-              print "  🌿 Branches: N/A"
-            }
-            if(total_l>0) {
-              printf "  📄 Lignes: %.2f%% (%d/%d)\n", 100*covered_l/total_l, covered_l, total_l
-            } else {
-              print "  📄 Lignes: N/A"
-            }
-          }
-        ' "$JACOCO_CSV" 2>&1 || echo "  ⚠️  Erreur awk"
+        # Calculer la couverture totale depuis le CSV avec awk
+        TOTAL_MISSED=$(awk -F',' 'NR>1 && $4 ~ /^[0-9]+$/ {missed+=$4} END {print missed+0}' "$JACOCO_CSV" 2>/dev/null || echo "0")
+        TOTAL_COVERED=$(awk -F',' 'NR>1 && $5 ~ /^[0-9]+$/ {covered+=$5} END {print covered+0}' "$JACOCO_CSV" 2>/dev/null || echo "0")
+        TOTAL_INSTRUCTIONS=$((TOTAL_MISSED + TOTAL_COVERED))
+        
+        if [ "$TOTAL_INSTRUCTIONS" -gt 0 ]; then
+          COVERAGE_PCT=$(awk "BEGIN {printf \"%.2f\", 100*$TOTAL_COVERED/$TOTAL_INSTRUCTIONS}" 2>/dev/null || echo "0")
+          echo "  ✅ Couverture globale: ${COVERAGE_PCT}%"
+          echo "     Instructions couvertes: $TOTAL_COVERED / $TOTAL_INSTRUCTIONS"
+          echo "     Instructions manquantes: $TOTAL_MISSED"
+          COVERAGE_INT=$(echo "$COVERAGE_PCT" | cut -d'.' -f1)
+          if [ "$COVERAGE_INT" -ge 90 ]; then
+            echo "     🎯 Objectif 90%: ✅ ATTEINT"
+          else
+            echo "     🎯 Objectif 90%: ❌ NON ATTEINT"
+          fi
+        else
+          echo "  ⚠️  Aucune donnée de couverture trouvée"
+        fi
+        echo "  📄 Rapport CSV: $JACOCO_CSV"
       else
         echo "  ⚠️  Rapport JaCoCo CSV non trouvé"
-        echo "  🔍 Recherche dans:"
-        find . -name "jacoco.csv" -type f 2>/dev/null | head -n 5 || echo "    Aucun fichier jacoco.csv trouvé"
       fi
       echo ""
-      # SpotBugs Statistics
-      echo "🐛 SPOTBUGS - ANALYSE STATIQUE:"
+      
+      # ============================================
+      # SPOTBUGS - ANALYSE STATIQUE
+      # ============================================
+      echo "🐛 SPOTBUGS - ANALYSE STATIQUE"
+      echo "──────────────────────────────────────────────────────────────"
       SPOTBUGS_XML=$(find . -name "spotbugsXml.xml" -type f -path "*/target/*" 2>/dev/null | head -n 1)
       if [ -n "$SPOTBUGS_XML" ] && [ -f "$SPOTBUGS_XML" ]; then
         BUG_COUNT=$(grep -c "<BugInstance" "$SPOTBUGS_XML" 2>/dev/null || echo "0")
         ERROR_COUNT=$(grep -c 'priority="1"' "$SPOTBUGS_XML" 2>/dev/null || echo "0")
         WARNING_COUNT=$(grep -c 'priority="2"' "$SPOTBUGS_XML" 2>/dev/null || echo "0")
         INFO_COUNT=$(grep -c 'priority="3"' "$SPOTBUGS_XML" 2>/dev/null || echo "0")
+        
         echo "  📊 Total de bugs détectés: $BUG_COUNT"
-        echo "    🔴 Erreurs (priorité 1): $ERROR_COUNT"
-        echo "    🟠 Avertissements (priorité 2): $WARNING_COUNT"
-        echo "    🔵 Informations (priorité 3): $INFO_COUNT"
         if [ "$BUG_COUNT" = "0" ]; then
-          echo "  ✅ Aucun bug détecté !"
+          echo "     ✅ Aucun bug détecté !"
+        else
+          echo "     🔴 Erreurs (priorité 1): $ERROR_COUNT"
+          echo "     🟠 Avertissements (priorité 2): $WARNING_COUNT"
+          echo "     🔵 Informations (priorité 3): $INFO_COUNT"
         fi
+        echo "  📄 Rapport XML: $SPOTBUGS_XML"
       else
         echo "  ⚠️  Rapport SpotBugs non trouvé"
-        find . -name "spotbugsXml.xml" -type f 2>/dev/null | head -n 3 || echo "    Aucun fichier spotbugsXml.xml trouvé"
       fi
       echo ""
-      # PiTest Mutation Testing Statistics
-      echo "🧬 PITEST - TESTS PAR MUTATION:"
+      
+      # ============================================
+      # PITEST - TESTS PAR MUTATION
+      # ============================================
+      echo "🧬 PITEST - COUVERTURE PAR MUTATION"
+      echo "──────────────────────────────────────────────────────────────"
       PITEST_DIR=$(find . -type d -name "pit-reports" -path "*/target/*" 2>/dev/null | head -n 1)
       if [ -n "$PITEST_DIR" ] && [ -d "$PITEST_DIR" ]; then
-        echo "  📁 Répertoire trouvé: $PITEST_DIR"
-        # Try to find mutations.csv in any subdirectory
+        # Chercher mutations.csv
         PITEST_CSV=$(find "$PITEST_DIR" -name "mutations.csv" -type f 2>/dev/null | head -n 1)
         if [ -n "$PITEST_CSV" ] && [ -f "$PITEST_CSV" ]; then
-          echo "  📄 CSV trouvé: $PITEST_CSV"
-          # CSV format: Class,Mutator,Mutated Method,Line Number,Killed?,Description
           KILLED_COUNT=$(awk -F, 'NR>1 && $5=="true" {killed++} END {print killed+0}' "$PITEST_CSV" 2>/dev/null || echo "0")
           SURVIVED_COUNT=$(awk -F, 'NR>1 && $5=="false" {survived++} END {print survived+0}' "$PITEST_CSV" 2>/dev/null || echo "0")
           TOTAL_MUT=$(awk -F, 'NR>1 {total++} END {print total+0}' "$PITEST_CSV" 2>/dev/null || echo "0")
+          
           if [ "$TOTAL_MUT" -gt "0" ]; then
-            COVERAGE_PCT=$(awk "BEGIN {printf \"%.1f\", 100*$KILLED_COUNT/$TOTAL_MUT}" 2>/dev/null || echo "0")
-            echo "  📊 Couverture de mutation: ${COVERAGE_PCT}%"
-            echo "    ✅ Mutants tués: $KILLED_COUNT"
-            echo "    ❌ Mutants survivants: $SURVIVED_COUNT"
-            echo "    📈 Total de mutations: $TOTAL_MUT"
+            COVERAGE_PCT=$(awk "BEGIN {printf \"%.2f\", 100*$KILLED_COUNT/$TOTAL_MUT}" 2>/dev/null || echo "0")
+            echo "  ✅ Couverture de mutation: ${COVERAGE_PCT}%"
+            echo "     Mutants tués: $KILLED_COUNT / $TOTAL_MUT"
+            echo "     Mutants survivants: $SURVIVED_COUNT"
+            COVERAGE_INT=$(echo "$COVERAGE_PCT" | awk -F'.' '{print int($1)}')
+            if [ "$COVERAGE_INT" -ge 90 ]; then
+              echo "     🎯 Objectif 90%: ✅ ATTEINT"
+            else
+              echo "     🎯 Objectif 90%: ❌ NON ATTEINT"
+            fi
           else
             echo "  ⚠️  Aucune donnée de mutation dans le CSV"
           fi
+          echo "  📄 Rapport CSV: $PITEST_CSV"
         else
-          # Try to extract from HTML index - look for summary statistics
+          # Fallback: extraire depuis HTML
           PITEST_INDEX="$PITEST_DIR/index.html"
           if [ -f "$PITEST_INDEX" ]; then
-            echo "  📄 HTML trouvé: $PITEST_INDEX"
-            # Extract from HTML - look for line with mutation coverage data
-            # Format: <td>XX% <div...><div class="coverage_legend">YY/ZZ</div></div></td>
-            # Find the <td> that contains both percentage and coverage_legend with ratio
-            MUTATION_TD=$(grep -A 15 "Mutation Coverage" "$PITEST_INDEX" 2>/dev/null | grep -E '<td>[0-9]+%.*coverage_legend' | head -n 1)
-            if [ -z "$MUTATION_TD" ]; then
-              # Fallback: find any <td> with percentage near "Mutation Coverage"
-              MUTATION_TD=$(grep -A 10 "Mutation Coverage" "$PITEST_INDEX" 2>/dev/null | grep -E '<td>[0-9]+%' | head -n 1)
-            fi
+            MUTATION_TD=$(grep -A 15 "Mutation Coverage" "$PITEST_INDEX" 2>/dev/null | grep -E '<td>[0-9]+%' | head -n 1)
             if [ -n "$MUTATION_TD" ]; then
-              # Extract percentage (first number followed by %)
-              COVERAGE_PCT=$(echo "$MUTATION_TD" | sed 's/.*<td>\([0-9]*\)%.*/\1%/' | head -n 1 || echo "")
-              # Extract ratio from coverage_legend or anywhere in the line
+              COVERAGE_PCT=$(echo "$MUTATION_TD" | sed 's/.*<td>\([0-9]*\)%.*/\1/' | head -n 1 || echo "0")
               MUTATION_RATIO=$(echo "$MUTATION_TD" | grep -oE '[0-9]+/[0-9]+' | head -n 1 || echo "")
               if [ -n "$MUTATION_RATIO" ]; then
                 KILLED_HTML=$(echo "$MUTATION_RATIO" | cut -d'/' -f1)
                 TOTAL_HTML=$(echo "$MUTATION_RATIO" | cut -d'/' -f2)
                 SURVIVED_HTML=$((TOTAL_HTML - KILLED_HTML))
-                echo "  📊 Couverture de mutation: ${COVERAGE_PCT:-"N/A"}"
-                echo "    ✅ Mutants tués: $KILLED_HTML"
-                echo "    ❌ Mutants survivants: $SURVIVED_HTML"
-                echo "    📈 Total de mutations: $TOTAL_HTML"
-              else
-                echo "  ⚠️  Impossible d'extraire le ratio depuis HTML"
-                echo "    📁 Voir le rapport complet: $PITEST_INDEX"
+                echo "  ✅ Couverture de mutation: ${COVERAGE_PCT}%"
+                echo "     Mutants tués: $KILLED_HTML / $TOTAL_HTML"
+                echo "     Mutants survivants: $SURVIVED_HTML"
+                if [ "$COVERAGE_PCT" -ge 90 ]; then
+                  echo "     🎯 Objectif 90%: ✅ ATTEINT"
+                else
+                  echo "     🎯 Objectif 90%: ❌ NON ATTEINT"
+                fi
               fi
-            else
-              echo "  ⚠️  Données de mutation non trouvées dans HTML"
-              echo "    📁 Voir le rapport complet: $PITEST_INDEX"
             fi
-          else
-            echo "  ⚠️  Fichiers de rapport PiTest non trouvés dans $PITEST_DIR"
-            ls -la "$PITEST_DIR" 2>/dev/null | head -n 10 || echo "    Répertoire vide ou inaccessible"
+            echo "  📄 Rapport HTML: $PITEST_INDEX"
           fi
         fi
       else
         echo "  ⚠️  Répertoire PiTest non trouvé"
-        find . -type d -name "pit-reports" 2>/dev/null | head -n 3 || echo "    Aucun répertoire pit-reports trouvé"
       fi
       echo ""
-      echo "=========================================="
+      echo "╔══════════════════════════════════════════════════════════════╗"
+      echo "║  📁 Rapports détaillés disponibles dans les artifacts       ║"
+      echo "║     • JaCoCo HTML: target/site/jacoco-aggregate/          ║"
+      echo "║     • SpotBugs HTML: target/site/spotbugs.html              ║"
+      echo "║     • PiTest HTML: target/pit-reports/index.html           ║"
+      echo "╚══════════════════════════════════════════════════════════════╝"
+      echo ""
       set -e
   artifacts:
     paths:
@@ -253,6 +249,8 @@ static-analysis:
       - "**/target/site/jacoco"
       - "**/target/site/jacoco-aggregate"
       - "**/target/pit-reports"
+      - "**/target/site/jacoco-aggregate/jacoco.csv"
+      - "**/target/site/jacoco/jacoco.csv"
     expire_in: 1 hour
 
 

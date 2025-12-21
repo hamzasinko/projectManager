@@ -89,9 +89,12 @@ public class ProjectController {
     }
     @GetMapping("/edit/{id}")
     public ModelAndView editProject(@PathVariable Long id) {
-        ModelAndView mav = new ModelAndView("project-edit");
-
         Project project = repoFactory.getProjectRepo().find(id);
+        if (project == null) {
+            return new ModelAndView("redirect:/project/list");
+        }
+        
+        ModelAndView mav = new ModelAndView("project-edit");
         mav.addObject("project", project);
         if(repoFactory.getUserRepo().getAll().isEmpty()) {
             User user = new User();
@@ -101,7 +104,7 @@ public class ProjectController {
             user.setEmail("email1@gmail.com");
             repoFactory.getUserRepo().add(user);
         }
-        List<Integer> memberIds = project.getMembers() != null ?
+        List<Integer> memberIds = (project != null && project.getMembers() != null) ?
                 project.getMembers().stream().map(User::getId).toList() :
                 List.of();
         System.out.println("Member IDs: " + memberIds);

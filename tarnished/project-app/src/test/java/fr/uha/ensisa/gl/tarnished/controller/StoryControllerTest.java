@@ -546,6 +546,19 @@ public class StoryControllerTest {
     }
 
     @Test
+    @DisplayName("showCreateForm should include swimlaneId when provided")
+    void testShowCreateFormWithSwimlaneId() {
+        Long swimlaneId = 10L;
+
+        when(projectRepo.findAll()).thenReturn(Arrays.asList());
+
+        ModelAndView mav = sut.showCreateForm(null, null, swimlaneId);
+
+        assertEquals("story-create", mav.getViewName());
+        assertEquals(swimlaneId, mav.getModel().get("swimlaneId"));
+    }
+
+    @Test
     @DisplayName("createStory should handle title length validation")
     void testCreateStoryTitleTooLong() throws IOException {
         String longTitle = "This is a very long title that definitely exceeds fifty-nine characters limit";
@@ -555,6 +568,98 @@ public class StoryControllerTest {
 
         assertTrue(result.contains("error"));
         verify(storyRepo, never()).persist(any(Story.class));
+    }
+
+    @Test
+    @DisplayName("createStory should accept title with exactly 59 characters")
+    void testCreateStoryTitleWith59Characters() throws IOException {
+        String title59Chars = "12345678901234567890123456789012345678901234567890123456789"; // exactly 59 chars
+        Long projectId = 1L;
+
+        when(columnRepo.findByProject(projectId)).thenReturn(Arrays.asList());
+
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        String result = sut.createStory(title59Chars, "Description", projectId, null, null);
+
+        assertFalse(result.contains("error"));
+        verify(storyRepo).persist(storyCaptor.capture());
+        assertEquals(title59Chars, storyCaptor.getValue().getTitle());
+    }
+
+    @Test
+    @DisplayName("createStory should reject title with exactly 60 characters")
+    void testCreateStoryTitleWith60Characters() throws IOException {
+        String title60Chars = "123456789012345678901234567890123456789012345678901234567890"; // exactly 60 chars
+        Long projectId = 1L;
+
+        String result = sut.createStory(title60Chars, "Description", projectId, null, null);
+
+        assertTrue(result.contains("error"));
+        verify(storyRepo, never()).persist(any(Story.class));
+    }
+
+    @Test
+    @DisplayName("createStory should handle column with null status mapping")
+    void testCreateStoryWithColumnHavingNullStatusMapping() throws IOException {
+        String title = "Test Story";
+        Long projectId = 1L;
+        Long columnId = 5L;
+
+        Column column = new Column();
+        column.setId(columnId.intValue());
+        column.setName("UNKNOWN_COLUMN"); // Column name that doesn't map to a status
+
+        when(columnRepo.find(columnId)).thenReturn(column);
+        when(storyRepo.findByColumn(columnId)).thenReturn(List.of());
+
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        doAnswer(invocation -> {
+            Story s = invocation.getArgument(0);
+            s.setId(1);
+            return null;
+        }).when(storyRepo).persist(any(Story.class));
+
+        String result = sut.createStory(title, "Description", projectId, columnId, null);
+
+        assertTrue(result.contains("redirect:/board/"));
+        verify(storyRepo).persist(storyCaptor.capture());
+        Story captured = storyCaptor.getValue();
+        assertEquals(columnId, captured.getColumnId());
+        assertEquals(StoryStatus.BACKLOG, captured.getStatus()); // Should use default BACKLOG when status mapping is null
+        assertEquals(0, captured.getPosition());
+    }
+
+    @Test
+    @DisplayName("createStory should verify setColumnId, setPosition, and setSubColumn are called")
+    void testCreateStoryVerifiesSettersCalled() throws IOException {
+        String title = "Test Story";
+        Long projectId = 1L;
+        Long columnId = 5L;
+
+        Column customColumn = new Column();
+        customColumn.setId(columnId.intValue());
+        customColumn.setName("Custom Column");
+
+        when(columnRepo.find(columnId)).thenReturn(customColumn);
+        when(storyRepo.findByColumn(columnId)).thenReturn(List.of());
+
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        doAnswer(invocation -> {
+            Story s = invocation.getArgument(0);
+            s.setId(1);
+            return null;
+        }).when(storyRepo).persist(any(Story.class));
+
+        String result = sut.createStory(title, "Description", projectId, columnId, null);
+
+        assertTrue(result.contains("redirect:/board/"));
+        verify(storyRepo).persist(storyCaptor.capture());
+        Story captured = storyCaptor.getValue();
+        
+        // Verify setters were called
+        assertEquals(columnId, captured.getColumnId());
+        assertEquals(0, captured.getPosition());
+        assertEquals("BACKLOG", captured.getSubColumn());
     }
 
     @Test
@@ -1218,6 +1323,645 @@ public class StoryControllerTest {
 
         assertEquals("redirect:/", result);
         verify(storyRepo).persist(story);
+    }
+
+    @Test
+    @DisplayName("createStory should set columnId to null when projectId is null and columnId is null")
+    void testCreateStory_SetColumnIdToNull() throws IOException {
+        String title = "Test Story";
+        
+        when(storyRepo.findByColumn(anyLong())).thenReturn(List.of());
+        doAnswer(invocation -> {
+            Story s = invocation.getArgument(0);
+            s.setId(1);
+            return null;
+        }).when(storyRepo).persist(any(Story.class));
+        
+        String result = sut.createStory(title, "Description", null, null, null);
+        
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        verify(storyRepo).persist(storyCaptor.capture());
+        assertNull(storyCaptor.getValue().getColumnId(), "ColumnId should be null when projectId is null and columnId is null");
+    }
+
+    @Test
+    @DisplayName("createStory should set subColumn to null for default BACKLOG column")
+    void testCreateStory_SetSubColumnToNullForDefaultColumn() throws IOException {
+        String title = "Test Story";
+        Long projectId = 1L;
+        Long columnId = 2L;
+        
+        Column backlogColumn = new Column();
+        backlogColumn.setId(columnId.intValue());
+        backlogColumn.setName("BACKLOG");
+        
+        Story story = new Story();
+        story.setId(1);
+        
+        when(columnRepo.find(columnId)).thenReturn(backlogColumn);
+        when(storyRepo.findByColumn(columnId)).thenReturn(List.of());
+        doAnswer(invocation -> {
+            Story s = invocation.getArgument(0);
+            s.setId(1);
+            s.setProjectId(projectId);
+            return null;
+        }).when(storyRepo).persist(any(Story.class));
+        
+        String result = sut.createStory(title, "Description", projectId, columnId, null);
+        
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        verify(storyRepo).persist(storyCaptor.capture());
+        assertNull(storyCaptor.getValue().getSubColumn(), "SubColumn should be null for default BACKLOG column");
+    }
+
+    @Test
+    @DisplayName("createStory should set subColumn to null for default DONE column")
+    void testCreateStory_SetSubColumnToNullForDoneColumn() throws IOException {
+        String title = "Test Story";
+        Long projectId = 1L;
+        Long columnId = 4L;
+        
+        Column doneColumn = new Column();
+        doneColumn.setId(columnId.intValue());
+        doneColumn.setName("DONE");
+        
+        when(columnRepo.find(columnId)).thenReturn(doneColumn);
+        when(storyRepo.findByColumn(columnId)).thenReturn(List.of());
+        doAnswer(invocation -> {
+            Story s = invocation.getArgument(0);
+            s.setId(1);
+            s.setProjectId(projectId);
+            return null;
+        }).when(storyRepo).persist(any(Story.class));
+        
+        String result = sut.createStory(title, "Description", projectId, columnId, null);
+        
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        verify(storyRepo).persist(storyCaptor.capture());
+        assertNull(storyCaptor.getValue().getSubColumn(), "SubColumn should be null for default DONE column");
+    }
+
+    @Test
+    @DisplayName("mapColumnNameToStatus should return IN_PROGRESS for IN_PROGRESS column")
+    void testMapColumnNameToStatus_ReturnsInProgress() throws IOException {
+        String title = "Test Story";
+        Long projectId = 1L;
+        Long columnId = 2L;
+        
+        Column inProgressColumn = new Column();
+        inProgressColumn.setId(columnId.intValue());
+        inProgressColumn.setName("IN PROGRESS");
+        
+        when(columnRepo.find(columnId)).thenReturn(inProgressColumn);
+        when(storyRepo.findByColumn(columnId)).thenReturn(List.of());
+        doAnswer(invocation -> {
+            Story s = invocation.getArgument(0);
+            s.setId(1);
+            s.setProjectId(projectId);
+            return null;
+        }).when(storyRepo).persist(any(Story.class));
+        
+        String result = sut.createStory(title, "Description", projectId, columnId, null);
+        
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        verify(storyRepo).persist(storyCaptor.capture());
+        assertEquals(fr.uha.ensisa.gl.entities.StoryStatus.IN_PROGRESS, storyCaptor.getValue().getStatus());
+    }
+
+    @Test
+    @DisplayName("mapColumnNameToStatus should return REVIEW for REVIEW column")
+    void testMapColumnNameToStatus_ReturnsReview() throws IOException {
+        String title = "Test Story";
+        Long projectId = 1L;
+        Long columnId = 3L;
+        
+        Column reviewColumn = new Column();
+        reviewColumn.setId(columnId.intValue());
+        reviewColumn.setName("REVIEW");
+        
+        when(columnRepo.find(columnId)).thenReturn(reviewColumn);
+        when(storyRepo.findByColumn(columnId)).thenReturn(List.of());
+        doAnswer(invocation -> {
+            Story s = invocation.getArgument(0);
+            s.setId(1);
+            s.setProjectId(projectId);
+            return null;
+        }).when(storyRepo).persist(any(Story.class));
+        
+        String result = sut.createStory(title, "Description", projectId, columnId, null);
+        
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        verify(storyRepo).persist(storyCaptor.capture());
+        assertEquals(fr.uha.ensisa.gl.entities.StoryStatus.REVIEW, storyCaptor.getValue().getStatus());
+    }
+
+    @Test
+    @DisplayName("mapColumnNameToStatus should return DONE for DONE column")
+    void testMapColumnNameToStatus_ReturnsDone() throws IOException {
+        String title = "Test Story";
+        Long projectId = 1L;
+        Long columnId = 4L;
+        
+        Column doneColumn = new Column();
+        doneColumn.setId(columnId.intValue());
+        doneColumn.setName("DONE");
+        
+        when(columnRepo.find(columnId)).thenReturn(doneColumn);
+        when(storyRepo.findByColumn(columnId)).thenReturn(List.of());
+        doAnswer(invocation -> {
+            Story s = invocation.getArgument(0);
+            s.setId(1);
+            s.setProjectId(projectId);
+            return null;
+        }).when(storyRepo).persist(any(Story.class));
+        
+        String result = sut.createStory(title, "Description", projectId, columnId, null);
+        
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        verify(storyRepo).persist(storyCaptor.capture());
+        assertEquals(fr.uha.ensisa.gl.entities.StoryStatus.DONE, storyCaptor.getValue().getStatus());
+    }
+
+    @Test
+    @DisplayName("mapColumnNameToStatus should return BLOCKED for BLOCKED column")
+    void testMapColumnNameToStatus_ReturnsBlocked() throws IOException {
+        String title = "Test Story";
+        Long projectId = 1L;
+        Long columnId = 5L;
+        
+        Column blockedColumn = new Column();
+        blockedColumn.setId(columnId.intValue());
+        blockedColumn.setName("BLOCKED");
+        
+        when(columnRepo.find(columnId)).thenReturn(blockedColumn);
+        when(storyRepo.findByColumn(columnId)).thenReturn(List.of());
+        doAnswer(invocation -> {
+            Story s = invocation.getArgument(0);
+            s.setId(1);
+            s.setProjectId(projectId);
+            return null;
+        }).when(storyRepo).persist(any(Story.class));
+        
+        String result = sut.createStory(title, "Description", projectId, columnId, null);
+        
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        verify(storyRepo).persist(storyCaptor.capture());
+        assertEquals(fr.uha.ensisa.gl.entities.StoryStatus.BLOCKED, storyCaptor.getValue().getStatus());
+    }
+
+    @Test
+    @DisplayName("createStory should call setPosition(0) to place story at top")
+    void testCreateStory_CallsSetPositionZero() throws IOException {
+        String title = "Test Story";
+        Long projectId = 1L;
+        Long columnId = 2L;
+        
+        Column column = new Column();
+        column.setId(columnId.intValue());
+        column.setName("BACKLOG");
+        
+        Story existingStory = new Story();
+        existingStory.setId(2);
+        existingStory.setPosition(5);
+        
+        when(columnRepo.find(columnId)).thenReturn(column);
+        when(storyRepo.findByColumn(columnId)).thenReturn(List.of(existingStory));
+        doAnswer(invocation -> {
+            Story s = invocation.getArgument(0);
+            s.setId(1);
+            s.setProjectId(projectId);
+            return null;
+        }).when(storyRepo).persist(any(Story.class));
+        
+        String result = sut.createStory(title, "Description", projectId, columnId, null);
+        
+        ArgumentCaptor<Story> newStoryCaptor = ArgumentCaptor.forClass(Story.class);
+        verify(storyRepo, times(2)).persist(newStoryCaptor.capture()); // existing story + new story
+        
+        // Vérifie que la nouvelle story a position = 0
+        Story newStory = newStoryCaptor.getAllValues().get(1); // La dernière story persistée est la nouvelle
+        assertEquals(0, newStory.getPosition(), "New story should have position 0");
+    }
+
+    @Test
+    @DisplayName("createStory should increment position of existing stories in column")
+    void testCreateStory_IncrementsExistingStoriesPosition() throws IOException {
+        String title = "Test Story";
+        Long projectId = 1L;
+        Long columnId = 2L;
+        
+        Column column = new Column();
+        column.setId(columnId.intValue());
+        column.setName("BACKLOG");
+        
+        Story existingStory1 = new Story();
+        existingStory1.setId(2);
+        existingStory1.setPosition(0);
+        
+        Story existingStory2 = new Story();
+        existingStory2.setId(3);
+        existingStory2.setPosition(1);
+        
+        when(columnRepo.find(columnId)).thenReturn(column);
+        when(storyRepo.findByColumn(columnId)).thenReturn(List.of(existingStory1, existingStory2));
+        doAnswer(invocation -> {
+            Story s = invocation.getArgument(0);
+            s.setId(1);
+            s.setProjectId(projectId);
+            return null;
+        }).when(storyRepo).persist(any(Story.class));
+        
+        String result = sut.createStory(title, "Description", projectId, columnId, null);
+        
+        // Vérifie que les positions des stories existantes ont été incrémentées
+        assertEquals(1, existingStory1.getPosition(), "First existing story position should be incremented");
+        assertEquals(2, existingStory2.getPosition(), "Second existing story position should be incremented");
+        verify(storyRepo, times(3)).persist(any(Story.class)); // 2 existing + 1 new
+    }
+
+    @Test
+    @DisplayName("createStory should call setSwimlaneId when swimlaneId is provided")
+    void testCreateStory_CallsSetSwimlaneId() throws IOException {
+        String title = "Test Story";
+        Long projectId = 1L;
+        Long swimlaneId = 10L;
+        
+        when(storyRepo.findByColumn(anyLong())).thenReturn(List.of());
+        doAnswer(invocation -> {
+            Story s = invocation.getArgument(0);
+            s.setId(1);
+            s.setProjectId(projectId);
+            return null;
+        }).when(storyRepo).persist(any(Story.class));
+        
+        String result = sut.createStory(title, "Description", projectId, null, swimlaneId);
+        
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        verify(storyRepo).persist(storyCaptor.capture());
+        assertEquals(swimlaneId, storyCaptor.getValue().getSwimlaneId(), "Story should have swimlaneId set");
+    }
+
+    @Test
+    @DisplayName("updateStory should accept title with exactly 59 characters")
+    void testUpdateStory_WithExact59Characters() {
+        long storyId = 1L;
+        String titleExactly59 = "A".repeat(59); // exactly 59 chars
+        
+        Story story = new Story();
+        story.setId((int) storyId);
+        story.setProjectId(10L);
+        story.setColumnId(5L);
+        
+        Column customColumn = new Column();
+        customColumn.setId(5);
+        customColumn.setName("Custom Column");
+        
+        when(storyRepo.find(storyId)).thenReturn(story);
+        when(columnRepo.find(5L)).thenReturn(customColumn);
+        
+        String result = sut.updateStory(storyId, titleExactly59, "Description", null);
+        
+        assertEquals("redirect:/board/10", result);
+        assertEquals(titleExactly59, story.getTitle().trim());
+        verify(storyRepo).persist(story);
+    }
+
+    @Test
+    @DisplayName("createStory should accept title with exactly 59 characters")
+    void testCreateStory_WithExact59Characters() throws IOException {
+        String titleExactly59 = "A".repeat(59); // exactly 59 chars
+        Long projectId = 1L;
+        
+        when(storyRepo.findByColumn(anyLong())).thenReturn(List.of());
+        doAnswer(invocation -> {
+            Story s = invocation.getArgument(0);
+            s.setId(1);
+            s.setProjectId(projectId);
+            return null;
+        }).when(storyRepo).persist(any(Story.class));
+        
+        String result = sut.createStory(titleExactly59, "Description", projectId, null, null);
+        
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        verify(storyRepo).persist(storyCaptor.capture());
+        assertEquals(titleExactly59, storyCaptor.getValue().getTitle().trim());
+    }
+
+    @Test
+    @DisplayName("createStory should explicitly call setColumnId(null) when projectId is null")
+    void testCreateStory_ExplicitlyCallsSetColumnIdNull() throws IOException {
+        String title = "Test Story";
+        
+        when(storyRepo.findByColumn(anyLong())).thenReturn(List.of());
+        doAnswer(invocation -> {
+            Story s = invocation.getArgument(0);
+            s.setId(1);
+            return null;
+        }).when(storyRepo).persist(any(Story.class));
+        
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        String result = sut.createStory(title, "Description", null, null, null);
+        
+        verify(storyRepo).persist(storyCaptor.capture());
+        Story captured = storyCaptor.getValue();
+        assertNull(captured.getColumnId(), "setColumnId(null) should be called when projectId is null");
+    }
+
+    @Test
+    @DisplayName("createStory should explicitly call setPosition(0) for new story")
+    void testCreateStory_ExplicitlyCallsSetPositionZero() throws IOException {
+        String title = "Test Story";
+        Long projectId = 1L;
+        
+        when(storyRepo.findByColumn(anyLong())).thenReturn(List.of());
+        doAnswer(invocation -> {
+            Story s = invocation.getArgument(0);
+            s.setId(1);
+            s.setProjectId(projectId);
+            return null;
+        }).when(storyRepo).persist(any(Story.class));
+        
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        String result = sut.createStory(title, "Description", projectId, null, null);
+        
+        verify(storyRepo).persist(storyCaptor.capture());
+        Story captured = storyCaptor.getValue();
+        assertEquals(0, captured.getPosition(), "setPosition(0) should be called for new story");
+    }
+
+    @Test
+    @DisplayName("createStory should explicitly call setSubColumn(null) for default column")
+    void testCreateStory_ExplicitlyCallsSetSubColumnNull() throws IOException {
+        String title = "Test Story";
+        Long projectId = 1L;
+        Long columnId = 2L;
+        
+        Column backlogColumn = new Column();
+        backlogColumn.setId(columnId.intValue());
+        backlogColumn.setName("BACKLOG");
+        
+        when(columnRepo.find(columnId)).thenReturn(backlogColumn);
+        when(storyRepo.findByColumn(columnId)).thenReturn(List.of());
+        doAnswer(invocation -> {
+            Story s = invocation.getArgument(0);
+            s.setId(1);
+            s.setProjectId(projectId);
+            return null;
+        }).when(storyRepo).persist(any(Story.class));
+        
+        ArgumentCaptor<Story> storyCaptor = ArgumentCaptor.forClass(Story.class);
+        String result = sut.createStory(title, "Description", projectId, columnId, null);
+        
+        verify(storyRepo).persist(storyCaptor.capture());
+        Story captured = storyCaptor.getValue();
+        assertNull(captured.getSubColumn(), "setSubColumn(null) should be called for default column");
+    }
+
+    @Test
+    @DisplayName("deleteStory should handle null story")
+    void testDeleteStory_WithNullStory() {
+        Long storyId = 999L;
+        
+        when(storyRepo.find(storyId)).thenReturn(null);
+        
+        String result = sut.deleteStory(storyId);
+        
+        assertEquals("redirect:/story/list", result);
+        verify(storyRepo).remove(storyId);
+    }
+
+    @Test
+    @DisplayName("deleteStory should redirect to board when projectId exists")
+    void testDeleteStory_WithProjectId() {
+        Long storyId = 1L;
+        Long projectId = 10L;
+        
+        Story story = new Story();
+        story.setId(1);
+        story.setProjectId(projectId);
+        
+        when(storyRepo.find(storyId)).thenReturn(story);
+        
+        String result = sut.deleteStory(storyId);
+        
+        assertEquals("redirect:/board/" + projectId, result);
+        verify(storyRepo).remove(storyId);
+    }
+
+    @Test
+    @DisplayName("unassignStory should handle null story")
+    void testUnassignStory_WithNullStory() {
+        Long storyId = 999L;
+        
+        when(storyRepo.find(storyId)).thenReturn(null);
+        
+        String result = sut.unassignStory(storyId);
+        
+        assertEquals("redirect:/", result);
+        verify(storyRepo, never()).persist(any(Story.class));
+    }
+
+    @Test
+    @DisplayName("unassignStory should redirect to board when projectId exists")
+    void testUnassignStory_WithProjectId() {
+        Long storyId = 1L;
+        Long projectId = 10L;
+        
+        Story story = new Story();
+        story.setId(1);
+        story.setProjectId(projectId);
+        story.setUserAssigned(new User());
+        
+        when(storyRepo.find(storyId)).thenReturn(story);
+        
+        String result = sut.unassignStory(storyId);
+        
+        assertEquals("redirect:/board/" + projectId, result);
+        assertNull(story.getUserAssigned());
+        verify(storyRepo).persist(story);
+    }
+
+    @Test
+    @DisplayName("unassignStory should redirect to home when projectId is null")
+    void testUnassignStory_WithNullProjectId() {
+        Long storyId = 1L;
+        
+        Story story = new Story();
+        story.setId(1);
+        story.setProjectId(null);
+        story.setUserAssigned(new User());
+        
+        when(storyRepo.find(storyId)).thenReturn(story);
+        
+        String result = sut.unassignStory(storyId);
+        
+        assertEquals("redirect:/", result);
+        assertNull(story.getUserAssigned());
+        verify(storyRepo).persist(story);
+    }
+
+    @Test
+    @DisplayName("addWorkLog should reject zero or negative duration")
+    void testAddWorkLog_WithZeroDuration() {
+        Long storyId = 1L;
+        
+        String result = sut.addWorkLog(storyId, 0, 0, 0, "Comment", 1L);
+        
+        assertTrue(result.contains("error"));
+        assertTrue(result.contains("Duration must be greater than 0"));
+        verify(storyRepo, never()).addWorkLog(anyLong(), any());
+    }
+
+    @Test
+    @DisplayName("addWorkLog should truncate comment longer than 45 characters")
+    void testAddWorkLog_WithLongComment() {
+        Long storyId = 1L;
+        String longComment = "A".repeat(50);
+        
+        String result = sut.addWorkLog(storyId, 0, 1, 0, longComment, 1L);
+        
+        assertTrue(result.contains("redirect:/story/" + storyId));
+        ArgumentCaptor<WorkLog> workLogCaptor = ArgumentCaptor.forClass(WorkLog.class);
+        verify(storyRepo).addWorkLog(eq(storyId), workLogCaptor.capture());
+        assertEquals(45, workLogCaptor.getValue().getComment().length());
+    }
+
+    @Test
+    @DisplayName("addWorkLog should handle null comment")
+    void testAddWorkLog_WithNullComment() {
+        Long storyId = 1L;
+        
+        String result = sut.addWorkLog(storyId, 0, 1, 0, null, 1L);
+        
+        assertTrue(result.contains("redirect:/story/" + storyId));
+        ArgumentCaptor<WorkLog> workLogCaptor = ArgumentCaptor.forClass(WorkLog.class);
+        verify(storyRepo).addWorkLog(eq(storyId), workLogCaptor.capture());
+        assertNull(workLogCaptor.getValue().getComment());
+    }
+
+    @Test
+    @DisplayName("addWorkLog should calculate total minutes correctly")
+    void testAddWorkLog_CalculatesTotalMinutes() {
+        Long storyId = 1L;
+        
+        String result = sut.addWorkLog(storyId, 1, 2, 30, "Comment", 1L);
+        
+        assertTrue(result.contains("redirect:/story/" + storyId));
+        ArgumentCaptor<WorkLog> workLogCaptor = ArgumentCaptor.forClass(WorkLog.class);
+        verify(storyRepo).addWorkLog(eq(storyId), workLogCaptor.capture());
+        // 1 day = 1440 min, 2 hours = 120 min, 30 minutes = 30 min, total = 1590
+        assertEquals(1590, workLogCaptor.getValue().getDuration());
+    }
+
+    @Test
+    @DisplayName("listStories should return all stories")
+    void testListStories() throws IOException {
+        Story story1 = new Story();
+        story1.setId(1);
+        Story story2 = new Story();
+        story2.setId(2);
+        
+        when(storyRepo.findAll()).thenReturn(List.of(story1, story2));
+        
+        ModelAndView mav = sut.listStories();
+        
+        assertEquals("story-list", mav.getViewName());
+        assertEquals(List.of(story1, story2), mav.getModel().get("stories"));
+        verify(storyRepo).findAll();
+    }
+
+    @Test
+    @DisplayName("showStory should redirect when story has null projectId")
+    void testShowStory_WithNullProjectId() throws IOException {
+        Long storyId = 1L;
+        Story story = new Story();
+        story.setId(1);
+        story.setProjectId(null);
+        
+        when(storyRepo.find(storyId)).thenReturn(story);
+        
+        ModelAndView mav = sut.showStory(storyId);
+        
+        assertEquals("redirect:/", mav.getViewName());
+    }
+
+    @Test
+    @DisplayName("editStory should handle column with null name")
+    void testEditStory_WithColumnHavingNullName() {
+        Long storyId = 1L;
+        Story story = new Story();
+        story.setId(1);
+        story.setProjectId(10L);
+        story.setColumnId(5L);
+        
+        Column column = new Column();
+        column.setId(5);
+        column.setName(null);
+        
+        when(storyRepo.find(storyId)).thenReturn(story);
+        when(columnRepo.find(5L)).thenReturn(column);
+        when(userRepo.getAll()).thenReturn(List.of());
+        
+        ModelAndView mav = sut.editStory(storyId);
+        
+        assertEquals("story-edit", mav.getViewName());
+        assertEquals(column, mav.getModel().get("column"));
+        assertFalse((Boolean) mav.getModel().get("isDefaultColumn"));
+    }
+
+    @Test
+    @DisplayName("updateStory should handle invalid status value in catch block")
+    void testUpdateStory_WithInvalidStatusValue() {
+        Long storyId = 1L;
+        Story story = new Story();
+        story.setId(1);
+        story.setProjectId(10L);
+        story.setColumnId(5L);
+        StoryStatus originalStatus = StoryStatus.BACKLOG;
+        story.setStatus(originalStatus);
+        
+        Column column = new Column();
+        column.setId(5);
+        column.setName("Custom Column");
+        
+        when(storyRepo.find(storyId)).thenReturn(story);
+        when(columnRepo.find(5L)).thenReturn(column);
+        
+        String result = sut.updateStory(storyId, "Title", "Description", "INVALID_STATUS");
+        
+        assertEquals("redirect:/board/10", result);
+        assertEquals(originalStatus, story.getStatus(), "Status should remain unchanged after invalid value");
+        verify(storyRepo).persist(story);
+    }
+
+    @Test
+    @DisplayName("assignStory should redirect to home when story is null")
+    void testAssignStory_WithNullStory() {
+        Long storyId = 999L;
+        
+        when(storyRepo.find(storyId)).thenReturn(null);
+        
+        String result = sut.assignStory(storyId, 10);
+        
+        assertEquals("redirect:/", result);
+        verify(storyRepo, never()).persist(any(Story.class));
+    }
+
+    @Test
+    @DisplayName("assignStory should handle user not found")
+    void testAssignStory_WithUserNotFound() {
+        Long storyId = 1L;
+        Story story = new Story();
+        story.setId(1);
+        story.setProjectId(10L);
+        
+        when(storyRepo.find(storyId)).thenReturn(story);
+        when(userRepo.find(999)).thenReturn(null);
+        
+        String result = sut.assignStory(storyId, 999);
+        
+        assertEquals("redirect:/board/10", result);
+        verify(storyRepo, never()).persist(any(Story.class));
     }
 
 }

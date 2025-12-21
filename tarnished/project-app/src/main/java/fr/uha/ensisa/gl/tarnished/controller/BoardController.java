@@ -52,6 +52,9 @@ public class BoardController {
         
         //pour chaque colonne on récupère ses stories
         for (Column column : columns) {
+            if (column.getName() == null) {
+                continue; // skip columns with null names
+            }
             String columnName = column.getName().toUpperCase(Locale.ROOT);
             
             //on initialise hasSubColumns à true pour les colonnes par défaut sauf BACKLOG, DONE et BLOCKED
@@ -221,8 +224,16 @@ public class BoardController {
             return pathHelper.redirect("/project/list");
         }
 
+        //validation: vérifie que name n'est pas null
+        if (name == null) {
+            throw new NullPointerException("Column name cannot be null");
+        }
+
+        //trim le nom
+        name = name.trim();
+        
         //validation: limite le nom à 25 caractères
-        if (name != null && name.length() > 25) {
+        if (name.length() > 25) {
             name = name.substring(0, 25);
         }
 
