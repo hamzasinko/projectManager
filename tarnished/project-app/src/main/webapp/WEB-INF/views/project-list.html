@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Projects List</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/libs/bootstrap/bootstrap.min.css}">
+    <style>
+        * { font-family: 'Space Grotesk', system-ui, sans-serif !important; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>My Projects</h1>
+            <div class="d-flex gap-2">
+                <a th:href="@{/}" class="btn btn-outline-secondary">Home</a>
+                <a th:href="@{/project/new}" class="btn btn-success" id="newProjectBtn">
+                    + New Project
+                </a>
+            </div>
+        </div>
+        
+        <div id="projectsList">
+            <!--message si aucun projet-->
+            <div th:if="${projects.isEmpty()}" class="alert alert-info">
+                No projects yet. Create your first project!
+            </div>
+            
+            <!--grille de projets-->
+            <div class="row">
+                <div th:each="project : ${projects}" 
+                     class="col-md-4 mb-3"
+                     th:id="${'project-' + project.id}">
+                    <div class="card"
+                         th:attr="data-id=${project.id}">
+                        <div class="card-body">
+                            <h5 class="card-title" th:text="${project.name}">Project Name</h5>
+                            <p class="card-text" th:text="${project.description}">Description</p>
+                            <a th:href="@{'/project/edit/' + ${project.id}}"
+                               class="btn btn-warning btn-sm mt-2">
+                                Edit
+                            </a>
+                            <button class="btn btn-danger btn-sm mt-2"
+                                    th:onclick="'showDeleteConfirm(' + ${project.id} + ')'">
+                                Delete
+                            </button>
+                            <a th:href="@{'/project/info/' + ${project.id}}" class="btn btn-primary btn-sm">
+                                Details
+                            </a>
+                            <a th:href="@{'/board/' + ${project.id}}" class="btn btn-primary btn-sm">
+                                Open Board
+                            </a>
+                        </div>
+                    </div>
+                    <div th:id="'confirmCard-' + ${project.id}" class="card mt-2" style="display:none;">
+                    <div class="card-body">
+                            <h6>Do you really want to delete this project?</h6>
+                            <div class="mt-2">
+                                <form th:action="@{'/project/delete/' + ${project.id}}" method="post">
+                                    <button type="submit" class="btn btn-danger btn-sm">Yes, delete</button>
+                                </form>
+
+                                <button class="btn btn-secondary btn-sm"
+                                        th:onclick="'hideDeleteConfirm(' + ${project.id} + ')'">
+                                    No
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showDeleteConfirm(id) {
+            document.getElementById("confirmCard-" + id).style.display = "block";
+        }
+        function hideDeleteConfirm(id) {
+            document.getElementById("confirmCard-" + id).style.display = "none";
+        }
+    </script>
+    <script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

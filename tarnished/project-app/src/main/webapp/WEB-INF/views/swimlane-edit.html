@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>Edit Swimlane</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/libs/bootstrap/bootstrap.min.css}">
+  <style>
+    * { font-family: 'Space Grotesk', system-ui, sans-serif !important; }
+  </style>
+</head>
+<body>
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>Edit Swimlane</h3>
+    <a th:href="@{/}" class="btn btn-outline-secondary">Home</a>
+  </div>
+
+  <form th:action="@{'/swimlane/update'}" method="post" accept-charset="UTF-8">
+
+    <input type="hidden" name="id" th:value="${swimlane.id}" />
+
+    <!--nom de la swimlane-->
+    <div class="mb-3">
+      <label class="form-label">Swimlane Name*</label>
+      <input class="form-control" type="text" name="name"
+             th:value="${swimlane.name}" id="swimlaneName" required maxlength="50">
+      <div class="form-text">Max 50 characters</div>
+    </div>
+
+    <!--soumettre-->
+    <button type="submit" class="btn btn-primary mt-3" id="updateSwimlaneBtn">
+      Save Changes
+    </button>
+
+    <a th:href="@{'/board/' + ${swimlane.projectId}}" class="btn btn-secondary mt-3">
+      Cancel
+    </a>
+
+    <button type="button" class="btn btn-danger mt-3" onclick="confirmDeleteSwimlane()">
+      Delete Swimlane
+    </button>
+
+  </form>
+
+  <!--formulaire de suppression caché-->
+  <form th:id="'deleteSwimlaneForm-' + ${swimlane.id}"
+        th:action="@{'/swimlane/delete/'+ ${swimlane.id}}" method="post" style="display:none;">
+  </form>
+</div>
+
+<script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
+<script th:inline="javascript">
+  function confirmDeleteSwimlane() {
+    const swimlaneId = /*[[${swimlane.id}]]*/ 0;
+    if (confirm('Are you sure you want to delete this swimlane? This action cannot be undone.')) {
+      document.getElementById('deleteSwimlaneForm-' + swimlaneId).submit();
+    }
+  }
+</script>
+</body>
+</html>

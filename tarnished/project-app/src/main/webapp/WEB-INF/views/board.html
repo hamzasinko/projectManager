@@ -1,0 +1,2063 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="'Kanban Board - ' + ${project.name}">Kanban Board</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/libs/bootstrap/bootstrap.min.css}">
+    <style>
+        * { font-family: 'Space Grotesk', system-ui, sans-serif !important; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+        }
+        .swimlane-actions i {
+            font-size: 1.2rem; /*ajuste la taille*/
+            color: #333;       /*ajuste la couleur*/
+            vertical-align: middle;
+        }
+
+        .swimlane-board-wrapper {
+            overflow-x: auto !important;
+            overflow-y: visible;
+            padding-bottom: 40px; /* histoire d'avoir un peu d'espace en bas sinon on voit pas les dernières swimlanes */
+            width: 100%;
+            position: relative;
+            box-sizing: border-box;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .swimlane-board {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: min-content;
+            width: max-content;
+        }
+
+        .swimlane-row {
+            display: flex;
+            align-items: stretch;
+            min-width: min-content;
+        }
+
+        .swimlane-divider {
+            height: 2px;
+            background: linear-gradient(to right, transparent, #dee2e6, transparent);
+            margin: 15px 0;
+            width: 100%;
+        }
+
+        .swimlane-label {
+            flex: 0 0 200px;
+            background: #f1f3f5;
+            border-radius: 8px;
+            padding: 15px;
+            margin-right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            font-weight: 600;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        .swimlane-label *,
+        .swimlane-label a,
+        .swimlane-label button {
+            pointer-events: auto;
+        }
+
+        .swimlane-row .kanban-container {
+            flex: 0 0 auto;
+            min-width: min-content;
+            width: auto;
+        }
+
+        .kanban-container {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            min-height: 600px;
+            flex-shrink: 0;
+        }
+
+        /* le board classique (sans swimlanes) garde son scroll */
+        .container-fluid .kanban-container {
+            overflow-x: auto;
+            scroll-behavior: smooth;
+        }
+
+        /* les conteneurs dans les swimlanes n'ont pas de scroll individuel */
+        .swimlane-board .kanban-container {
+            overflow: visible;
+            width: max-content;
+        }
+        .kanban-column {
+            flex: 0 0 300px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            min-height: 500px;
+        }
+        
+        /* réduire la hauteur des colonnes de moitié quand il y a 2+ swimlanes */
+        body.multiple-swimlanes .swimlane-board .kanban-column {
+            min-height: 250px;
+        }
+        
+        body.multiple-swimlanes .swimlane-board .kanban-container {
+            min-height: 300px;
+        }
+        
+        /* scroll vertical pour les colonnes avec 3+ stories dans les swimlanes */
+        /* hauteur max pour afficher exactement 3 stories visibles (chaque story ~150-160px avec marges) */
+        .swimlane-board .kanban-column .column-stories.scrollable,
+        .swimlane-board .kanban-column .subcolumn-backlog .column-stories.scrollable,
+        .swimlane-board .kanban-column .subcolumn-done .column-stories.scrollable {
+            max-height: 480px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        /* hauteur réduite pour les colonnes avec 2+ swimlanes - toujours afficher 3 stories */
+        body.multiple-swimlanes .swimlane-board .kanban-column .column-stories.scrollable,
+        body.multiple-swimlanes .swimlane-board .kanban-column .subcolumn-backlog .column-stories.scrollable,
+        body.multiple-swimlanes .swimlane-board .kanban-column .subcolumn-done .column-stories.scrollable {
+            max-height: 480px;
+        }
+        
+        .column-header {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+        .column-capacity {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        .story-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: move;
+            transition: box-shadow 0.2s;
+        }
+        .story-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .story-card.temp-story {
+            opacity: 0.8;
+            border-style: dashed;
+            cursor: not-allowed;
+        }
+        .story-card.temp-story:hover {
+            box-shadow: none;
+        }
+        .story-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #212529;
+        }
+        .story-meta {
+            font-size: 0.85em;
+            color: #6c757d;
+        }
+        .story-actions {
+            margin-top: 8px;
+            display: flex;
+            gap: 5px;
+        }
+        .add-story-btn {
+            width: 100%;
+            margin-top: 10px;
+        }
+        .project-header {
+            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+            color: white;
+            padding: 20px 0;
+            margin: 0;
+            box-sizing: border-box;
+            width: 100vw;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            overflow-x: hidden;
+            pointer-events: none;
+        }
+
+        .project-header .container-fluid {
+            width: 100%;
+            max-width: 100%;
+            padding-left: 20px;
+            padding-right: 20px;
+            margin: 0 auto;
+            box-sizing: border-box;
+            pointer-events: auto;
+        }
+        
+        .project-header a,
+        .project-header button {
+            pointer-events: auto;
+        }
+        
+        /* ajouter un espace pour compenser le header fixe */
+        body {
+            padding-top: 85px;
+        }
+        
+        .drag-over {
+            background-color: #e7f3ff;
+            border: 2px dashed #0d6efd;
+        }
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+        .status-BACKLOG { background-color: #6c757d; color: white; }
+        .status-IN_PROGRESS { background-color: #0d6efd; color: white; }
+        .status-REVIEW { background-color: #ffc107; color: #000; }
+        .status-DONE { background-color: #198754; color: white; }
+        .status-BLOCKED { background-color: #dc3545; color: white; }
+        .column-drag-over {
+            border: 3px dashed #0d6efd;
+            opacity: 0.5;
+        }
+        .dragging {
+            opacity: 0.5;
+            border: 2px dashed #0d6efd;
+        }
+        .column-header {
+            cursor: move;
+        }
+    </style>
+</head>
+<body th:classappend="${hasSwimlanes and swimlanes.size() >= 2} ? 'multiple-swimlanes' : ''">
+    <div class="project-header">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 th:text="${project.name}">Project Name</h2>
+                </div>
+                <div class="d-flex gap-2">
+                    <a th:href="@{/}" class="btn btn-light">Home</a>
+                    <a th:href="@{'/project/info/' + ${project.id}}" class="btn btn-outline-light btn-sm">
+                        Back to Project
+                    </a>
+                    <a th:href="@{'/project/edit/' + ${project.id}}" class="btn btn-warning btn-sm">
+                        Edit Project
+                    </a>
+                    <a th:href="@{'/project/' + ${project.id} + '/stories'}" class="btn btn-info btn-sm">
+                        View All Stories
+                    </a>
+                    <a th:href="@{'/story/new?projectId=' + ${project.id}}" class="btn btn-success btn-sm">
+                        + New Story
+                    </a>
+                    <a th:href="@{'/swimlane/new?projectId=' + ${project.id}}" class="btn btn-primary btn-sm">
+                        + New Swimlane
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--board avec swimlanes-->
+    <div th:if="${hasSwimlanes}">
+        <div th:replace="~{fragments/board-swimlanes :: swimlaneBoard}"></div>
+    </div>
+
+    <!--board sans swimlanes-->
+    <div th:unless="${hasSwimlanes}">
+        <div th:replace="~{fragments/board-classic :: classicBoard}"></div>
+    </div>
+
+    <!--modal pour suppression de colonne avec stories-->
+    <div id="deleteColumnModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999;">
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:30px; border-radius:8px; max-width:500px; width:90%;">
+            <h4>Delete Column</h4>
+            <p id="deleteColumnMessage"></p>
+            <div style="margin:20px 0;">
+                <label style="display:block; margin-bottom:10px;">
+                    <input type="radio" name="deleteAction" value="deleteStories" checked> Delete all stories in this column
+                </label>
+                <label style="display:block; margin-bottom:10px;">
+                    <input type="radio" name="deleteAction" value="moveStories"> Move all stories to another column:
+                </label>
+                <select id="targetColumnSelect" style="width:100%; padding:8px; margin-left:24px; display:none;">
+                    <option value="">-- Select a column --</option>
+                </select>
+            </div>
+            <div style="text-align:right; margin-top:20px;">
+                <button onclick="cancelDeleteColumn()" class="btn btn-secondary">Cancel</button>
+                <button onclick="confirmDeleteColumn()" class="btn btn-danger" style="margin-left:10px;">Delete Column</button>
+            </div>
+        </div>
+    </div>
+
+    <!--modal pour création de story-->
+    <div id="addStoryModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999;">
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:30px; border-radius:8px; max-width:500px; width:90%;">
+            <h4>Add New Story</h4>
+            <form id="addStoryForm" onsubmit="return false;">
+                <div class="mb-3">
+                    <label for="storyTitle" class="form-label"><strong>Story Title *</strong></label>
+                    <input type="text" 
+                           id="storyTitle" 
+                           class="form-control" 
+                           maxlength="59"
+                           required>
+                    <small class="form-text text-muted">Max 59 characters</small>
+                </div>
+                <div class="mb-3">
+                    <label for="storyDescription" class="form-label"><strong>Description</strong></label>
+                    <textarea id="storyDescription" 
+                              class="form-control" 
+                              rows="4"></textarea>
+                </div>
+                <div style="text-align:right; margin-top:20px;">
+                    <button type="button" onclick="cancelAddStory()" class="btn btn-secondary">Cancel</button>
+                    <button type="button" id="createStoryBtn" onclick="confirmAddStory()" class="btn btn-primary" style="margin-left:10px;">Create Story</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!--modal pour édition de swimlane-->
+    <div id="editSwimlaneModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999;">
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:30px; border-radius:8px; max-width:500px; width:90%;">
+            <h4>Edit Swimlane</h4>
+            <!-- Normal form submission to backend -->
+            <form id="editSwimlaneForm" method="post" th:action="@{/swimlane/update}">
+                <input type="hidden" name="id" id="editSwimlaneId">
+                <div class="mb-3">
+                    <label for="editSwimlaneName" class="form-label"><strong>Swimlane Name *</strong></label>
+                    <input type="text"
+                           id="editSwimlaneName"
+                           name="name"
+                        class="form-control"
+                        required>
+                </div>
+                <div style="text-align:right; margin-top:20px;">
+                    <button type="button" onclick="cancelEditSwimlane()" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="margin-left:10px;">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!--modal pour édition de colonne-->
+    <div id="editColumnModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999;">
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:30px; border-radius:8px; max-width:500px; width:90%;">
+            <h4>Edit Column</h4>
+            <form id="editColumnForm" onsubmit="return false;">
+                <div class="mb-3">
+                    <label for="editColumnName" class="form-label"><strong>Column Name *</strong></label>
+                    <input type="text" 
+                           id="editColumnName" 
+                           class="form-control" 
+                           maxlength="25"
+                           required
+                           onkeypress="if(event.key==='Enter') {event.preventDefault(); document.getElementById('editColumnCapacity').focus();}">
+                    <small class="form-text text-muted">Max 25 characters</small>
+                </div>
+                <div class="mb-3" id="editCapacityContainer">
+                    <label for="editColumnCapacity" class="form-label"><strong>Max Capacity</strong></label>
+                    <input type="number" 
+                           id="editColumnCapacity" 
+                           class="form-control" 
+                           min="0" 
+                           value="0"
+                           onkeypress="if(event.key==='Enter') confirmEditColumn()">
+                    <small class="form-text text-muted">Enter 0 for unlimited capacity, or a number to limit the number of stories</small>
+                </div>
+                <div style="text-align:right; margin-top:20px;">
+                    <button type="button" onclick="cancelEditColumn()" class="btn btn-secondary">Cancel</button>
+                    <button type="button" onclick="confirmEditColumn()" class="btn btn-primary" style="margin-left:10px;">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="deleteSwimlaneModal"
+         style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,0.5); z-index:9999;">
+
+        <div style="position:absolute; top:50%; left:50%;
+                transform:translate(-50%, -50%);
+                background:white; padding:30px;
+                border-radius:8px; max-width:500px; width:90%;">
+
+            <h4>Delete Swimlane</h4>
+
+            <p id="deleteSwimlaneMessage"></p>
+
+            <!-- selection container -->
+            <div id="swimlaneSelectionContainer" style="margin:20px 0; display:none;">
+                <label for="targetSwimlaneSelect">Move stories to:</label>
+                <select id="targetSwimlaneSelect" style="width:100%; padding:8px;">
+                </select>
+            </div>
+
+            <form id="deleteSwimlaneModalForm" method="post">
+                <input type="hidden" name="targetSwimlaneId" id="targetSwimlaneInput">
+                <div style="text-align:right; margin-top:20px;">
+                    <button type="button"
+                            onclick="cancelDeleteSwimlane()"
+                            class="btn btn-secondary">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="btn btn-danger"
+                            style="margin-left:10px;">
+                        Confirm Delete
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        const swimlanes = /*[[${swimlanes}]]*/ [];
+
+
+
+        function formatDuration(minutes) {
+            if (minutes < 60) {
+                return minutes + ' min';
+            }
+            const days = Math.floor(minutes / 1440);
+            const hours = Math.floor((minutes % 1440) / 60);
+            const mins = minutes % 60;
+            
+            let result = '';
+            if (days > 0) result += days + 'd ';
+            if (hours > 0) result += hours + 'h ';
+            if (mins > 0) result += mins + 'min';
+            return result.trim();
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.duration-display').forEach(function(el) {
+                const minutes = parseInt(el.getAttribute('data-minutes'));
+                el.textContent = formatDuration(minutes);
+            });
+        });
+        
+        let draggedColumn = null;
+        let draggedStory = null;
+        let autoScrollInterval = null;
+        const projectId = /*[[${project.id}]]*/ '1';
+        let columnToDelete = null;
+        
+        //Auto-scroll functionality
+        function autoScroll(ev) {
+            // trouver le conteneur kanban le plus proche ou le wrapper de swimlanes
+            const container = ev.target.closest('.kanban-container');
+            const swimlaneWrapper = ev.target.closest('.swimlane-board-wrapper');
+            const scrollContainer = swimlaneWrapper || container || document.querySelector('.kanban-container');
+            if (!scrollContainer) return;
+            
+            const scrollSpeed = 15;
+            const edgeSize = 100;
+            
+            const rect = scrollContainer.getBoundingClientRect();
+            const x = ev.clientX - rect.left;
+            
+            if (x < edgeSize) {
+                scrollContainer.scrollLeft -= scrollSpeed;
+            } else if (x > rect.width - edgeSize) {
+                scrollContainer.scrollLeft += scrollSpeed;
+            }
+        }
+        
+        function allowDrop(ev) {
+            if (draggedStory) {
+                ev.preventDefault();
+                const columnElement = ev.currentTarget.closest('.kanban-column') || ev.currentTarget;
+                columnElement.classList.add('drag-over');
+                autoScroll(ev);
+            }
+        }
+
+        function dragLeave(ev) {
+            const columnElement = ev.currentTarget.closest('.kanban-column') || ev.currentTarget;
+            columnElement.classList.remove('drag-over');
+        }
+
+        function drag(ev) {
+            //récupère l'élément story card (peut être un enfant qui a été cliqué)
+            const storyCard = ev.target.closest('.story-card');
+            if (!storyCard) return;
+            
+            // Ne pas permettre le drag des stories temporaires
+            if (storyCard.classList.contains('temp-story')) {
+                ev.preventDefault();
+                return false;
+            }
+            
+            draggedStory = storyCard;
+            const storyId = storyCard.dataset.storyId;
+            const columnElement = storyCard.closest('.kanban-column');
+            const columnId = columnElement ? columnElement.dataset.columnId : null;
+            
+            if (!storyId || !columnId) {
+                console.error('Missing storyId or columnId', {storyId, columnId});
+                return;
+            }
+            
+            ev.dataTransfer.setData("storyId", storyId);
+            ev.dataTransfer.setData("fromColumnId", columnId);
+            storyCard.style.opacity = '0.5';
+            
+            //start auto-scroll
+            autoScrollInterval = setInterval(() => {
+                if (draggedStory) {
+                    const lastEvent = window.lastDragEvent;
+                    if (lastEvent) autoScroll(lastEvent);
+                }
+            }, 50);
+        }
+
+        function drop(ev) {
+            console.log('[DROP] Called - draggedStory:', draggedStory);
+            if (draggedStory) {
+                ev.preventDefault();
+                ev.stopPropagation(); //empêcher la propagation pour éviter double appel
+                
+                //get the column element (might drop on child elements)
+                const columnElement = ev.currentTarget.closest('.kanban-column') || ev.currentTarget;
+                columnElement.classList.remove('drag-over');
+                
+                const storyId = ev.dataTransfer.getData("storyId");
+                const fromColumnId = ev.dataTransfer.getData("fromColumnId");
+                const toColumnId = columnElement.dataset.columnId;
+                const swimlaneElement = ev.currentTarget.closest('.swimlane-row');
+                const swimlaneId = swimlaneElement ? swimlaneElement.dataset.swimlaneId : null;
+
+                const movedStoryElement = draggedStory;
+                console.log('[DROP] movedStoryElement captured:', movedStoryElement);
+                clearInterval(autoScrollInterval);
+                draggedStory = null;
+
+                if (!storyId || !fromColumnId || !toColumnId) {
+                    console.error('Missing data in drop', {storyId, fromColumnId, toColumnId});
+                    if (movedStoryElement) movedStoryElement.style.opacity = '1';
+                    alert('Error: Missing story or column ID. Please refresh the page.');
+                    return;
+                }
+
+                //toujours appeler moveStoryToColumn, même si même colonne
+                //car il faut repositionner en haut
+                moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, null,swimlaneId);
+            }
+        }
+        
+        function storyDragOver(ev) {
+            if (draggedStory) {
+                ev.preventDefault();
+                ev.stopPropagation();
+            }
+        }
+        
+        function storyDrop(ev) {
+            if (!draggedStory) return;
+            
+            // Ne pas permettre le drop des stories temporaires
+            if (draggedStory.classList.contains('temp-story') || 
+                (draggedStory.dataset.storyId && draggedStory.dataset.storyId.toString().startsWith('temp-'))) {
+                draggedStory.style.opacity = '1';
+                clearInterval(autoScrollInterval);
+                draggedStory = null;
+                return;
+            }
+            
+            ev.preventDefault();
+            ev.stopPropagation();
+            
+            const target = ev.currentTarget;
+            
+            //check if we dropped on an empty area (column-stories div) or on a story card
+            const isEmptyArea = target.classList.contains('column-stories');
+            
+            //if dropped in empty area, handle subcolumn change
+            if (isEmptyArea) {
+                const targetSubColumn = target.closest('.subcolumn-done') ? 'DONE' : 
+                                       target.closest('.subcolumn-backlog') ? 'BACKLOG' : null;
+                const fromSubColumn = draggedStory.closest('.subcolumn-done') ? 'DONE' :
+                                     draggedStory.closest('.subcolumn-backlog') ? 'BACKLOG' : null;
+                
+                const columnElement = target.closest('.kanban-column');
+                if (!columnElement) return;
+                
+                const toColumnId = columnElement.dataset.columnId;
+                const fromColumnElement = draggedStory.closest('.kanban-column');
+                const fromColumnId = fromColumnElement ? fromColumnElement.dataset.columnId : null;
+                const swimlaneElement = ev.currentTarget.closest('.swimlane-row');
+                const swimlaneId = swimlaneElement ? swimlaneElement.dataset.swimlaneId : null;
+                
+                //if same column but different subcolumn
+                if (fromColumnId === toColumnId && targetSubColumn && fromSubColumn !== targetSubColumn) {
+                    const storyId = draggedStory.dataset.storyId;
+                    clearInterval(autoScrollInterval);
+                    const movedStoryElement = draggedStory;
+                    draggedStory = null;
+                    
+                    console.log('[DEBUG] Subcolumn change detected (empty area) - from:', fromSubColumn, 'to:', targetSubColumn);
+                    moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn, swimlaneId);
+                    return;
+                }
+                
+                //different column
+                if (fromColumnId !== toColumnId) {
+                    const storyId = draggedStory.dataset.storyId;
+                    clearInterval(autoScrollInterval);
+                    const movedStoryElement = draggedStory;
+                    draggedStory = null;
+                    moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn, swimlaneId);
+                    return;
+                }
+                
+                //same column, same subcolumn - just append to end (mais vérifier qu'on ne duplique pas)
+                //vérifier que la story n'est pas déjà dans cette zone
+                const existingInTarget = target.querySelector(`[data-story-id="${draggedStory.dataset.storyId}"]`);
+                if (!existingInTarget || existingInTarget === draggedStory) {
+                    //remove from current location first to avoid duplication
+                    if (draggedStory.parentElement && draggedStory.parentElement !== target) {
+                        draggedStory.parentElement.removeChild(draggedStory);
+                    }
+                    target.appendChild(draggedStory);
+                }
+                draggedStory.style.opacity = '1';
+                clearInterval(autoScrollInterval);
+                draggedStory = null;
+                saveStoryOrder(fromColumnId);
+                updateSwimlaneColumnScroll();
+                return;
+            }
+            
+            //dropped on a story card
+            const targetStory = target;
+            if (targetStory === draggedStory) return; //same story
+            
+            const columnStories = targetStory.parentElement;
+            const columnElement = columnStories.closest('.kanban-column');
+            if (!columnElement) return;
+            
+            const toColumnId = columnElement.dataset.columnId;
+            const fromColumnElement = draggedStory.closest('.kanban-column');
+            const fromColumnId = fromColumnElement ? fromColumnElement.dataset.columnId : null;
+            const swimlaneElement = ev.currentTarget.closest('.swimlane-row');
+            const swimlaneId = swimlaneElement ? swimlaneElement.dataset.swimlaneId : null;
+            
+            //detect if dropped in a subcolumn
+            const targetSubColumn = targetStory.closest('.subcolumn-done') ? 'DONE' : 
+                                   targetStory.closest('.subcolumn-backlog') ? 'BACKLOG' : null;
+            const fromSubColumn = draggedStory.closest('.subcolumn-done') ? 'DONE' :
+                                 draggedStory.closest('.subcolumn-backlog') ? 'BACKLOG' : null;
+            
+            //if same column but different subcolumn
+            if (fromColumnId === toColumnId && targetSubColumn && fromSubColumn !== targetSubColumn) {
+                const storyId = draggedStory.dataset.storyId;
+                clearInterval(autoScrollInterval);
+                const movedStoryElement = draggedStory;
+                draggedStory = null;
+                
+                console.log('[DEBUG] Subcolumn change detected (on story) - from:', fromSubColumn, 'to:', targetSubColumn);
+                moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn, swimlaneId);
+                return;
+            }
+            
+            //same column and same subcolumn = manual reordering
+            if (fromColumnId === toColumnId) {
+                //vérifier que la story n'est pas déjà à la bonne position (éviter les duplications)
+                if (draggedStory.parentElement === columnStories) {
+                    //la story est déjà dans la bonne colonne, juste réordonner
+                    const rect = targetStory.getBoundingClientRect();
+                    const midpoint = rect.top + rect.height / 2;
+                    
+                    //insert before or after based on mouse position
+                    if (ev.clientY < midpoint) {
+                        columnStories.insertBefore(draggedStory, targetStory);
+                    } else {
+                        columnStories.insertBefore(draggedStory, targetStory.nextSibling);
+                    }
+                } else {
+                    //la story vient d'une autre colonne, la déplacer d'abord
+                    if (draggedStory.parentElement) {
+                        draggedStory.parentElement.removeChild(draggedStory);
+                    }
+                    const rect = targetStory.getBoundingClientRect();
+                    const midpoint = rect.top + rect.height / 2;
+                    
+                    if (ev.clientY < midpoint) {
+                        columnStories.insertBefore(draggedStory, targetStory);
+                    } else {
+                        columnStories.insertBefore(draggedStory, targetStory.nextSibling);
+                    }
+                }
+                
+                draggedStory.style.opacity = '1';
+                clearInterval(autoScrollInterval);
+                draggedStory = null;
+                
+                //save the new order
+                saveStoryOrder(fromColumnId);
+                updateSwimlaneColumnScroll();
+                return;
+            }
+            
+            //different column = move with server call
+            const storyId = draggedStory.dataset.storyId;
+            const movedStoryElement = draggedStory;
+            
+            clearInterval(autoScrollInterval);
+            draggedStory = null;
+            
+            moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn, swimlaneId);
+        }
+        
+        function moveStoryToColumn(storyId, fromColumnId, toColumnId, movedStoryElement, targetSubColumn = null, swimlaneId = null) {
+            const baseMoveUrl = /*[[@{/board/}]]*/ '';
+            
+            //vérifier que l'élément existe
+            if (!movedStoryElement) {
+                console.error('movedStoryElement is null');
+                return;
+            }
+            
+            // Ne pas permettre le déplacement des stories temporaires
+            if (movedStoryElement.classList.contains('temp-story') || storyId.toString().startsWith('temp-')) {
+                console.warn('Cannot move temporary story:', storyId);
+                if (movedStoryElement) movedStoryElement.style.opacity = '1';
+                alert('Please wait for the story to be saved before moving it.');
+                clearInterval(autoScrollInterval);
+                draggedStory = null;
+                return;
+            }
+            
+            clearInterval(autoScrollInterval);
+            draggedStory = null;
+
+            //si même colonne, gérer la sous-colonne et sauvegarder
+            if (fromColumnId === toColumnId && targetSubColumn) {
+                //save subcolumn change
+                const formData = new URLSearchParams();
+                formData.append('storyId', storyId);
+                formData.append('subColumn', targetSubColumn);
+                if (swimlaneId) {
+                    formData.append('swimlaneId', swimlaneId);
+                }
+                
+                fetch(baseMoveUrl + projectId + '/update-subcolumn', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData,
+                    redirect: 'manual'
+                })
+                .then(response => {
+                    if (!response.ok && response.status !== 0) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    // Si c'est une redirection (301, 302) ou status 0, considérer comme succès
+                    if (response.status === 301 || response.status === 302 || response.status === 0) {
+                        return { success: true };
+                    }
+                    // Sinon, essayer de parser le JSON
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        return response.json();
+                    }
+                    // Si ce n'est pas du JSON, considérer comme succès (redirection)
+                    return { success: true };
+                })
+                .then(data => {
+                    if (data && data.success) {
+                        // Déplacer la story dans le DOM vers la bonne sous-colonne
+                        let targetColumnStories;
+                        if (swimlaneId) {
+                            targetColumnStories = document.querySelector(
+                                `.swimlane-row[data-swimlane-id="${swimlaneId}"] [data-column-id="${toColumnId}"] .subcolumn-${targetSubColumn.toLowerCase()} .column-stories`
+                            );
+                        } else {
+                            targetColumnStories = document.querySelector(
+                                `[data-column-id="${toColumnId}"] .subcolumn-${targetSubColumn.toLowerCase()} .column-stories`
+                            );
+                        }
+                        
+                        if (targetColumnStories && movedStoryElement) {
+                            // Retirer de l'emplacement actuel
+                            if (movedStoryElement.parentElement) {
+                                movedStoryElement.parentElement.removeChild(movedStoryElement);
+                            }
+                            // Insérer dans la nouvelle sous-colonne
+                            if (targetColumnStories.firstChild) {
+                                targetColumnStories.insertBefore(movedStoryElement, targetColumnStories.firstChild);
+                            } else {
+                                targetColumnStories.appendChild(movedStoryElement);
+                            }
+                            movedStoryElement.style.opacity = '1';
+                            saveStoryOrder(toColumnId);
+                        }
+                        updateSwimlaneColumnScroll();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating subcolumn:', error);
+                    if (movedStoryElement) movedStoryElement.style.opacity = '1';
+                });
+                return;
+            }
+
+            //move story via AJAX (colonne différente)
+            const formData = new URLSearchParams();
+            formData.append('storyId', storyId);
+            formData.append('fromColumnId', fromColumnId);
+            formData.append('toColumnId', toColumnId);
+            if (targetSubColumn) {
+                formData.append('subColumn', targetSubColumn);
+            }
+            if (swimlaneId) formData.append('swimlaneId', swimlaneId);
+
+            fetch(baseMoveUrl + projectId + '/move-story', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData,
+                redirect: 'manual'
+            })
+            .then(response => {
+                // Le serveur retourne toujours du JSON, donc on essaie de le parser
+                // D'abord, essayer de lire le texte de la réponse
+                return response.text().then(text => {
+                    // Si on a du texte, essayer de le parser en JSON
+                    if (text && text.trim().length > 0) {
+                        try {
+                            const jsonData = JSON.parse(text);
+                            return jsonData;
+                        } catch (e) {
+                            console.warn('Failed to parse response as JSON:', text);
+                            // Si ce n'est pas du JSON valide, vérifier le status
+                            if (response.ok || response.status === 0 || response.status === 301 || response.status === 302) {
+                                return { success: true };
+                            }
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                    }
+                    // Pas de texte, vérifier le status
+                    if (response.ok || response.status === 0 || response.status === 301 || response.status === 302) {
+                        return { success: true };
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }).catch(error => {
+                    // En cas d'erreur de lecture, vérifier le status
+                    if (response.ok || response.status === 0 || response.status === 301 || response.status === 302) {
+                        return { success: true };
+                    }
+                    throw error;
+                });
+            })
+            .then(data => {
+                if (data && data.success) {
+                    if (movedStoryElement) movedStoryElement.style.opacity = '1';
+                    
+                    //update status badge if server returned new status
+                    if (data.newStatus) {
+                        const statusBadge = movedStoryElement.querySelector('.status-badge');
+                        if (statusBadge) {
+                            //remove old status classes
+                            statusBadge.className = 'badge status-badge';
+                            //add new status class
+                            statusBadge.classList.add('status-' + data.newStatus);
+                            //update text with spaces instead of underscores
+                            statusBadge.textContent = data.newStatus.replace(/_/g, ' ');
+                        }
+                    }
+                    
+                    //move the story element in DOM AFTER server confirms
+                    let targetColumnStories;
+                    // Si on a une sous-colonne cible (DONE ou BACKLOG), chercher dans la bonne sous-colonne
+                    if (targetSubColumn) {
+                        if (swimlaneId) {
+                            targetColumnStories = document.querySelector(
+                                `.swimlane-row[data-swimlane-id="${swimlaneId}"] [data-column-id="${toColumnId}"] .subcolumn-${targetSubColumn.toLowerCase()} .column-stories`
+                            );
+                        } else {
+                            targetColumnStories = document.querySelector(
+                                `[data-column-id="${toColumnId}"] .subcolumn-${targetSubColumn.toLowerCase()} .column-stories`
+                            );
+                        }
+                    }
+                    // Si pas trouvé ou pas de sous-colonne, chercher la colonne normale
+                    if (!targetColumnStories) {
+                        if (swimlaneId) {
+                            targetColumnStories = document.querySelector(
+                                `.swimlane-row[data-swimlane-id="${swimlaneId}"] [data-column-id="${toColumnId}"] .column-stories`
+                            );
+                        } else {
+                            targetColumnStories = document.querySelector(`[data-column-id="${toColumnId}"] .column-stories`);
+                        }
+                    }
+
+                    if (targetColumnStories && movedStoryElement) {
+                        //vérifier que la story n'est pas déjà dans la colonne cible (éviter les duplications)
+                        const existingStory = targetColumnStories.querySelector(`[data-story-id="${storyId}"]`);
+                        if (existingStory && existingStory !== movedStoryElement) {
+                            //la story existe déjà dans la colonne cible, ne pas la dupliquer
+                            console.warn('[DEBUG] Story already exists in target column, removing duplicate');
+                            if (movedStoryElement.parentElement) {
+                                movedStoryElement.parentElement.removeChild(movedStoryElement);
+                            }
+                        } else {
+                            //remove from current location first
+                            if (movedStoryElement.parentElement) {
+                                movedStoryElement.parentElement.removeChild(movedStoryElement);
+                            }
+                            //always insert at top (prepend)
+                            targetColumnStories.insertBefore(movedStoryElement, targetColumnStories.firstChild);
+                        }
+                        //sauvegarder le nouvel ordre de la colonne de destination
+                        saveStoryOrder(toColumnId);
+                    }
+                    
+                    updateColumnCounts();
+                    // mettre à jour le scroll après déplacement
+                    updateSwimlaneColumnScroll();
+                } else {
+                    if (movedStoryElement) movedStoryElement.style.opacity = '1';
+                    alert(data.error || 'Cannot move story to this column');
+                }
+            })
+            .catch(error => {
+                console.error('Error moving story:', error);
+                if (movedStoryElement) movedStoryElement.style.opacity = '1';
+                // Ne pas afficher d'alerte si c'est juste une redirection bloquée
+                if (error.message && error.message.includes('status: 0')) {
+                    console.log('Redirect blocked by browser, but operation likely succeeded');
+                    // Mettre à jour optimistiquement si on arrive ici
+                    if (movedStoryElement) {
+                        movedStoryElement.style.opacity = '1';
+                    }
+                    updateColumnCounts();
+                    updateSwimlaneColumnScroll();
+                } else {
+                    alert('Error moving story: ' + (error.message || error));
+                }
+            });
+        }
+
+        function saveStoryOrder(columnId) {
+            const columnElement = document.querySelector(`[data-column-id="${columnId}"]`);
+            const baseSaveUrl = /*[[@{/board/}]]*/ '';
+
+            if (!columnElement) return;
+            
+            const storyCards = columnElement.querySelectorAll('.story-card');
+            // Filtrer les stories temporaires
+            const storyIds = Array.from(storyCards)
+                .filter(card => !card.classList.contains('temp-story') && 
+                               card.dataset.storyId && 
+                               !card.dataset.storyId.toString().startsWith('temp-'))
+                .map(card => card.dataset.storyId);
+            
+            if (storyIds.length === 0) return;
+            
+            const formData = new URLSearchParams();
+            formData.append('columnId', columnId);
+            formData.append('storyOrder', storyIds.join(','));
+            
+            fetch(baseSaveUrl + projectId + '/reorder-stories', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    console.error('Failed to save story order');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving story order:', error);
+            });
+        }
+        
+        function updateColumnCounts() {
+            document.querySelectorAll('.kanban-column').forEach(col => {
+                const columnId = col.dataset.columnId;
+                const storyCount = col.querySelectorAll('.story-card').length;
+                const capacitySpan = col.querySelector('.column-capacity');
+                if (capacitySpan) {
+                    const currentCount = capacitySpan.querySelector('span:first-child');
+                    if (currentCount) {
+                        currentCount.textContent = storyCount;
+                    }
+                }
+            });
+            // mettre à jour le scroll des colonnes dans les swimlanes
+            updateSwimlaneColumnScroll();
+        }
+        
+        // créer une story dans le DOM après création via AJAX
+        function createStoryInDOM(title, description, columnId, swimlaneId) {
+            console.log('createStoryInDOM called with:', { title, columnId, swimlaneId });
+            
+            // trouver la colonne cible
+            let columnElement;
+            if (swimlaneId !== null && swimlaneId !== 'null') {
+                const selector = `.swimlane-row[data-swimlane-id="${swimlaneId}"] [data-column-id="${columnId}"] .column-stories`;
+                console.log('Looking for column with selector:', selector);
+                columnElement = document.querySelector(selector);
+            } else {
+                const selector = `[data-column-id="${columnId}"] .column-stories`;
+                console.log('Looking for column with selector (no swimlane):', selector);
+                columnElement = document.querySelector(selector);
+            }
+            
+            console.log('Found columnElement:', columnElement);
+            if (!columnElement) {
+                console.error('Could not find column element for columnId:', columnId, 'swimlaneId:', swimlaneId);
+                // essayer une recherche plus large
+                const allColumns = document.querySelectorAll('[data-column-id]');
+                console.log('All columns found:', allColumns.length);
+                allColumns.forEach(col => {
+                    console.log('Column ID:', col.getAttribute('data-column-id'));
+                });
+                return false;
+            }
+            
+            // créer un ID temporaire unique (sera remplacé au prochain chargement)
+            const tempStoryId = 'temp-' + Date.now();
+            
+            // créer l'élément story card
+            const storyCard = document.createElement('div');
+            storyCard.className = 'story-card';
+            storyCard.draggable = true;
+            storyCard.setAttribute('data-story-id', tempStoryId);
+            storyCard.setAttribute('id', 'story-' + tempStoryId);
+            
+            // déterminer le status badge selon la colonne
+            const column = columnElement.closest('[data-column-id]');
+            const columnNameEl = column ? column.querySelector('.column-header span') : null;
+            const columnName = columnNameEl ? columnNameEl.textContent.trim().toUpperCase().replace(/\s+/g, '_') : 'BACKLOG';
+            const statusClass = 'status-' + columnName;
+            const baseUrl = /*[[@{/story/}]]*/ '/story/';
+            const projectId = /*[[${project.id}]]*/ '1';
+            
+            // Pour les stories temporaires, désactiver toutes les actions serveur
+            storyCard.innerHTML = `
+                <div class="story-title">${escapeHtml(title)}</div>
+                <div class="story-meta">
+                    <span class="badge status-badge ${statusClass}">${columnName.replace(/_/g, ' ')}</span>
+                    <span class="badge bg-secondary" style="font-size: 0.7em; margin-left: 5px;">Saving...</span>
+                </div>
+                <div class="story-actions">
+                    <button class="btn btn-sm btn-outline-primary" disabled title="Please wait for story to be saved">Details</button>
+                    <button class="btn btn-sm btn-outline-warning" disabled title="Please wait for story to be saved">Edit</button>
+                    <button class="btn btn-sm btn-success" disabled title="Please wait for story to be saved">Start</button>
+                </div>
+            `;
+            
+            // insérer en haut de la colonne (avant la première story existante)
+            if (columnElement.firstChild) {
+                columnElement.insertBefore(storyCard, columnElement.firstChild);
+            } else {
+                columnElement.appendChild(storyCard);
+            }
+            
+            // Ajouter une classe pour identifier les stories temporaires
+            storyCard.classList.add('temp-story');
+            
+            // Désactiver le drag pour les stories temporaires (elles seront activées après sauvegarde)
+            storyCard.setAttribute('draggable', 'false');
+            
+            // Les event listeners timer ne sont pas nécessaires car les boutons sont désactivés
+            
+            console.log('Story created in DOM successfully at column:', columnId, 'swimlane:', swimlaneId);
+            console.log('Story card inserted:', storyCard);
+            console.log('Parent element:', columnElement);
+            console.log('Column element children count:', columnElement.children.length);
+            
+            return true;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // toggle le bouton timer (Start/Stop) dans le DOM
+        function toggleTimerButton(storyCard, isStarting) {
+            // Ne pas modifier les stories temporaires
+            if (!storyCard || storyCard.classList.contains('temp-story')) {
+                return;
+            }
+            
+            const storyId = storyCard.dataset.storyId;
+            if (!storyId || storyId.toString().startsWith('temp-')) {
+                return;
+            }
+            
+            const actionsDiv = storyCard.querySelector('.story-actions');
+            if (!actionsDiv) return;
+
+            // trouver le formulaire timer actuel
+            const currentTimerForm = actionsDiv.querySelector('form[action*="/timer/"]');
+            if (!currentTimerForm) return;
+            
+            // créer le nouveau formulaire
+            const newForm = document.createElement('form');
+            newForm.method = 'POST';
+            newForm.style.cssText = 'display: inline; margin: 0;';
+            
+            if (isStarting) {
+                // on vient de démarrer, donc maintenant on doit pouvoir arrêter
+                newForm.action = `/story/${storyId}/timer/stop`;
+                const workLogInput = document.createElement('input');
+                workLogInput.type = 'hidden';
+                workLogInput.name = 'workLogId';
+                workLogInput.value = '1'; // on ne connaît pas l'ID exact, mais ça sera géré côté serveur
+                newForm.appendChild(workLogInput);
+                const stopBtn = document.createElement('button');
+                stopBtn.type = 'submit';
+                stopBtn.className = 'btn btn-sm btn-danger';
+                stopBtn.title = 'Stop Timer';
+                stopBtn.textContent = 'Stop';
+                newForm.appendChild(stopBtn);
+            } else {
+                // on vient d'arrêter, donc maintenant on peut démarrer
+                newForm.action = `/story/${storyId}/timer/start`;
+                const startBtn = document.createElement('button');
+                startBtn.type = 'submit';
+                startBtn.className = 'btn btn-sm btn-success';
+                startBtn.title = 'Start Timer';
+                startBtn.textContent = 'Start';
+                newForm.appendChild(startBtn);
+            }
+            
+            // remplacer l'ancien formulaire
+            currentTimerForm.replaceWith(newForm);
+            
+            // réattacher les listeners
+            attachTimerListeners();
+        }
+        
+        // réattacher les listeners timer sur les nouveaux formulaires
+        function attachTimerListeners() {
+            document.querySelectorAll('form[action*="/timer/start"], form[action*="/timer/stop"]').forEach(form => {
+                // Ignorer les formulaires des stories temporaires
+                const storyCard = form.closest('.story-card');
+                if (storyCard && (storyCard.classList.contains('temp-story') || storyCard.dataset.storyId && storyCard.dataset.storyId.toString().startsWith('temp-'))) {
+                    return;
+                }
+                
+                // ne réattacher que si pas déjà attaché
+                if (!form.hasAttribute('data-listener-attached')) {
+                    form.setAttribute('data-listener-attached', 'true');
+                    form.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        const timerFormData = new FormData(form);
+                        const action = form.action;
+                        
+                        // Vérifier que l'action ne contient pas un ID temporaire
+                        const match = action.match(/\/story\/([^\/]+)\//);
+                        if (!match || match[1].toString().startsWith('temp-')) {
+                            console.warn('Cannot start timer for temporary story');
+                            return;
+                        }
+                        
+                        const params = new URLSearchParams();
+                        for (const [key, value] of timerFormData.entries()) {
+                            params.append(key, value);
+                        }
+                        
+                        fetch(action, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: params,
+                            redirect: 'manual'
+                        })
+                        .then(response => {
+                            // considérer comme succès même si status 0 (redirection bloquée par navigateur)
+                            const isSuccess = response.ok || response.status === 302 || response.status === 301 || response.status === 0;
+                            if (isSuccess) {
+                                const match = action.match(/\/story\/(\d+)\//);
+                                if (match && match[1]) {
+                                    const storyId = match[1];
+                                    const storyCard = document.querySelector(`[data-story-id="${storyId}"]`);
+                                    if (storyCard && !storyCard.classList.contains('temp-story')) {
+                                        toggleTimerButton(storyCard, action.includes('/timer/start'));
+                                    }
+                                }
+                            } else {
+                                console.error('Timer update failed, status:', response.status);
+                                // mettre à jour quand même optimistiquement
+                                const match = action.match(/\/story\/(\d+)\//);
+                                if (match && match[1]) {
+                                    const storyId = match[1];
+                                    const storyCard = document.querySelector(`[data-story-id="${storyId}"]`);
+                                    if (storyCard && !storyCard.classList.contains('temp-story')) {
+                                        toggleTimerButton(storyCard, action.includes('/timer/start'));
+                                    }
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            // mettre à jour optimistiquement même en cas d'erreur
+                            const match = action.match(/\/story\/(\d+)\//);
+                            if (match && match[1]) {
+                                const storyId = match[1];
+                                const storyCard = document.querySelector(`[data-story-id="${storyId}"]`);
+                                if (storyCard && !storyCard.classList.contains('temp-story')) {
+                                    toggleTimerButton(storyCard, action.includes('/timer/start'));
+                                }
+                            }
+                        });
+                    });
+                }
+            });
+        }
+        
+        // active le scroll vertical pour les colonnes avec 3+ stories dans les swimlanes
+        // assure qu'au moins 3 stories sont visibles avant d'activer le scroll
+        function updateSwimlaneColumnScroll() {
+            document.querySelectorAll('.swimlane-board .kanban-column').forEach(column => {
+                // gérer les colonnes avec sous-colonnes (Backlog/Done)
+                const subColumns = column.querySelectorAll('.subcolumn-backlog .column-stories, .subcolumn-done .column-stories');
+                if (subColumns.length > 0) {
+                    subColumns.forEach(subColumnStories => {
+                        const storyCards = subColumnStories.querySelectorAll('.story-card');
+                        const storyCount = storyCards.length;
+                        // activer le scroll seulement si on a plus de 3 stories
+                        if (storyCount > 3) {
+                            subColumnStories.classList.add('scrollable');
+                        } else {
+                            subColumnStories.classList.remove('scrollable');
+                        }
+                    });
+                } else {
+                    // colonne normale sans sous-colonnes
+                    const columnStories = column.querySelector('.column-stories');
+                    if (columnStories) {
+                        const storyCards = columnStories.querySelectorAll('.story-card');
+                        const storyCount = storyCards.length;
+                        // activer le scroll seulement si on a plus de 3 stories
+                        if (storyCount > 3) {
+                            columnStories.classList.add('scrollable');
+                        } else {
+                            columnStories.classList.remove('scrollable');
+                        }
+                    }
+                }
+            });
+        }
+
+        function dragColumn(ev) {
+            ev.stopPropagation();
+            const column = ev.target.closest('.kanban-column');
+            if (column && column.dataset.columnId) {
+                //empêcher le déplacement de BACKLOG
+                const columnName = column.querySelector('.column-header span').textContent.trim().toUpperCase();
+                if (columnName === 'BACKLOG') {
+                    ev.preventDefault();
+                    return false;
+                }
+                draggedColumn = column;
+                draggedColumn.classList.add('dragging');
+                ev.dataTransfer.effectAllowed = 'move';
+                ev.dataTransfer.setData('text/plain', draggedColumn.dataset.columnId);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // activer le scroll pour les colonnes avec 3+ stories
+            updateSwimlaneColumnScroll();
+            
+            // attacher les listeners timer
+            attachTimerListeners();
+            
+            //gérer tous les conteneurs kanban (pour le mode swimlanes)
+            const containers = document.querySelectorAll('.kanban-container');
+            
+            containers.forEach(function(container) {
+                //track mouse position for auto-scroll
+                container.addEventListener('dragover', function(ev) {
+                window.lastDragEvent = ev;
+                
+                if (draggedColumn && !draggedStory) {
+                    ev.preventDefault();
+                    autoScroll(ev);
+                    
+                    //empêcher tout placement avant ou à la place de BACKLOG
+                    const backlogColumn = Array.from(container.querySelectorAll('.kanban-column[data-column-id]')).find(col => {
+                        const nameEl = col.querySelector('.column-header span');
+                        return nameEl && nameEl.textContent.trim().toUpperCase() === 'BACKLOG';
+                    });
+                    
+                    const afterElement = getDragAfterElement(container, ev.clientX);
+                    
+                    //si afterElement est BACKLOG, ne pas bouger
+                    if (afterElement === backlogColumn) {
+                        return;
+                    }
+                    
+                    if (afterElement == null) {
+                        const addColumnDiv = container.querySelector('.kanban-column:last-child');
+                        container.insertBefore(draggedColumn, addColumnDiv);
+                    } else {
+                        container.insertBefore(draggedColumn, afterElement);
+                    }
+                }
+            });
+
+                container.addEventListener('dragend', function(ev) {
+                    if (draggedColumn) {
+                        draggedColumn.classList.remove('dragging');
+                        saveColumnOrder(container);
+                        draggedColumn = null;
+                    }
+                    if (draggedStory) {
+                        draggedStory.style.opacity = '1';
+                        clearInterval(autoScrollInterval);
+                        draggedStory = null;
+                    }
+                });
+            });
+        });
+
+        function getDragAfterElement(container, x) {
+            //filtrer BACKLOG des éléments draggables pour qu'on ne puisse jamais se positionner avant
+            const draggableElements = [...container.querySelectorAll('.kanban-column:not(.dragging)')].filter(el => {
+                if (!el.dataset.columnId) return false;
+                const nameEl = el.querySelector('.column-header span');
+                const name = nameEl ? nameEl.textContent.trim().toUpperCase() : '';
+                return name !== 'BACKLOG';
+            });
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = x - box.left - box.width / 2;
+
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function saveColumnOrder(container) {
+            // on prend le conteneur qu'on nous donne, sinon on prend le premier qu'on trouve
+            // normalement ils ont tous les mêmes colonnes donc peu importe lequel
+            const targetContainer = container || document.querySelector('.kanban-container');
+            if (!targetContainer) return;
+            
+            const columns = targetContainer.querySelectorAll('.kanban-column[data-column-id]');
+            const columnIdsMap = new Map(); // Map c'est pratique pour éviter les doublons et garder l'ordre
+            
+            columns.forEach(col => {
+                const columnId = col.dataset.columnId;
+                if (columnId && !columnIdsMap.has(columnId)) {
+                    columnIdsMap.set(columnId, col);
+                }
+            });
+            
+            const columnIds = Array.from(columnIdsMap.keys());
+            const baseSaveUrl = /*[[@{/board/}]]*/ '';
+            
+            if (columnIds.length === 0) return;
+
+            // BACKLOG doit toujours rester en premier, c'est important
+            try {
+                let backlogId = null;
+                columnIdsMap.forEach((col, id) => {
+                    const nameEl = col.querySelector('.column-header span');
+                    if (nameEl && nameEl.textContent.trim().toUpperCase() === 'BACKLOG') {
+                        backlogId = id;
+                    }
+                });
+                if (backlogId) {
+                    const idx = columnIds.indexOf(backlogId);
+                    if (idx > -1) {
+                        columnIds.splice(idx, 1);
+                        columnIds.unshift(backlogId);
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not enforce BACKLOG first:', e);
+            }
+            
+            const formData = new URLSearchParams();
+            formData.append('columnOrder', columnIds.join(','));
+
+            console.log('[DEBUG] Saving column order:', columnIds.join(','));
+            fetch(baseSaveUrl + projectId + '/reorder-columns', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('[DEBUG] Column order saved successfully');
+                    // maintenant faut mettre à jour tous les autres conteneurs aussi (genre les swimlanes)
+                    syncColumnOrderToAllContainers(targetContainer, columnIds);
+                } else {
+                    console.error('[DEBUG] Failed to reorder columns:', data);
+                }
+            })
+            .catch(error => {
+                console.error('[DEBUG] Error saving column order:', error);
+            });
+        }
+
+        function syncColumnOrderToAllContainers(sourceContainer, columnIds) {
+            // on récupère tous les conteneurs de colonnes
+            const allContainers = document.querySelectorAll('.kanban-container');
+            
+            // s'il y en a qu'un seul, y a rien à faire
+            if (allContainers.length <= 1) return;
+            
+            // on parcourt tous les conteneurs pour mettre à jour leur ordre
+            allContainers.forEach(container => {
+                // on saute celui qu'on a déjà modifié, il est déjà bon
+                if (container === sourceContainer) return;
+                
+                // on récupère toutes les colonnes de ce conteneur
+                const columns = Array.from(container.querySelectorAll('.kanban-column[data-column-id]'));
+                const columnsMap = new Map();
+                columns.forEach(col => {
+                    const columnId = col.dataset.columnId;
+                    if (columnId) {
+                        columnsMap.set(columnId, col);
+                    }
+                });
+                
+                // faut trouver où on doit mettre les colonnes, probablement avant le bouton "Add Column"
+                const allChildren = Array.from(container.children);
+                const lastNonColumnElement = allChildren.slice().reverse().find(child => !child.dataset.columnId);
+                const insertBeforeElement = lastNonColumnElement || container.lastElementChild;
+                
+                // on réorganise les colonnes dans le bon ordre maintenant
+                columnIds.forEach(columnId => {
+                    const columnElement = columnsMap.get(columnId);
+                    if (columnElement && columnElement.parentNode === container) {
+                        // on déplace la colonne au bon endroit
+                        if (insertBeforeElement && insertBeforeElement !== columnElement) {
+                            container.insertBefore(columnElement, insertBeforeElement);
+                        }
+                    }
+                });
+            });
+        }
+
+        let storyToAdd = null;
+        
+        function addStoryToColumn(projectIdParam, columnId, swimlaneId = null) {
+            console.log('[DEBUG] addStoryToColumn called - projectId:', projectIdParam, 'columnId:', columnId, 'swimlaneId:', swimlaneId);
+            storyToAdd = {
+                projectId: projectIdParam,
+                columnId: columnId,
+                swimlaneId: swimlaneId
+            };
+            document.getElementById('storyTitle').value = '';
+            document.getElementById('storyDescription').value = '';
+            document.getElementById('addStoryModal').style.display = 'block';
+        }
+        
+        function cancelAddStory() {
+            document.getElementById('addStoryModal').style.display = 'none';
+            storyToAdd = null;
+        }
+        
+        function confirmAddStory() {
+            if (!storyToAdd) {
+                console.error('storyToAdd is null!');
+                return;
+            }
+            
+            const title = document.getElementById('storyTitle').value.trim();
+            const description = document.getElementById('storyDescription').value;
+            
+            if (!title || title.length === 0) {
+                alert('Story title is required!');
+                return;
+            }
+            
+            if (title.length > 59) {
+                alert('Story title must be less than 59 characters!');
+                document.getElementById('storyTitle').value = title.substring(0, 59);
+                return;
+            }
+            
+            // sauvegarder les valeurs avant de fermer le modal
+            const projectId = storyToAdd.projectId;
+            const columnId = storyToAdd.columnId;
+            const swimlaneId = storyToAdd.swimlaneId;
+            
+            console.log('confirmAddStory - storyToAdd:', storyToAdd);
+            console.log('Values to use:', { projectId, columnId, swimlaneId });
+            
+            // fermer le modal AVANT de créer dans le DOM
+            cancelAddStory();
+            
+            // créer la story dans le DOM immédiatement (création optimiste)
+            const columnIdStr = String(columnId);
+            const swimlaneIdStr = swimlaneId !== null && swimlaneId !== 'null' ? String(swimlaneId) : null;
+            
+            console.log('About to create story in DOM:', { title, columnId: columnIdStr, swimlaneId: swimlaneIdStr });
+            
+            // créer la story dans le DOM
+            const created = createStoryInDOM(title, description || '', columnIdStr, swimlaneIdStr);
+            
+            if (created) {
+                updateColumnCounts();
+                updateSwimlaneColumnScroll();
+            } else {
+                console.error('Failed to create story in DOM');
+            }
+            
+            // préparer les données pour l'appel serveur
+            const storyFormData = new URLSearchParams();
+            storyFormData.append('title', title);
+            if (description) {
+                storyFormData.append('description', description);
+            }
+            storyFormData.append('projectId', projectId);
+            storyFormData.append('columnId', columnId);
+            if (swimlaneId !== null && swimlaneId !== 'null') {
+                storyFormData.append('swimlaneId', swimlaneId);
+            }
+            
+            // envoyer la requête et attendre la réponse pour mettre à jour avec le vrai ID
+            const baseCreateUrl = /*[[@{/story/create}]]*/ '/story/create';
+            const tempStoryCard = document.querySelector(`[data-story-id^="temp-"]`);
+            const tempStoryId = tempStoryCard ? tempStoryCard.dataset.storyId : null;
+            
+            fetch(baseCreateUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: storyFormData,
+                redirect: 'manual'
+            })
+            .then(response => {
+                // Le serveur redirige vers /board/{projectId}, on recharge la page pour avoir les vraies données
+                if (response.status === 302 || response.status === 301 || response.status === 0 || response.ok) {
+                    // Recharger la page pour obtenir la story avec le vrai ID du serveur
+                    window.location.reload();
+                } else {
+                    // En cas d'erreur, supprimer la story temporaire
+                    if (tempStoryCard && tempStoryCard.parentElement) {
+                        tempStoryCard.parentElement.removeChild(tempStoryCard);
+                        updateColumnCounts();
+                        updateSwimlaneColumnScroll();
+                    }
+                    alert('Error creating story. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error creating story on server:', error);
+                // En cas d'erreur, supprimer la story temporaire
+                if (tempStoryCard && tempStoryCard.parentElement) {
+                    tempStoryCard.parentElement.removeChild(tempStoryCard);
+                    updateColumnCounts();
+                    updateSwimlaneColumnScroll();
+                }
+                alert('Error creating story: ' + (error.message || 'Unknown error'));
+            });
+        }
+
+        let columnToEdit = null;
+
+        function editColumn(button) {
+            const columnId = button.getAttribute('data-column-id');
+            const currentName = button.getAttribute('data-column-name');
+            const currentCapacity = button.getAttribute('data-column-capacity') || '0';
+            
+            console.log('[DEBUG] Edit column - ID:', columnId, 'Name:', currentName, 'Capacity:', currentCapacity);
+            
+            //vérifier si c'est BACKLOG ou DONE
+            const isBacklogOrDone = currentName.toUpperCase() === 'BACKLOG' || currentName.toUpperCase() === 'DONE';
+            
+            //stocker les infos de la colonne à éditer
+            columnToEdit = {
+                id: columnId,
+                isBacklogOrDone: isBacklogOrDone
+            };
+            
+            //remplir le formulaire du modal
+            document.getElementById('editColumnName').value = currentName;
+            document.getElementById('editColumnCapacity').value = currentCapacity;
+            
+            //afficher/masquer le champ capacité selon le type de colonne
+            const capacityContainer = document.getElementById('editCapacityContainer');
+            if (isBacklogOrDone) {
+                capacityContainer.style.display = 'none';
+            } else {
+                capacityContainer.style.display = 'block';
+            }
+            
+            //afficher le modal
+            document.getElementById('editColumnModal').style.display = 'block';
+        }
+        
+        function cancelEditColumn() {
+            document.getElementById('editColumnModal').style.display = 'none';
+            columnToEdit = null;
+        }
+        
+        function confirmEditColumn() {
+            const baseEditUrl = /*[[@{/board/}]]*/ '';
+            if (!columnToEdit) return;
+            
+            const newName = document.getElementById('editColumnName').value.trim();
+            let newCapacity = '0';
+            
+            //validation du nom
+            if (!newName || newName.length === 0) {
+                alert('Column name is required!');
+                return;
+            }
+            
+            if (newName.length > 25) {
+                alert('Column name must not exceed 25 characters! It will be truncated.');
+                document.getElementById('editColumnName').value = newName.substring(0, 25);
+                return;
+            }
+            
+            //récupérer la capacité seulement si ce n'est pas BACKLOG/DONE
+            if (!columnToEdit.isBacklogOrDone) {
+                newCapacity = document.getElementById('editColumnCapacity').value || '0';
+                if (isNaN(newCapacity) || parseInt(newCapacity) < 0) {
+                    alert('Capacity must be a positive number or 0!');
+                    return;
+                }
+            }
+            
+            console.log('[DEBUG] New values - Name:', newName, 'Capacity:', newCapacity);
+            console.log('[DEBUG] Posting to: ' + baseEditUrl + projectId + '/update-column-full');
+            
+            const editFormData = new URLSearchParams();
+            editFormData.append('columnId', columnToEdit.id);
+            editFormData.append('newName', newName);
+            editFormData.append('maxCapacity', newCapacity);
+
+            fetch(baseEditUrl + projectId + '/update-column-full', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: editFormData
+            })
+            .then(response => {
+                console.log('[DEBUG] Response status:', response.status);
+                return response.text();
+            })
+            .then(text => {
+                console.log('[DEBUG] Response text:', text);
+                const data = JSON.parse(text);
+                if (data.success) {
+                    console.log('[DEBUG] Update successful, updating DOM');
+                    // mettre à jour le nom et capacité dans le DOM
+                    const columnElement = document.querySelector(`[data-column-id="${columnToEdit.id}"]`);
+                    if (columnElement) {
+                        const nameSpan = columnElement.querySelector('.column-header span');
+                        if (nameSpan) {
+                            nameSpan.textContent = newName.replace(/_/g, ' ');
+                        }
+                        // mettre à jour le data attribute aussi
+                        const editButton = columnElement.querySelector('[onclick*="editColumn"]');
+                        if (editButton) {
+                            editButton.setAttribute('data-column-name', newName);
+                            editButton.setAttribute('data-column-capacity', newCapacity);
+                        }
+                        // mettre à jour la capacité affichée
+                        const capacitySpan = columnElement.querySelector('.column-capacity span:last-child');
+                        if (capacitySpan && newCapacity !== '0') {
+                            if (!columnElement.querySelector('.column-capacity')) {
+                                // créer l'élément de capacité s'il n'existe pas
+                                const header = columnElement.querySelector('.column-header');
+                                if (header) {
+                                    const capDiv = document.createElement('span');
+                                    capDiv.className = 'column-capacity';
+                                    capDiv.innerHTML = `<span>0</span>/<span>${newCapacity}</span>`;
+                                    header.querySelector('div').insertBefore(capDiv, header.querySelector('div').firstChild);
+                                }
+                            }
+                            const lastCap = columnElement.querySelector('.column-capacity span:last-child');
+                            if (lastCap) lastCap.textContent = newCapacity;
+                        } else if (newCapacity === '0' && capacitySpan) {
+                            // cacher la capacité si 0
+                            const capContainer = capacitySpan.closest('.column-capacity');
+                            if (capContainer) capContainer.remove();
+                        }
+                    }
+                    // fermer le modal
+                    cancelEditColumn();
+                    updateSwimlaneColumnScroll();
+                } else {
+                    console.error('[DEBUG] Update failed:', data.error);
+                    alert('Failed to update column: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('[DEBUG] Fetch error:', error);
+                alert('An error occurred while updating column: ' + error.message);
+            });
+        }
+
+        function showAddColumnForm(button) {
+            //trouver le formulaire le plus proche du bouton cliqué
+            const form = button ? button.closest('.kanban-column').querySelector('.add-column-form') : document.querySelector('.add-column-form');
+            if (form) {
+                form.style.display = 'block';
+            }
+        }
+
+        function hideAddColumnForm(button) {
+            //trouver le formulaire le plus proche du bouton cliqué
+            const form = button ? button.closest('.kanban-column').querySelector('.add-column-form') : document.querySelector('.add-column-form');
+            if (form) {
+                form.style.display = 'none';
+            }
+        }
+
+        //afficher automatiquement le formulaire si le paramètre showAddColumn est présent
+        window.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('showAddColumn') === 'true') {
+                const firstForm = document.querySelector('.add-column-form');
+                if (firstForm) {
+                    firstForm.style.display = 'block';
+                }
+            }
+            
+            //validation and AJAX submission for all add column forms
+            document.querySelectorAll('.add-column-form').forEach(function(form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const nameInput = this.querySelector('input[name="name"]');
+                    const capacityInput = this.querySelector('input[name="maxCapacity"]');
+                    const hasSubColumnsInput = this.querySelector('input[name="hasSubColumns"]');
+                    
+                    if (nameInput.value.length > 25) {
+                        alert('Column name must not exceed 25 characters!');
+                        nameInput.value = nameInput.value.substring(0, 25);
+                        nameInput.focus();
+                        return false;
+                    }
+                    
+                    //si le champ capacité est vide, le définir à 0 (unlimited)
+                    const capacity = capacityInput.value === '' || capacityInput.value === null ? '0' : capacityInput.value;
+                    
+                    // créer la colonne via AJAX
+                    const formData = new URLSearchParams();
+                    formData.append('name', nameInput.value);
+                    formData.append('maxCapacity', capacity);
+                    formData.append('hasSubColumns', hasSubColumnsInput && hasSubColumnsInput.checked ? 'true' : 'false');
+                    
+                    const baseAddColumnUrl = /*[[@{/board/}]]*/ '';
+                    fetch(baseAddColumnUrl + projectId + '/add-column', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: formData
+                    })
+                    .then(response => {
+                        // l'endpoint redirige, donc on considère 302/301 comme succès
+                        if (response.status === 302 || response.status === 301 || response.ok) {
+                            // recharger car recréer toute la colonne est complexe
+                            window.location.reload();
+                        } else {
+                            alert('Error adding column');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error adding column: ' + error.message);
+                    });
+                });
+            });
+        });
+        
+        //show/hide target column select based on radio selection
+        document.querySelectorAll('input[name="deleteAction"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const select = document.getElementById('targetColumnSelect');
+                select.style.display = this.value === 'moveStories' ? 'block' : 'none';
+            });
+        });
+        
+        function deleteColumn(button) {
+            const columnId = button.getAttribute('data-column-id');
+            const storyCount = parseInt(button.getAttribute('data-story-count'));
+            const baseDeleteUrl = /*[[@{/board/}]]*/ '';
+            
+                if (storyCount === 0) {
+                //empty column - direct deletion via AJAX
+                if (confirm('Are you sure you want to delete this column?')) {
+                    fetch(baseDeleteUrl + projectId + '/delete-column/' + columnId, {
+                        method: 'POST'
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            // recharger pour voir les changements
+                            window.location.reload();
+                        } else {
+                            alert('Error deleting column');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error deleting column: ' + error.message);
+                    });
+                }
+                return;
+            }
+            
+            //column has stories - show modal
+            columnToDelete = {
+                id: columnId,
+                storyCount: storyCount
+            };
+            
+            document.getElementById('deleteColumnMessage').textContent = 
+                'This column contains ' + storyCount + ' story/stories. What would you like to do?';
+            
+            //populate target column select
+            const select = document.getElementById('targetColumnSelect');
+            select.innerHTML = '<option value="">-- Select a column --</option>';
+            
+            //get all columns except the one being deleted
+            document.querySelectorAll('.kanban-column').forEach(col => {
+                const colHeader = col.querySelector('.column-header');
+                if (colHeader) {
+                    const colName = colHeader.textContent.trim().split('\n')[0].trim();
+                    const colId = col.getAttribute('data-column-id');
+                    if (colId && colId !== columnId) {
+                        const option = document.createElement('option');
+                        option.value = colId;
+                        option.textContent = colName;
+                        select.appendChild(option);
+                    }
+                }
+            });
+            
+            document.getElementById('deleteColumnModal').style.display = 'block';
+        }
+        
+        function cancelDeleteColumn() {
+            document.getElementById('deleteColumnModal').style.display = 'none';
+            columnToDelete = null;
+        }
+        
+        function confirmDeleteColumn() {
+            const action = document.querySelector('input[name="deleteAction"]:checked').value;
+            const baseDeleteUrl = /*[[@{/board/}]]*/ '';
+            
+            if (action === 'moveStories') {
+                const targetColumnId = document.getElementById('targetColumnSelect').value;
+                if (!targetColumnId) {
+                    alert('Please select a target column');
+                    return;
+                }
+                
+                //move stories then delete column
+                fetch(baseDeleteUrl + projectId + '/move-all-stories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'fromColumnId=' + columnToDelete.id + '&toColumnId=' + targetColumnId
+                })
+                .then(response => {
+                    if (response.ok) {
+                        //now delete the column via AJAX
+                        fetch(baseDeleteUrl + projectId + '/delete-column/' + columnToDelete.id, {
+                            method: 'POST'
+                        })
+                        .then(deleteResponse => {
+                            if (deleteResponse.ok) {
+                                // recharger pour voir les changements
+                                window.location.reload();
+                            } else {
+                                alert('Error deleting column');
+                            }
+                        });
+                    } else {
+                        alert('Error moving stories');
+                    }
+                })
+                .catch(error => {
+                    alert('Error: ' + error.message);
+                });
+            } else {
+                //delete stories then delete column
+                fetch(baseDeleteUrl + projectId + '/delete-column-with-stories/' + columnToDelete.id, {
+                    method: 'POST'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // recharger pour voir les changements
+                        window.location.reload();
+                    } else {
+                        alert('Error deleting column with stories');
+                    }
+                })
+                .catch(error => {
+                    alert('Error: ' + error.message);
+                });
+            }
+        }
+
+        function confirmDeleteSwimlane(button) {
+
+            const deleteUrl = button.dataset.deleteUrl;
+            const swimlaneId = deleteUrl.split('/').pop(); // needed for your logic
+
+            const remaining = swimlanes.filter(s => s.id != swimlaneId);
+            const modal = document.getElementById('deleteSwimlaneModal');
+            const message = document.getElementById('deleteSwimlaneMessage');
+            const selection = document.getElementById('swimlaneSelectionContainer');
+            const select = document.getElementById('targetSwimlaneSelect');
+            const hiddenInput = document.getElementById('targetSwimlaneInput');
+            const form = document.getElementById('deleteSwimlaneModalForm');
+
+            // ✅ portable action
+            form.action = deleteUrl;
+
+            select.innerHTML = '';
+            hiddenInput.value = '';
+
+            if (remaining.length > 1) {
+                message.textContent =
+                    'This swimlane will be deleted. Please choose where to move its stories.';
+
+                selection.style.display = 'block';
+
+                remaining.forEach(s => {
+                    const option = document.createElement('option');
+                    option.value = s.id;
+                    option.textContent = s.name;
+                    select.appendChild(option);
+                });
+
+                hiddenInput.value = remaining[0].id;
+
+                select.onchange = () => {
+                    hiddenInput.value = select.value;
+                };
+
+            } else if (remaining.length === 1) {
+                message.textContent =
+                    'This swimlane will be deleted. All stories will be moved to the remaining swimlane.';
+
+                selection.style.display = 'none';
+                hiddenInput.value = remaining[0].id;
+
+            } else {
+                message.textContent =
+                    'This is the last swimlane. It will be deleted but its stories will still be in the board.';
+
+                selection.style.display = 'none';
+            }
+
+            modal.style.display = 'block';
+        }
+
+        function cancelDeleteSwimlane() {
+            document.getElementById('deleteSwimlaneModal').style.display = 'none';
+        }
+
+        let swimlaneToEdit = null;
+
+        function editSwimlane(swimlaneId) {
+            const url = `${window.location.origin}${window.location.pathname.split('/board')[0]}/swimlane/edit/${swimlaneId}`;
+
+            fetch(url)
+                .then(res => {
+                    if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+                    return res.json(); // backend should return JSON {id, name, projectId}
+                })
+                .then(data => {
+                    // Populate modal inputs
+                    document.getElementById('editSwimlaneId').value = data.id;
+                    document.getElementById('editSwimlaneName').value = data.name;
+
+                    // Show modal
+                    document.getElementById('editSwimlaneModal').style.display = 'block';
+                })
+                .catch(err => console.error('Error fetching swimlane:', err));
+        }
+
+        function cancelEditSwimlane() {
+            document.getElementById('editSwimlaneModal').style.display = 'none';
+        }
+
+        function confirmEditSwimlane() {
+            if (!swimlaneToEdit) return;
+
+            const newName = document.getElementById('editSwimlaneName').value.trim();
+            if (!newName) {
+                alert('Swimlane name is required!');
+                return;
+            }
+
+            // Optimistic update in DOM
+            const swimlaneRow = document.querySelector(`[data-swimlane-id="${swimlaneToEdit.id}"]`);
+            if (swimlaneRow) {
+                const nameSpan = swimlaneRow.querySelector('.swimlane-label span');
+                if (nameSpan) nameSpan.textContent = newName;
+            }
+
+            cancelEditSwimlane();
+
+            // Send POST request
+            const formData = new URLSearchParams();
+            formData.append('id', swimlaneToEdit.id);
+            formData.append('name', newName);
+
+            const baseUrl = `${window.location.origin}${window.location.pathname.split('/board')[0]}/swimlane/update`;
+
+            fetch(baseUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                    // Redirect manually to the board page using the correct projectId
+                    window.location.href = `/board/${swimlaneToEdit.projectId}`;
+                })
+                .catch(error => console.error('Error updating swimlane:', error));
+        }
+
+    </script>
+
+    <script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

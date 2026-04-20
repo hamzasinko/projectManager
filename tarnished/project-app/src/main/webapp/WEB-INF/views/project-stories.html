@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="'All Stories - ' + ${project.name}">All Stories</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/libs/bootstrap/bootstrap.min.css}">
+    <style>
+        * { font-family: 'Space Grotesk', system-ui, sans-serif !important; }
+        .project-header {
+            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+            color: white;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .story-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: box-shadow 0.2s;
+        }
+        .story-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .story-title {
+            font-weight: 600;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #212529;
+        }
+        .story-meta {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+        .status-BACKLOG { background-color: #6c757d; color: white; }
+        .status-IN_PROGRESS { background-color: #007bff; color: white; }
+        .status-REVIEW { background-color: #ffc107; color: black; }
+        .status-DONE { background-color: #28a745; color: white; }
+        .status-BLOCKED { background-color: red; color: white; }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        .empty-state i {
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+    <div class="project-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 th:text="'All Stories - ' + ${project.name}">All Stories</h2>
+                </div>
+                <div class="d-flex gap-2">
+                    <a th:href="@{/}" class="btn btn-light">Home</a>
+                    <a th:href="@{'/board/' + ${project.id}}" class="btn btn-primary">
+                        Back to Board
+                    </a>
+                    <a th:href="@{'/story/new?projectId=' + ${project.id}}" class="btn btn-success">
+                        + New Story
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!--état vide-->
+        <div th:if="${stories.isEmpty()}" class="empty-state">
+            <h4>No stories yet</h4>
+            <p>Create your first story to get started!</p>
+            <a th:href="@{'/story/new?projectId=' + ${project.id}}" class="btn btn-primary mt-3">
+                + Create First Story
+            </a>
+        </div>
+
+        <!--liste des stories-->
+        <div th:if="${!stories.isEmpty()}">
+            <div class="mb-3 text-muted">
+                <span th:text="${stories.size()}">0</span> 
+                <span th:text="${stories.size() == 1 ? 'story' : 'stories'}">stories</span> in this project
+            </div>
+
+            <div th:each="story : ${stories}" class="story-card">
+                <div class="story-title" th:text="${story.title}">Story Title</div>
+                
+                <div class="story-meta">
+                    <span class="badge status-badge"
+                          th:classappend="${'status-' + story.status}"
+                          th:text="${#strings.replace(story.status.toString(), '_', ' ')}">TODO</span>
+                    
+                    <span th:if="${story.userAssigned != null}" class="text-muted">
+                        Assigned to: <strong th:text="${story.userAssigned.name}">User</strong>
+                    </span>
+                    
+                    <span th:if="${story.totalTimeSpent > 0}" class="text-muted">
+                        Time spent: <strong th:text="${story.totalTimeSpent}">0</strong> min
+                    </span>
+                </div>
+                
+                <div class="mt-3">
+                    <a th:href="@{'/story/' + ${story.id}}" class="btn btn-sm btn-outline-primary">
+                        View Details
+                    </a>
+                    <a th:href="@{'/story/' + ${story.id} + '/edit'}" class="btn btn-sm btn-outline-warning">
+                        Edit
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

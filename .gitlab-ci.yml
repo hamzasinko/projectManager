@@ -1,0 +1,282 @@
+image: maven:3-eclipse-temurin-21-alpine
+
+variables:
+  MAVEN_CLI_OPTS: "--batch-mode -Dmaven.repo.local=libs"
+
+cache:
+  key: default-cache
+  paths:
+    - tarnished/libs
+    - "**/target"
+
+stages:
+  - build
+  - tests
+  - integration-tests
+  - deploy
+  - run
+
+# ============================
+# 1️⃣ BUILD
+# ============================
+build:
+  stage: build
+  script:
+    - cd tarnished
+    - mvn clean install -DskipTests -DskipITs
+  artifacts:
+    paths:
+      - tarnished/project-app/target/*.war
+      - tarnished/project-model/target/*.jar
+      - tarnished/project-repomem/target/*.jar
+
+# ============================
+# TESTS
+# ============================
+unit-tests:
+  stage: tests
+  image: maven:3-eclipse-temurin-21-alpine
+  script:
+    - cd tarnished
+    - mvn $MAVEN_CLI_OPTS test jacoco:report
+  artifacts:
+    paths:
+      - "**/target/site/jacoco"
+    reports:
+      junit:
+        - "**/target/surefire-reports/TEST-*.xml"
+    expire_in: 1 hour
+integration-tests:
+  stage: integration-tests
+  image: maven:3-eclipse-temurin-21-alpine
+  script:
+    - apk add --no-cache chromium chromium-chromedriver
+    - export CHROME_BIN="$(command -v chromium-browser || command -v chromium || true)"
+    - echo "Using CHROME_BIN=${CHROME_BIN}"
+    - cd tarnished
+    - mvn $MAVEN_CLI_OPTS verify -DskipUnitTests=true -Dselenium.remote.browser=false -Dservlet.port=8080
+  artifacts:
+    reports:
+      junit:
+        - "**/target/failsafe-reports/TEST-*.xml"
+    expire_in: 1 hour
+static-analysis:
+  stage: tests
+  image: maven:3-eclipse-temurin-21-alpine
+  script:
+    - cd tarnished
+    - mvn $MAVEN_CLI_OPTS spotbugs:spotbugs
+  artifacts:
+    paths:
+      - "**/target/spotbugsXml.xml"
+    expire_in: 1 hour
+
+
+# ============================
+# 5️⃣ DOCKER BUILD (KANIKO)
+# ============================
+deploy-docker:
+  stage: deploy
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+
+  needs:
+    - job: build
+    - job: unit-tests
+    - job: static-analysis
+    - job: integration-tests
+      artifacts: true
+
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+    - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'
+
+  script:
+    - WARFILE=$(find tarnished/project-app/target -name "*.war" | head -n 1)
+    - if [ -z "$WARFILE" ]; then echo "❌ Aucun WAR trouvé !"; exit 1; fi
+
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - cp "$WARFILE" myapp.war
+    - |
+      echo "FROM jetty:9.4-jre17
+      EXPOSE 8080
+      ADD myapp.war /var/lib/jetty/webapps/gl2526-tarnished.war" > Dockerfile
+
+    - /kaniko/executor --cleanup --context $CI_PROJECT_DIR --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME" --destination "$CI_REGISTRY_IMAGE:latest"
+
+# ============================
+# 6️⃣ RUN (KUBERNETES )
+# ============================
+.kubernetes: &kubernetes
+  stage: run
+  image: docker-private.cluster.ensisa.uha.fr/docker/kubectl
+  script:
+    - kubectl config set-cluster k8s --server="${K8S_SERVER}" --certificate-authority=${K8S_CERTIFICATE_AUTHORITY}
+    - kubectl config set-credentials gitlab-ci --token="${K8S_USER_TOKEN}"
+    - kubectl config set-context default --cluster=k8s --user=gitlab-ci
+    - kubectl config use-context default
+
+    - APP_NAME="${CI_PROJECT_NAMESPACE}-${CI_PROJECT_NAME}"
+    - NAMESPACE="gitlab-cd-${ENV}"
+
+    - kubectl -n ${NAMESPACE} create secret docker-registry $APP_NAME-registry-secret --docker-server=${CI_REGISTRY} --docker-username=${CI_DEPLOY_USER} --docker-password=${CI_DEPLOY_PASSWORD} --dry-run=client -o yaml | kubectl -n ${NAMESPACE} apply -f -
+
+
+    - |
+      echo "
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        labels:
+          app: $APP_NAME
+        name: $APP_NAME
+        namespace: $NAMESPACE
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: $APP_NAME
+        template:
+          metadata:
+            labels:
+              app: $APP_NAME
+          spec:
+            containers:
+              - image: \"$CI_REGISTRY_IMAGE:latest\"
+                imagePullPolicy: Always
+                name: $APP_NAME
+                ports:
+                  - name: http
+                    containerPort: 8080
+            imagePullSecrets:
+              - name: $APP_NAME-registry-secret
+      ---
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: $APP_NAME-service
+        namespace: $NAMESPACE
+      spec:
+        type: ClusterIP
+        selector:
+          app: $APP_NAME
+        ports:
+          - name: http
+            protocol: TCP
+            port: 80
+            targetPort: 8080
+      ---
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: $APP_NAME-ingress
+        namespace: $NAMESPACE
+        annotations:
+          traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      spec:
+        rules:
+        - host: ${ENV}.cluster.ensisa.uha.fr
+          http:
+            paths:
+            - path: /gl2526-tarnished
+              pathType: Prefix
+              backend:
+                service:
+                  name: $APP_NAME-service
+                  port:
+                    number: 80
+      " > app.yml
+
+    - cat app.yml
+    - kubectl ${ACTION} -f app.yml
+    - kubectl -n $NAMESPACE rollout restart deployment $APP_NAME 2>/dev/null || /bin/true
+
+run-staging:
+  <<: *kubernetes
+  variables:
+    ENV: staging
+    ACTION: apply
+  environment:
+    name: staging
+    url: https://staging.cluster.ensisa.uha.fr/gl2526-tarnished
+deploy-prod:
+  <<: *kubernetes
+  variables:
+    ENV: prod
+    ACTION: apply
+  environment:
+    name: production
+    url: https://prod.cluster.ensisa.uha.fr/gl2526-tarnished
+    on_stop: stop-prod
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+      when: manual
+
+stop-staging:
+  <<: *kubernetes
+  variables:
+    ENV: staging
+    ACTION: delete
+  when: manual
+  environment:
+    name: staging
+    action: stop
+  rules:
+    - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'
+      when: manual
+
+stop-prod:
+  <<: *kubernetes
+  variables:
+    ENV: prod
+    ACTION: delete
+  when: manual
+  environment:
+    name: production
+    action: stop
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+      when: manual
+
+pages:
+  stage: deploy
+  needs:
+    - job: unit-tests
+      artifacts: true
+    - job: static-analysis
+      artifacts: true
+  script:
+    - mkdir -p public
+    - |
+      JACOCO_DIR=$(find . -type d -path "*/target/site/jacoco" | head -n 1 || true)
+      if [ -n "$JACOCO_DIR" ]; then
+        cp -r "$JACOCO_DIR" public/jacoco
+      else
+        echo "Jacoco report not found"
+      fi
+    - |
+      SPOTBUGS_FILE=$(find . -type f -name "spotbugsXml.xml" | head -n 1 || true)
+      if [ -n "$SPOTBUGS_FILE" ]; then
+        cp "$SPOTBUGS_FILE" public/spotbugs.xml
+      else
+        echo "SpotBugs report not found"
+      fi
+    - |
+      echo "<!DOCTYPE html>
+      <html lang='en'>
+      <head><meta charset='UTF-8'><title>Reports</title></head>
+      <body>
+      <h1>Project Reports</h1>
+      <ul>
+      <li><a href='jacoco/index.html'>Jacoco Coverage</a></li>
+      <li><a href='spotbugs.xml'>SpotBugs XML</a></li>
+      </ul>
+      </body>
+      </html>" > public/index.html
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+    - if: '$CI_COMMIT_REF_NAME =~ /^release.*$/'

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head xmlns:th="http://www.thymeleaf.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Columns</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/libs/bootstrap/bootstrap.min.css}">
+    <style>
+        * { font-family: 'Space Grotesk', system-ui, sans-serif !important; }
+        .draggable {
+            cursor: move;
+        }
+        .dragging {
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>Columns</h3>
+        <div class="d-flex gap-2">
+            <a th:href="@{/}" class="btn btn-outline-secondary">Home</a>
+            <a th:href="@{/columns/create}" class="btn btn-primary">Create New Column</a>
+        </div>
+    </div>
+
+    <table id="column_list" class="table table-striped">
+        <thead>
+        <tr>
+            <th>Name</th>
+            <th>Order</th>
+            <th>Limit</th>
+            <th>Stories Count</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody id="columnTableBody">
+        <tr th:each="column : ${columns}" 
+            th:id="'column_row_' + ${column.id}"
+            class="draggable"
+            th:attr="data-column-id=${column.id}">
+            <td th:text="${column.name}"></td>
+            <td th:text="${column.position}"></td>
+            <td th:text="${column.maxCapacity}"></td>
+            <td>
+                <span th:text="${column.stories != null ? column.stories.size() : 0} + ' / ' + ${column.maxCapacity}"></span>
+            </td>
+            <td>
+                <a th:id="'column_edit_' + ${column.id}" 
+                   th:href="@{'/columns/' + ${column.id} + '/edit'}" 
+                   class="btn btn-sm btn-warning">Edit</a>
+                
+                <form th:id="'column_delete_' + ${column.id}" 
+                      th:action="@{'/columns/' + ${column.id} + '/delete'}" 
+                      method="post" 
+                      style="display:inline;">
+                    <button type="submit" class="btn btn-sm btn-danger" 
+                            onclick="return confirm('Are you sure?')">Delete</button>
+                </form>
+                
+                <form th:action="@{'/columns/' + ${column.id} + '/reorder'}" 
+                      method="post" 
+                      style="display:inline;">
+                    <input type="number" name="newOrder" placeholder="New order" 
+                           class="form-control form-control-sm d-inline-block" 
+                           style="width: 80px;">
+                    <button type="submit" class="btn btn-sm btn-info">Reorder</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
+<script th:inline="javascript">
+    //Base URL avec context path
+    const baseUrl = /*[[@{/}]]*/ '';
+    
+    const tbody = document.getElementById('columnTableBody');
+    let draggedElement = null;
+
+    tbody.addEventListener('dragstart', function(e) {
+        if (e.target.classList.contains('draggable')) {
+            draggedElement = e.target;
+            e.target.classList.add('dragging');
+        }
+    });
+
+    tbody.addEventListener('dragend', function(e) {
+        if (e.target.classList.contains('draggable')) {
+            e.target.classList.remove('dragging');
+        }
+    });
+
+    tbody.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        const afterElement = getDragAfterElement(tbody, e.clientY);
+        if (afterElement == null) {
+            tbody.appendChild(draggedElement);
+        } else {
+            tbody.insertBefore(draggedElement, afterElement);
+        }
+    });
+
+    tbody.addEventListener('drop', function(e) {
+        e.preventDefault();
+        updateColumnOrder();
+    });
+
+    document.querySelectorAll('.draggable').forEach(row => {
+        row.setAttribute('draggable', 'true');
+    });
+
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.draggable:not(.dragging)')];
+
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    function updateColumnOrder() {
+        const rows = tbody.querySelectorAll('.draggable');
+        rows.forEach((row, index) => {
+            const columnId = row.getAttribute('data-column-id');
+            const newOrder = index + 1;
+            
+            fetch(baseUrl + 'columns/' + columnId + '/reorder', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'newOrder=' + newOrder
+            });
+        });
+    }
+</script>
+</body>
+</html>

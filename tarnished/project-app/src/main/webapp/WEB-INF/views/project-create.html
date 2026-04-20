@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Create Project</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/libs/bootstrap/bootstrap.min.css}">
+    <style>
+        * { font-family: 'Space Grotesk', system-ui, sans-serif !important; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Create New Project</h1>
+            <a th:href="@{/}" class="btn btn-outline-secondary">Home</a>
+        </div>
+        
+        <form th:action="@{/project/create}" method="POST" accept-charset="UTF-8">
+            <div class="mb-3">
+                <label for="projectName" class="form-label">Project Name *</label>
+                <input type="text" 
+                       class="form-control" 
+                       id="projectName"
+                       name="name" 
+                       required 
+                       maxlength="29"
+                       placeholder="My Kanban Project">
+                <div class="form-text">Max 29 characters</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="projectDescription" class="form-label">Description</label>
+                <textarea class="form-control" 
+                          id="projectDescription"
+                          name="description" 
+                          rows="3" 
+                          maxlength="120"
+                          placeholder="Brief description of the project"></textarea>
+                <div class="form-text">Max 120 characters</div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" id="createProjectBtn">
+                Create Project
+            </button>
+            <a th:href="@{/project/list}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+    
+    <script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

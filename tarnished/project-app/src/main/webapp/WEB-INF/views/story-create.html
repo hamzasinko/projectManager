@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Create Story</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/libs/bootstrap/bootstrap.min.css}">
+    <style>
+        * { font-family: 'Space Grotesk', system-ui, sans-serif !important; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Create New Story</h1>
+            <a th:href="@{/}" class="btn btn-outline-secondary">Home</a>
+        </div>
+        
+        <!--message d'erreur-->
+        <div th:if="${param.error}" class="alert alert-danger" role="alert">
+            <span th:text="${param.error}">Error message</span>
+        </div>
+        
+        <form th:action="@{/story/create}" method="POST" accept-charset="UTF-8">
+            <!--champs cachés pour projectId et columnId si fournis-->
+            <input type="hidden" name="projectId" th:value="${projectId}" th:if="${projectId != null}">
+            <input type="hidden" name="columnId" th:value="${columnId}" th:if="${columnId != null}">
+            <input type="hidden" name="swimlaneId" th:value="${swimlaneId}" th:if="${swimlaneId != null}">
+
+            <div class="mb-3">
+                <label for="storyTitle" class="form-label">Story Title *</label>
+                  <input type="text" 
+                      class="form-control" 
+                      id="storyTitle"
+                      name="title" 
+                      required 
+                      maxlength="59"
+                      placeholder="As a user, I want to...">
+                <div class="form-text">A clear and concise user story title</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="storyDescription" class="form-label">Description</label>
+                <textarea class="form-control" 
+                          id="storyDescription"
+                          name="description" 
+                          rows="5" 
+                          placeholder="Acceptance criteria:&#10;- When...&#10;- Then..."></textarea>
+                <div class="form-text">Details, acceptance criteria, and any relevant notes</div>
+            </div>
+            
+            <!--affiche le sélecteur de projet seulement si projectId n'est pas fourni depuis le board-->
+            <div class="mb-3" th:if="${projectId == null}">
+                <label for="projectId" class="form-label">Project</label>
+                <select class="form-select" id="projectId" name="projectId">
+                    <option value="">Select a project...</option>
+                    <option th:each="project : ${projects}" 
+                            th:value="${project.id}" 
+                            th:text="${project.name}">Project Name</option>
+                </select>
+                <div class="form-text">Selecting a project is optional; leave blank for no project</div>
+            </div>
+            
+            <!--affiche les infos du projet si on vient du board-->
+            <div class="mb-3" th:if="${projectId != null}">
+                <label class="form-label">Project</label>
+                <div class="alert alert-info">
+                    This story will be added to the selected project and column
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" id="createStoryBtn">
+                Create Story
+            </button>
+            <a th:href="@{/story/list}" class="btn btn-secondary" th:if="${projectId == null}">Cancel</a>
+            <a th:href="@{/board/{projectId}(projectId=${projectId})}" class="btn btn-secondary" th:if="${projectId != null}">Cancel</a>
+        </form>
+    </div>
+    
+    <script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

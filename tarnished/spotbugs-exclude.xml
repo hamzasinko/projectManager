@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!--exclut EI_EXPOSE_REP et EI_EXPOSE_REP2 pour les classes Lombok @Data-->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2" />
+        <Class name="~fr\.uha\.ensisa\.gl\.entities\..*" />
+    </Match>
+    
+    <!--exclut EI_EXPOSE_REP et EI_EXPOSE_REP2 pour les implémentations de repo-->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2" />
+        <Class name="~fr\.uha\.ensisa\.gl\.tarnished\.mems\..*" />
+    </Match>
+    
+    <!--exclut EI_EXPOSE_REP2 pour les classes service-->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP2" />
+        <Class name="~fr\.uha\.ensisa\.gl\.tarnished\.services\..*" />
+    </Match>
+    
+    <!--exclut DM_CONVERT_CASE pour les conversions de casse indépendantes de la locale-->
+    <Match>
+        <Bug pattern="DM_CONVERT_CASE" />
+    </Match>
+    
+    <!--exclut NM_FIELD_NAMING_CONVENTION pour les champs-->
+    <Match>
+        <Bug pattern="NM_FIELD_NAMING_CONVENTION" />
+    </Match>
+</FindBugsFilter>

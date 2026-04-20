@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tarnished</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/libs/bootstrap/bootstrap.min.css}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --secondary: #7C3AED;
+            --accent: #EC4899;
+        }
+        
+        * {
+            font-family: 'Space Grotesk', system-ui, sans-serif !important;
+        }
+        
+        body {
+            background: #F9FAFB;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* Hero Section avec forme organique */
+        .hero-wrapper {
+            position: relative;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            padding: 80px 0 60px;
+            overflow: hidden;
+        }
+        
+        .hero-wrapper::before {
+            content: '';
+            position: absolute;
+            bottom: -50px;
+            left: 0;
+            right: 0;
+            height: 150px;
+            background: #F9FAFB;
+            clip-path: ellipse(70% 100% at 50% 100%);
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            color: white;
+            text-align: center;
+        }
+        
+        .hero-title {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+        
+        .hero-subtitle {
+            font-size: clamp(1rem, 2.5vw, 1.25rem);
+            opacity: 0.95;
+            max-width: 700px;
+            margin: 0 auto 3rem;
+            font-weight: 300;
+        }
+        
+        .cta-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn-cta {
+            padding: 1rem 2.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 50px;
+            border: 2px solid transparent;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-cta-primary {
+            background: white;
+            color: var(--primary);
+        }
+        
+        .btn-cta-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            color: var(--primary);
+        }
+        
+        .btn-cta-outline {
+            background: white;
+            color: var(--primary);
+            border-color: white;
+        }
+        
+        .btn-cta-outline:hover {
+            background: rgba(255, 255, 255, 0.95);
+            transform: translateY(-2px);
+            color: var(--secondary);
+            border-color: white;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 4rem 0;
+        }
+        
+        .section-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .section-title {
+            font-size: clamp(1.75rem, 4vw, 2.5rem);
+            font-weight: 700;
+            color: #1F2937;
+            margin-bottom: 0.5rem;
+        }
+        
+        .section-subtitle {
+            color: #6B7280;
+            font-size: 1.1rem;
+        }
+
+        /* Project Cards */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+        
+        .project-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid #E5E7EB;
+        }
+        
+        .project-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+            border-color: var(--primary);
+        }
+        
+        .project-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            padding: 1.5rem;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .project-header::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20px;
+            width: 150px;
+            height: 150px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+        
+        .project-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .project-body {
+            padding: 1.5rem;
+        }
+        
+        .project-desc {
+            color: #6B7280;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+            min-height: 3rem;
+        }
+        
+        .project-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+        
+        .btn-board {
+            flex: 1;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn-board:hover {
+            background: var(--secondary);
+            transform: scale(1.02);
+            color: white;
+        }
+        
+        .btn-details {
+            background: #F3F4F6;
+            color: #4B5563;
+            border: none;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn-details:hover {
+            background: #E5E7EB;
+            color: #1F2937;
+        }
+
+
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+        
+        .empty-icon {
+            font-size: 5rem;
+            margin-bottom: 1.5rem;
+            opacity: 0.3;
+        }
+        
+        .empty-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #4B5563;
+            margin-bottom: 0.75rem;
+        }
+        
+        .empty-text {
+            color: #9CA3AF;
+            margin-bottom: 2rem;
+        }
+        
+        .btn-create {
+            background: var(--primary);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-create:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(79, 70, 229, 0.3);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .hero-wrapper {
+                padding: 60px 0 100px;
+            }
+            
+            .cta-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .btn-cta {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .projects-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!--section hero-->
+    <div class="hero-wrapper">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-title">Tarnished Kanban</h1>
+                <p class="hero-subtitle">Manage your projects visually</p>
+                
+                <div class="cta-group">
+                    <a th:href="@{/project/new}" class="btn-cta btn-cta-primary">
+                        <i class="bi bi-plus-circle"></i>
+                        New Project
+                    </a>
+                    <a th:href="@{/project/list}" class="btn-cta btn-cta-outline">
+                        <i class="bi bi-kanban"></i>
+                        All Projects
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--section projets-->
+    <section class="main-content">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Your Projects</h2>
+                <p class="section-subtitle">Manage and organize all your projects in one place</p>
+            </div>
+
+            <div th:if="${projects.isEmpty()}" class="empty-state">
+                <div class="empty-icon"></div>
+                <h3 class="empty-title">No projects yet</h3>
+                <p class="empty-text">Create your first project and start organizing your tasks in Kanban mode</p>
+                <a th:href="@{/project/new}" class="btn-create">
+                    <i class="bi bi-plus-lg"></i> Create my first project
+                </a>
+            </div>
+
+            <div th:unless="${projects.isEmpty()}" class="projects-grid">
+                <div th:each="project : ${projects}" class="project-card">
+                    <div class="project-header">
+                        <h3 class="project-name" th:text="${project.name}">Project Name</h3>
+                    </div>
+                    <div class="project-body">
+                        <p class="project-desc" th:text="${project.description != null ? project.description : 'No description available'}">Description</p>
+                        <div class="project-actions">
+                            <a th:href="@{'/board/' + ${project.id}}" class="btn-board">
+                                <i class="bi bi-kanban"></i> Open Board
+                            </a>
+                            <a th:href="@{'/project/info/' + ${project.id}}" class="btn-details">
+                                <i class="bi bi-info-circle"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+
+    <script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

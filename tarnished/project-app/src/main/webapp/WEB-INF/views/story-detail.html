@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title th:text="'Story: ' + ${story.title}">Story Detail</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <style>
+    * { font-family: 'Space Grotesk', system-ui, sans-serif !important; }
+    .status-badge {
+      font-size: 1rem;
+      padding: 0.5rem 1rem;
+    }
+    .status-BACKLOG { background-color: #6c757d; }
+    .status-IN_PROGRESS { background-color: #0d6efd; }
+    .status-REVIEW { background-color: #ffc107; color: #000; }
+    .status-DONE { background-color: #198754; }
+    .status-BLOCKED { background-color: #dc3545; }
+  </style>
+  <script>
+    function showDeleteConfirm(storyId) {
+      document.getElementById('confirmCard-' + storyId).style.display = 'block';
+    }
+
+    function hideDeleteConfirm(storyId) {
+      document.getElementById('confirmCard-' + storyId).style.display = 'none';
+    }
+    
+    function formatDuration(minutes) {
+      if (minutes < 60) {
+        return minutes + ' min';
+      }
+      const days = Math.floor(minutes / 1440);
+      const hours = Math.floor((minutes % 1440) / 60);
+      const mins = minutes % 60;
+      
+      let result = '';
+      if (days > 0) result += days + 'd ';
+      if (hours > 0) result += hours + 'h ';
+      if (mins > 0) result += mins + 'min';
+      return result.trim();
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      document.querySelectorAll('.duration-display').forEach(function(el) {
+        const minutes = parseInt(el.getAttribute('data-minutes'));
+        el.textContent = formatDuration(minutes);
+      });
+    });
+  </script>
+</head>
+<body>
+<div class="container mt-4">
+
+  <!--carte d'info story-->
+  <div class="card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <h3 class="card-title" th:text="${story.title}">Story Title</h3>
+        <span class="badge status-badge"
+              th:classappend="${'status-' + story.status}"
+              th:text="${#strings.replace(story.status.toString(), '_', ' ')}">TODO</span>
+      </div>
+      
+      <p class="card-text" th:text="${story.description != null ? story.description : 'No description'}">Story Description</p>
+      
+      <div class="row">
+        <div class="col-md-6">
+          <p><strong>Created:</strong> <span th:text="${#dates.format(story.dateCreated, 'dd/MM/yyyy HH:mm')}">Creation Date</span></p>
+        </div>
+        <div class="col-md-6" th:if="${story.userAssigned != null}">
+          <p><strong>Assigned to:</strong> <span th:text="${story.userAssigned.name}">Assignee Name</span></p>
+        </div>
+        <div class="col-md-6" th:if="${story.userAssigned == null}">
+          <p><strong>Assigned to:</strong> <span class="text-muted">Unassigned</span></p>
+        </div>
+        <div class="col-md-12 mt-2">
+          <p><strong>Total Time Spent:</strong> 
+            <span class="badge bg-info duration-display" th:attr="data-minutes=${story.totalTimeSpent}" th:text="${story.totalTimeSpent + ' min'}">0 min</span>
+          </p>
+        </div>
+      </div>
+      
+      <!--section suivi du temps-->
+      <div class="mt-4">
+        <h5>Time Tracking</h5>
+        
+        <!--contrôles du timer-->
+        <div class="mb-3">
+          <div th:if="${story.getRunningWorkLog() == null}">
+            <form th:action="@{'/story/' + ${story.id} + '/timer/start'}" method="post" style="display: inline;">
+              <button type="submit" class="btn btn-success btn-sm">Start Timer</button>
+            </form>
+          </div>
+          <div th:if="${story.getRunningWorkLog() != null}">
+            <span class="badge bg-warning text-dark">Timer Running</span>
+            <form th:action="@{'/story/' + ${story.id} + '/timer/stop'}" method="post" style="display: inline;">
+              <input type="hidden" name="workLogId" th:value="${story.getRunningWorkLog().id}"/>
+              <button type="submit" class="btn btn-danger btn-sm">Stop Timer</button>
+            </form>
+          </div>
+        </div>
+        
+        <!--formulaire d'entrée manuelle de WorkLog-->
+        <div class="card mb-3">
+          <div class="card-header">
+            <h6 class="mb-0">Log Time Manually</h6>
+          </div>
+          <div class="card-body">
+            <form th:action="@{'/story/' + ${story.id} + '/worklog/add'}" method="post">
+              <div class="row">
+                <div class="col-md-4 mb-2">
+                  <label class="form-label">Days</label>
+                  <input type="number" name="days" class="form-control form-control-sm" min="0" value="0">
+                </div>
+                <div class="col-md-4 mb-2">
+                  <label class="form-label">Hours</label>
+                  <input type="number" name="hours" class="form-control form-control-sm" min="0" max="23" value="0">
+                </div>
+                <div class="col-md-4 mb-2">
+                  <label class="form-label">Minutes</label>
+                  <input type="number" id="minutes" name="minutes" class="form-control form-control-sm" min="1" max="59" value="0" required>
+                </div>
+                <div class="col-md-12 mb-2">
+                  <label class="form-label">Comment (optional)</label>
+                  <textarea name="comment" class="form-control form-control-sm" rows="2" maxlength="45"></textarea>
+                  <small class="form-text text-muted">Max 45 characters</small>
+                </div>
+                <div class="col-md-12">
+                  <button type="submit" class="btn btn-primary btn-sm">Add Work Log</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+        
+        <!--liste des WorkLogs-->
+        <div class="card">
+          <div class="card-header">
+            <h6 class="mb-0">Work Log History</h6>
+          </div>
+          <div class="card-body">
+            <div th:if="${story.workLogs == null or story.workLogs.isEmpty()}">
+              <p class="text-muted">No work logs yet</p>
+            </div>
+            <table class="table table-sm" th:if="${story.workLogs != null and !story.workLogs.isEmpty()}">
+              <thead>
+                <tr>
+                  <th>Start</th>
+                  <th>End</th>
+                  <th>Duration</th>
+                  <th>Comment</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr th:each="workLog : ${story.workLogs}">
+                  <td th:text="${#temporals.format(workLog.start, 'dd/MM/yyyy HH:mm')}">Start</td>
+                  <td th:text="${workLog.end != null ? #temporals.format(workLog.end, 'dd/MM/yyyy HH:mm') : 'Running'}">End</td>
+                  <td class="duration-display" th:attr="data-minutes=${workLog.duration}" th:text="${workLog.duration + ' min'}">Duration</td>
+                  <td th:text="${workLog.comment != null ? workLog.comment : '-'}">Comment</td>
+                  <td>
+                    <form th:action="@{'/story/' + ${story.id} + '/worklog/' + ${workLog.id} + '/delete'}" method="post" style="display: inline;">
+                      <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+      <!--boutons d'action-->
+      <div class="mt-4">
+        <a th:href="@{/}" class="btn btn-secondary btn-sm">Home</a>
+        <a th:if="${story.projectId != null}" th:href="@{'/board/' + ${story.projectId}}" class="btn btn-primary btn-sm">Back to Board</a>
+        <a th:href="@{'/story/' + ${story.id} + '/edit'}" class="btn btn-warning btn-sm">Edit Story</a>
+        
+        <!--bouton Delete-->
+        <button class="btn btn-danger btn-sm" th:onclick="'showDeleteConfirm(' + ${story.id} + ')'">
+          Delete Story
+        </button>
+      </div>
+
+      <!--carte de confirmation-->
+      <div th:id="'confirmCard-' + ${story.id}" class="card mt-2" style="display:none;">
+        <div class="card-body">
+          <h6>Do you really want to delete this story?</h6>
+          <div class="mt-2">
+            <form th:action="@{'/story/' + ${story.id} + '/delete'}" method="post">
+              <button type="submit" class="btn btn-danger btn-sm">Yes, delete</button>
+            </form>
+            <button class="btn btn-secondary btn-sm" th:onclick="'hideDeleteConfirm(' + ${story.id} + ')'">
+              No
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

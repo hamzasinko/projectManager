@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head xmlns:th="http://www.thymeleaf.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Edit Column</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/libs/bootstrap/bootstrap.min.css}">
+    <style>
+        * { font-family: 'Space Grotesk', system-ui, sans-serif !important; }
+    </style>
+</head>
+<body>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Edit Column</h3>
+        <a th:href="@{/}" class="btn btn-outline-secondary">Home</a>
+    </div>
+
+    <form id="column_edit_form" th:action="@{'/columns/' + ${column.id} + '/edit'}" method="post" accept-charset="UTF-8">
+
+        <div class="mb-3">
+            <label class="form-label">Column Name*</label>
+            <input id="columnNameEdit" class="form-control" type="text" name="name" th:value="${column.name}" maxlength="25" required>
+            <div class="form-text">Max 25 characters</div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Order*</label>
+            <input id="column_order_edit" class="form-control" type="number" name="order" th:value="${column.position}" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Max Capacity (Limit)</label>
+            <input id="column_limit_edit" class="form-control" type="number" name="limit" th:value="${column.maxCapacity}" min="0">
+            <small class="form-text text-muted">0 = unlimited capacity</small>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a th:href="@{/columns}" class="btn btn-secondary">Cancel</a>
+
+    </form>
+</div>
+<script th:src="@{/libs/bootstrap/bootstrap.bundle.min.js}"></script>
+<script>
+    document.getElementById('column_edit_form').addEventListener('submit', function(e) {
+        const nameInput = document.getElementById('columnNameEdit');
+        if (nameInput.value.length > 25) {
+            e.preventDefault();
+            alert('Column name must not exceed 25 characters!');
+            nameInput.focus();
+            return false;
+        }
+    });
+</script>
+</body>
+</html>
