@@ -1,0 +1,89 @@
+name: tarnished
+
+networks:
+  tarnished-metrologie:
+    name: tarnished-metrologie
+
+services:
+
+  # ── Application ────────────────────────────────────────────────────────────
+  app:
+    build: .
+    container_name: tarnished-app-1
+    ports:
+      - "8091:8080"
+    networks:
+      - tarnished-metrologie
+    restart: unless-stopped
+
+  # ── Selenium Chrome (WebDriver distant) ────────────────────────────────────
+  selenium:
+    image: selenium/standalone-chrome:latest
+    container_name: tarnished-selenium-1
+    ports:
+      - "4444:4444"
+      - "7900:7900"        # noVNC pour observer le navigateur (optionnel)
+    shm_size: "2g"
+    networks:
+      - tarnished-metrologie
+    restart: unless-stopped
+
+  # ── cAdvisor (métriques conteneurs) ────────────────────────────────────────
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: tarnished-cadvisor-1
+    ports:
+      - "8088:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+    networks:
+      - tarnished-metrologie
+    restart: unless-stopped
+
+  # ── Prometheus (collecte & stockage métriques) ──────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: tarnished-prometheus-1
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+    networks:
+      - tarnished-metrologie
+    restart: unless-stopped
+    depends_on:
+      - cadvisor
+
+  # ── Grafana (dashboards) ────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: tarnished-grafana-1
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - tarnished-metrologie
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+volumes:
+  prometheus-data:
+  grafana-data:

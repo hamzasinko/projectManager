@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+
+  # Prometheus se scrape lui-même
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # cAdvisor — métriques CPU/RAM/réseau/IO par conteneur
+  - job_name: "cadvisor"
+    static_configs:
+      - targets: ["cadvisor:8080"]
+    metrics_path: /metrics
+
+  # Application Tarnished (si endpoint /metrics exposé)
+  - job_name: "tarnished-app"
+    static_configs:
+      - targets: ["app:8091"]
+    metrics_path: /gl2526-tarnished/metrics

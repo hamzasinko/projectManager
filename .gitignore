@@ -1,45 +1,4 @@
-### Maven build ###
-tarnished/**/.gitignore
-
-### Maven build ###
-tarnished/**/target/
-!tarnished/**/src/main/**/target/
-!tarnished/**/src/test/**/target/
-### IntelliJ IDEA ###
-.idea/
-tarnished/**/.idea/
-tarnished/**/*.iws
-tarnished/**/*.iml
-tarnished/**/*.ipr
-
-### Eclipse ###
-tarnished/**/.apt_generated
-tarnished/**/.classpath
-tarnished/**/.factorypath
-tarnished/**/.project
-tarnished/**/.settings
-tarnished/**/.springBeans
-tarnished/**/.sts4-cache
-
-### NetBeans ###
-tarnished/**/nbproject/private/
-tarnished/**/nbbuild/
-tarnished/**/dist/
-tarnished/**/nbdist/
-tarnished/**/.nb-gradle/
-tarnished/**/build/
-!tarnished/**/src/main/**/build/
-!tarnished/**/src/test/**/build/
-
-### VS Code ###
-.vscode/
-tarnished/**/.vscode/
-
-### macOS ###
-tarnished/**/.DS_Store
-
-# Fichiers .ml
-tarnished/**/*.ml
-
-# Documents
-
+﻿target/
+*.class
+*.jar
+.m2/
