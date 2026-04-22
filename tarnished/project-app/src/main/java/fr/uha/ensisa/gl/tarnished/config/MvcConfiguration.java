@@ -20,6 +20,13 @@ import org.thymeleaf.spring5.templateresolver.SpringResourceTemplateResolver;
 import org.thymeleaf.spring5.view.ThymeleafViewResolver;
 import org.thymeleaf.templatemode.TemplateMode;
 
+import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics;
+import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics;
+import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics;
+import io.micrometer.core.instrument.binder.system.ProcessorMetrics;
+import io.micrometer.prometheus.PrometheusConfig;
+import io.micrometer.prometheus.PrometheusMeterRegistry;
+
 @Configuration
 @ComponentScan(basePackages="fr.uha.ensisa.gl.tarnished")
 @EnableWebMvc
@@ -70,6 +77,16 @@ public class MvcConfiguration implements WebMvcConfigurer {
 	@Bean
 	public MultipartResolver multipartResolver(){
 		return new StandardServletMultipartResolver();
+	}
+
+	@Bean
+	public PrometheusMeterRegistry prometheusMeterRegistry() {
+	    PrometheusMeterRegistry registry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+	    new JvmMemoryMetrics().bindTo(registry);
+	    new JvmGcMetrics().bindTo(registry);
+	    new JvmThreadMetrics().bindTo(registry);
+	    new ProcessorMetrics().bindTo(registry);
+	    return registry;
 	}
 
 	@Bean

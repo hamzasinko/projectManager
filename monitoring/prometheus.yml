@@ -18,5 +18,8 @@ scrape_configs:
   # Application Tarnished (si endpoint /metrics exposé)
   - job_name: "tarnished-app"
     static_configs:
-      - targets: ["app:8091"]
+      - targets: ["app:8080"]
     metrics_path: /gl2526-tarnished/metrics
+    honor_timestamps: true
+    scrape_protocols:
+      - PrometheusText0.0.4

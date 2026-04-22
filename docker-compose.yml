@@ -39,6 +39,11 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
+      - /var/run:/var/run:ro     
+      - /:/rootfs:ro  
+    command:
+      - "--docker_only=true"         
+      - "--housekeeping_interval=5s" 
     privileged: true
     devices:
       - /dev/kmsg
