@@ -2,6 +2,7 @@ package fr.uha.ensisa.gl.tarnished.controller;
 
 import fr.uha.ensisa.gl.entities.Story;
 import fr.uha.ensisa.gl.entities.StoryStatus;
+import fr.uha.ensisa.gl.tarnished.dto.ProjectSummary;
 import fr.uha.ensisa.gl.tarnished.config.PathHelper;
 import fr.uha.ensisa.gl.tarnished.repos.RepoFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.util.Collection;
+import java.util.List;
 
 @Controller
 public class HomeController {
@@ -32,10 +34,14 @@ public class HomeController {
 	@RequestMapping(value="/")
 	public ModelAndView home(){
 		ModelAndView mav = new ModelAndView("home");
-		mav.addObject("projects", repoFactory.getProjectRepo().findAll());
+		List<ProjectSummary> projects = repoFactory.getProjectRepo()
+				.findAll()
+				.stream()
+				.map(p -> new ProjectSummary(p.getId(), p.getName(), p.getDescription()))
+				.toList();
+		mav.addObject("projects", projects);
 		
 		Collection<Story> allStories = repoFactory.getStoryRepo().findAll();
-		mav.addObject("recentStories", allStories);
 		
 		//calcule les stories en cours
 		long inProgressCount = allStories.stream()
