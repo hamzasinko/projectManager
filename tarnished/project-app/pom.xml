@@ -190,6 +190,7 @@
                         <contextPath>${jetty.context.path}</contextPath>
                     </webApp>
                     <scanIntervalSeconds>5</scanIntervalSeconds>
+                    <jettyXml>src/main/jetty/jetty.xml</jettyXml>
                     <systemProperties>
                         <systemProperty>
                             <name>org.eclipse.jetty.util.UrlEncoded.charset</name>

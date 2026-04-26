@@ -13,6 +13,11 @@ FROM jetty:9.4-jre17-alpine
 COPY --from=build /build/tarnished/project-app/target/project-app.war \
      /var/lib/jetty/webapps/gl2526-tarnished.war
 
+COPY tarnished/project-app/src/main/jetty/jetty-gzip.xml \
+     /var/lib/jetty/etc/jetty-gzip.xml
+
 EXPOSE 8091
 
-CMD ["java", "-Djetty.http.port=8091", "-jar", "/usr/local/jetty/start.jar"]
+CMD ["java", "-Djetty.http.port=8091", \
+     "-Djetty.etc.config.urls=etc/jetty.xml,etc/jetty-http.xml,etc/jetty-gzip.xml", \
+     "-jar", "/usr/local/jetty/start.jar"]
