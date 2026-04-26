@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: fr.uha.ensisa.gl.tarnished.it.TarnishedTest
+-------------------------------------------------------------------------------
+Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 519.8 s -- in fr.uha.ensisa.gl.tarnished.it.TarnishedTest
