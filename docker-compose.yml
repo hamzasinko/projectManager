@@ -14,6 +14,11 @@ services:
       - "8091:8080"
     networks:
       - tarnished-metrologie
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/gl2526-tarnished/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
     restart: unless-stopped
 
   # ── Selenium Chrome (WebDriver distant) ────────────────────────────────────
@@ -26,7 +31,36 @@ services:
     shm_size: "2g"
     networks:
       - tarnished-metrologie
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:4444/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
     restart: unless-stopped
+
+  # ── Tests Selenium (dans un conteneur) ─────────────────────────────────────
+  tests:
+    image: maven:3-eclipse-temurin-17-alpine
+    container_name: tarnished-tests-1
+    working_dir: /workspace/tarnished
+    volumes:
+      - ./tarnished:/workspace/tarnished
+      - m2-cache:/root/.m2
+    networks:
+      - tarnished-metrologie
+    depends_on:
+      app:
+        condition: service_healthy
+      selenium:
+        condition: service_healthy
+    environment:
+      - CI=true
+    command: >
+      mvn --batch-mode -pl project-app -am test
+      -Dselenium.remote.browser=true
+      -Dselenium.remote.url=http://selenium:4444/wd/hub
+      -Dhost=app
+      -Dservlet.port=8080
 
   # ── cAdvisor (métriques conteneurs) ────────────────────────────────────────
   cadvisor:
@@ -92,3 +126,4 @@ services:
 volumes:
   prometheus-data:
   grafana-data:
+  m2-cache:
