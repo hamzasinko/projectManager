@@ -57,6 +57,7 @@ services:
       - CI=true
     command: >
       mvn --batch-mode -pl project-app -am test
+      -DforkCount=0
       -Dselenium.remote.browser=true
       -Dselenium.remote.url=http://selenium:4444/wd/hub
       -Dhost=app
